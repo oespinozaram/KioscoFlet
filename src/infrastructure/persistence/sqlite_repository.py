@@ -1,0 +1,174 @@
+# src/infrastructure/persistence/sqlite_repository.py
+import sqlite3
+import datetime
+from src.domain.pedido import Pedido
+from src.application.repositories import (
+    TamanoRepository, CategoriaRepository, TipoPanRepository,
+    TipoFormaRepository, TipoRellenoRepository, TipoCoberturaRepository,
+    FinalizarPedidoRepository,
+    Categoria, TipoPan
+)
+
+
+class CategoriaRepositorySQLite(CategoriaRepository):
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+
+    def obtener_todas(self) -> list[Categoria]:
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT id_categoria, nombre_categoria FROM categorias ORDER BY id_categoria")
+                # Convertimos las filas de la BD en objetos Categoria
+                return [Categoria(id=row[0], nombre=row[1]) for row in cursor.fetchall()]
+        except sqlite3.Error as e:
+            print(f"Error al leer la tabla de categorías: {e}")
+            return []
+
+
+class TipoPanRepositorySQLite(TipoPanRepository):
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+
+    def obtener_por_categoria(self, id_categoria: int) -> list[TipoPan]:
+        query = """
+            SELECT tp.id_tipo_pan, tp.nombre_tipo_pan 
+            FROM categoria_tipos_pan_disponibles ctd, tipos_pan tp 
+            WHERE ctd.id_tipo_pan = tp.id_tipo_pan AND ctd.id_categoria = ?
+            ORDER BY tp.nombre_tipo_pan
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (id_categoria,))
+                return [TipoPan(id=row[0], nombre=row[1]) for row in cursor.fetchall()]
+        except sqlite3.Error as e:
+            print(f"Error al leer los tipos de pan por categoría: {e}")
+            return []
+
+
+class TipoFormaRepositorySQLite(TipoFormaRepository):
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+
+    def obtener_por_categoria(self, id_categoria: int) -> list[str]:
+        query = """
+            SELECT tf.nombre_tipo_forma 
+            FROM categoria_tipos_forma_disponibles ctfd, tipos_forma tf 
+            WHERE ctfd.id_tipo_forma = tf.id_tipo_forma AND ctfd.id_categoria = ?
+            ORDER BY tf.nombre_tipo_forma
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (id_categoria,))
+                return [row[0] for row in cursor.fetchall()]
+        except sqlite3.Error as e:
+            print(f"Error al leer los tipos de forma por categoría: {e}")
+            return []
+
+class TamanoRepositorySQLite(TamanoRepository):
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+
+    def obtener_todos(self) -> list[str]:
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT nombre_tamano FROM tipos_tamano ORDER BY id_tipo_tamano")
+                # El resultado es una lista de tuplas, ej: [('Chico',), ('Mediano',)]
+                # Lo convertimos a una lista de strings.
+                return [row[0] for row in cursor.fetchall()]
+        except sqlite3.Error as e:
+            print(f"Error al leer la base de datos: {e}")
+            return []
+
+
+class TipoRellenoRepositorySQLite(TipoRellenoRepository):
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+
+    def obtener_por_categoria_y_pan(self, id_categoria: int, id_tipo_pan: int) -> list[str]:
+        query = """
+            SELECT tr.nombre_tipo_relleno 
+            FROM categoria_tipos_relleno_disponibles ctrd, tipos_relleno tr 
+            WHERE ctrd.id_tipo_relleno = tr.id_tipo_relleno 
+            AND ctrd.id_categoria = ? AND ctrd.id_tipo_pan = ?
+            ORDER BY tr.nombre_tipo_relleno
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (id_categoria, id_tipo_pan))
+                return [row[0] for row in cursor.fetchall()]
+        except sqlite3.Error as e:
+            print(f"Error al leer los tipos de relleno: {e}")
+            return []
+
+
+class TipoCoberturaRepositorySQLite(TipoCoberturaRepository):
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+
+    def obtener_por_categoria(self, id_categoria: int) -> list[str]:
+        query = """
+            SELECT tc.nombre_tipo_cobertura 
+            FROM categoria_tipos_cobertura_disponibles ctcd, tipos_cobertura tc 
+            WHERE ctcd.id_tipo_cobertura = tc.id_tipo_cobertura AND ctcd.id_categoria = ?
+            ORDER BY tc.nombre_tipo_cobertura
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (id_categoria,))
+                return [row[0] for row in cursor.fetchall()]
+        except sqlite3.Error as e:
+            print(f"Error al leer los tipos de cobertura por categoría: {e}")
+            return []
+
+
+class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+
+    def finalizar(self, pedido: Pedido):
+        """Inserta el pedido completo en la tabla 'pedidos' de la base de datos."""
+        query = """
+                INSERT INTO pedidos (fecha_creacion, fecha_entrega, tamano_pastel, id_categoria, tipo_pan, \
+                                     tipo_forma, tipo_relleno, tipo_cobertura, nombre_completo, telefono, \
+                                     direccion, numero_exterior, entre_calles, codigo_postal, colonia, \
+                                     ciudad, municipio, estado, referencias) \
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) \
+                """
+
+        # Preparamos los datos en una tupla, en el orden correcto
+        datos = (
+            datetime.datetime.now().isoformat(),
+            pedido.fecha_entrega.isoformat() if pedido.fecha_entrega else None,
+            pedido.tamano_pastel,
+            pedido.id_categoria,
+            pedido.tipo_pan,
+            pedido.tipo_forma,
+            pedido.tipo_relleno,
+            pedido.tipo_cobertura,
+            # Datos de entrega (si existen)
+            pedido.datos_entrega.nombre_completo if pedido.datos_entrega else None,
+            pedido.datos_entrega.telefono if pedido.datos_entrega else None,
+            pedido.datos_entrega.direccion if pedido.datos_entrega else None,
+            pedido.datos_entrega.numero_exterior if pedido.datos_entrega else None,
+            pedido.datos_entrega.entre_calles if pedido.datos_entrega else None,
+            pedido.datos_entrega.codigo_postal if pedido.datos_entrega else None,
+            pedido.datos_entrega.colonia if pedido.datos_entrega else None,
+            pedido.datos_entrega.ciudad if pedido.datos_entrega else None,
+            pedido.datos_entrega.municipio if pedido.datos_entrega else None,
+            pedido.datos_entrega.estado if pedido.datos_entrega else None,
+            pedido.datos_entrega.referencias if pedido.datos_entrega else None,
+        )
+
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, datos)
+                conn.commit()
+        except sqlite3.Error as e:
+            print(f"Error al guardar el pedido final en la base de datos: {e}")
