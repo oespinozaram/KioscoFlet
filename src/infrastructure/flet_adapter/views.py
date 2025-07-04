@@ -76,17 +76,27 @@ def vista_categorias(page: ft.Page, use_cases: PedidoUseCases):
         use_cases.seleccionar_tipo_pan(nombre_pan_seleccionado)
         for btn in contenedor_panes.controls: btn.selected = (btn == e.control)
 
-        contenedor_rellenos.controls.clear()
         id_categoria_actual = use_cases.obtener_pedido_actual().id_categoria
-        lista_rellenos = use_cases.obtener_rellenos_disponibles(id_categoria_actual, id_pan_seleccionado)
 
+        contenedor_rellenos.controls.clear()
+        lista_rellenos = use_cases.obtener_rellenos_disponibles(id_categoria_actual, id_pan_seleccionado)
         if not lista_rellenos:
             contenedor_rellenos.controls.append(ft.Text("No hay rellenos para esta combinación."))
         else:
             for nombre_relleno in lista_rellenos:
                 contenedor_rellenos.controls.append(ft.FilledButton(text=nombre_relleno, on_click=on_relleno_selected))
-
         seccion_rellenos.visible = True
+
+        contenedor_coberturas.controls.clear()
+        lista_coberturas = use_cases.obtener_coberturas_disponibles(id_categoria_actual, id_pan_seleccionado)
+        if not lista_coberturas:
+            contenedor_coberturas.controls.append(ft.Text("No hay coberturas para esta combinación."))
+        else:
+            for nombre_cobertura in lista_coberturas:
+                contenedor_coberturas.controls.append(
+                    ft.FilledButton(text=nombre_cobertura, on_click=on_cobertura_selected))
+        seccion_coberturas.visible = True
+
         check_and_show_final_actions()
         page.update()
 
@@ -100,25 +110,16 @@ def vista_categorias(page: ft.Page, use_cases: PedidoUseCases):
         id_categoria = e.control.data
         use_cases.seleccionar_categoria(id_categoria)
 
-        for cont in [contenedor_formas, contenedor_panes, contenedor_rellenos,
-                     contenedor_coberturas]: cont.controls.clear()
-        for sec in [seccion_formas, seccion_panes, seccion_rellenos, seccion_coberturas,
-                    acciones_finales]: sec.visible = False
+        for cont in [contenedor_formas, contenedor_panes, contenedor_rellenos, contenedor_coberturas]: cont.controls.clear()
+        for sec in [seccion_formas, seccion_panes, seccion_rellenos, seccion_coberturas, acciones_finales]: sec.visible = False
 
-        # Cargar formas
         for forma in use_cases.obtener_formas_por_categoria(id_categoria):
             contenedor_formas.controls.append(ft.FilledButton(text=forma, on_click=on_forma_selected))
         seccion_formas.visible = True
 
-        # Cargar panes
         for pan in use_cases.obtener_panes_por_categoria(id_categoria):
             contenedor_panes.controls.append(ft.FilledButton(text=pan.nombre, data=pan.id, on_click=on_pan_selected))
         seccion_panes.visible = True
-
-        # Cargar coberturas (depende solo de la categoría)
-        for cobertura in use_cases.obtener_coberturas_por_categoria(id_categoria):
-            contenedor_coberturas.controls.append(ft.FilledButton(text=cobertura, on_click=on_cobertura_selected))
-        seccion_coberturas.visible = True
 
         page.update()
 
@@ -128,7 +129,6 @@ def vista_categorias(page: ft.Page, use_cases: PedidoUseCases):
                           lista_categorias]
     acciones_finales.controls.extend([
         ft.ElevatedButton("Volver", on_click=lambda _: page.go("/tamano")),
-        #ft.ElevatedButton("Ver Resumen", on_click=lambda _: page.go("/resumen")),
         ft.ElevatedButton("Elegir Decorado", on_click=lambda _: page.go("/decorado")),
     ])
 
@@ -154,43 +154,82 @@ def vista_categorias(page: ft.Page, use_cases: PedidoUseCases):
 
 
 def vista_decorado(page: ft.Page, use_cases: PedidoUseCases):
-    # Contenedor para las sub-opciones que aparecerán dinámicamente
+    # --- Contenedores dinámicos ---
     sub_opciones_container = ft.Column(spacing=10)
-    # El botón de continuar, inicialmente invisible
+    # Nuevo contenedor para los colores
+    contenedor_colores = ft.Row(alignment=ft.MainAxisAlignment.CENTER, visible=False)
+
     boton_continuar = ft.ElevatedButton("Continuar", on_click=lambda _: page.go("/extras"), visible=False)
+
+    def check_continuar():
+        """Verifica si se debe mostrar el botón de continuar."""
+        pedido = use_cases.obtener_pedido_actual()
+        if (pedido.tipo_decorado == "Liso c/s rosetones" and pedido.decorado_liso_color) or \
+                (pedido.tipo_decorado == "Diseño o Temática" and pedido.decorado_tematica_detalle) or \
+                (pedido.tipo_decorado == "Imágenes Predeterminadas" and pedido.decorado_imagen_id):
+            boton_continuar.visible = True
+        else:
+            boton_continuar.visible = False
+        page.update()
+
+    def on_color_click(e):
+        use_cases.seleccionar_color_decorado_liso(e.control.text)
+        # Resaltar botón de color seleccionado
+        for btn in contenedor_colores.controls:
+            btn.selected = (btn == e.control)
+        check_continuar()
+        page.update()
+
+    def on_sub_decorado_liso_click(e):
+        # Guardamos el detalle (Chantilli/Chorreado)
+        use_cases.guardar_detalle_decorado("Liso c/s rosetones", e.control.text)
+
+        # Resaltamos el botón seleccionado
+        for btn in sub_opciones_container.controls:
+            if isinstance(btn, ft.ElevatedButton):
+                btn.selected = (btn == e.control)
+
+        # Mostramos los botones de colores
+        contenedor_colores.controls.clear()
+        colores = ["Blanco", "Rosa", "Azul", "Verde", "Amarillo"]
+        for color in colores:
+            contenedor_colores.controls.append(ft.FilledButton(text=color, on_click=on_color_click))
+        contenedor_colores.visible = True
+
+        check_continuar()
+        page.update()
 
     def on_decorado_principal_click(e):
         tipo_decorado = e.control.text
         use_cases.seleccionar_tipo_decorado(tipo_decorado)
 
-        # Limpiar opciones anteriores y ocultar el botón de continuar
+        # Limpiar opciones anteriores
         sub_opciones_container.controls.clear()
+        contenedor_colores.visible = False
         boton_continuar.visible = False
 
-        # Mostrar sub-opciones según el botón presionado
         if tipo_decorado == "Liso c/s rosetones":
-            def on_sub_click(e_sub):
-                use_cases.guardar_detalle_decorado(tipo_decorado, e_sub.control.text)
-                boton_continuar.visible = True
-                page.update()
-
             sub_opciones_container.controls.extend([
-                ft.ElevatedButton("Chantilli", on_click=on_sub_click),
-                ft.ElevatedButton("Chorreado", on_click=on_sub_click),
+                ft.ElevatedButton("Chantilli", on_click=on_sub_decorado_liso_click),
+                ft.ElevatedButton("Chorreado", on_click=on_sub_decorado_liso_click),
             ])
 
         elif tipo_decorado == "Diseño o Temática":
             def on_text_change(e_text):
                 use_cases.guardar_detalle_decorado(tipo_decorado, e_text.control.value)
-                boton_continuar.visible = bool(e_text.control.value)  # Visible si hay texto
-                page.update()
+                check_continuar()
 
-            sub_opciones_container.controls.append(
-                ft.TextField(label="Escribe la temática o personaje", on_change=on_text_change)
-            )
+            sub_opciones_container.controls.extend([
+                ft.TextField(label="Escribe la temática o personaje", on_change=on_text_change),
+                ft.Text(
+                    "El material que se usará será acetato y no es comestible.",
+                    italic=True,
+                    size=12,
+                    color=ft.Colors.GREY_600
+                )
+            ])
 
         elif tipo_decorado == "Imágenes Predeterminadas":
-            # Este botón es especial, navega a otra pantalla
             sub_opciones_container.controls.append(
                 ft.ElevatedButton("Ver Galería de Imágenes", on_click=lambda _: page.go("/galeria"))
             )
@@ -210,6 +249,8 @@ def vista_decorado(page: ft.Page, use_cases: PedidoUseCases):
             ft.Row(controls=botones_principales, alignment=ft.MainAxisAlignment.CENTER),
             ft.Divider(height=15),
             sub_opciones_container,
+            # Añadimos el nuevo contenedor de colores aquí
+            contenedor_colores,
             ft.Divider(height=15),
             ft.Row(
                 [
@@ -221,7 +262,8 @@ def vista_decorado(page: ft.Page, use_cases: PedidoUseCases):
         ],
         vertical_alignment=ft.MainAxisAlignment.START,
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        spacing=15, padding=20
+        spacing=15, padding=20,
+        scroll=ft.ScrollMode.ADAPTIVE
     )
 
 
@@ -264,7 +306,6 @@ def vista_galeria(page: ft.Page, use_cases: PedidoUseCases):
     )
 
 
-# --- NUEVA VISTA DE EXTRAS ---
 def vista_extras(page: ft.Page, use_cases: PedidoUseCases):
     def on_radio_change(e):
         use_cases.seleccionar_extra(e.control.value)
@@ -329,6 +370,7 @@ def vista_resumen(page: ft.Page, use_cases: PedidoUseCases):
                     create_summary_row("Detalle Temática", pedido_actual.decorado_tematica_detalle),
                     create_summary_row("ID Imagen", str(pedido_actual.decorado_imagen_id)),
                     create_summary_row("Extra", pedido_actual.extra_seleccionado),
+                    create_summary_row("Color", pedido_actual.decorado_liso_color),
 
                 ],
                 spacing=10

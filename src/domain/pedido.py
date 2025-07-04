@@ -15,11 +15,10 @@ class Pedido:
         self.datos_entrega: DatosEntrega | None = None
         self.mensaje_pastel: str | None = None
         self.tipo_decorado: str | None = None
-        self.decorado_liso_detalle: str | None = None  # "Chantilli" o "Chorreado"
-        self.decorado_tematica_detalle: str | None = None  # "Spiderman", "Frozen", etc.
-        self.decorado_imagen_id: int | None = None  # ID de la imagen seleccionada
-
-        # --- NUEVO CAMPO PARA EXTRAS ---
+        self.decorado_liso_detalle: str | None = None
+        self.decorado_tematica_detalle: str | None = None
+        self.decorado_imagen_id: int | None = None
+        self.decorado_liso_color: str | None = None
         self.extra_seleccionado: str | None = None
 
     def reiniciar(self):
@@ -38,6 +37,7 @@ class Pedido:
         self.decorado_tematica_detalle = None
         self.decorado_imagen_id = None
         self.extra_seleccionado = None
+        self.decorado_liso_color = None
 
     def __str__(self):
         return f"Pedido(Categoria: {self.id_categoria}, Decorado: '{self.tipo_decorado}', Mensaje: '{self.mensaje_pastel}')"

@@ -56,8 +56,8 @@ class TipoRellenoRepository(ABC):
 
 class TipoCoberturaRepository(ABC):
     @abstractmethod
-    def obtener_por_categoria(self, id_categoria: int) -> list[str]:
-        pass
+    def obtener_por_categoria_y_pan(self, id_categoria: int, id_tipo_pan: int) -> list[str]:
+       pass
 
 class FinalizarPedidoRepository(ABC):
     @abstractmethod

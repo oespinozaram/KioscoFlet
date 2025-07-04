@@ -110,17 +110,17 @@ class TipoCoberturaRepositorySQLite(TipoCoberturaRepository):
     def __init__(self, db_path: str):
         self.db_path = db_path
 
-    def obtener_por_categoria(self, id_categoria: int) -> list[str]:
+    def obtener_por_categoria_y_pan(self, id_categoria: int, id_tipo_pan: int) -> list[str]:
         query = """
             SELECT tc.nombre_tipo_cobertura 
             FROM categoria_tipos_cobertura_disponibles ctcd, tipos_cobertura tc 
-            WHERE ctcd.id_tipo_cobertura = tc.id_tipo_cobertura AND ctcd.id_categoria = ?
+            WHERE ctcd.id_tipo_cobertura = tc.id_tipo_cobertura AND ctcd.id_categoria = ? AND ctcd.id_tipo_pan = ?
             ORDER BY tc.nombre_tipo_cobertura
         """
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute(query, (id_categoria,))
+                cursor.execute(query, (id_categoria, id_tipo_pan))
                 return [row[0] for row in cursor.fetchall()]
         except sqlite3.Error as e:
             print(f"Error al leer los tipos de cobertura por categoría: {e}")
@@ -134,12 +134,15 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
     def finalizar(self, pedido: Pedido):
         """Inserta el pedido completo en la tabla 'pedidos' de la base de datos."""
         query = """
-                INSERT INTO pedidos (fecha_creacion, fecha_entrega, tamano_pastel, id_categoria, tipo_pan, \
-                                     tipo_forma, tipo_relleno, tipo_cobertura, nombre_completo, telefono, \
-                                     direccion, numero_exterior, entre_calles, codigo_postal, colonia, \
-                                     ciudad, municipio, estado, referencias) \
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) \
-                """
+            INSERT INTO pedidos (
+                fecha_creacion, fecha_entrega, tamano_pastel, id_categoria, tipo_pan, 
+                tipo_forma, tipo_relleno, tipo_cobertura, mensaje_pastel, tipo_decorado,
+                decorado_liso_detalle, decorado_liso_color, decorado_tematica_detalle,
+                decorado_imagen_id, extra_seleccionado, nombre_completo, telefono,
+                direccion, numero_exterior, entre_calles, codigo_postal, colonia,
+                ciudad, municipio, estado, referencias
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
 
         # Preparamos los datos en una tupla, en el orden correcto
         datos = (
@@ -151,6 +154,13 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
             pedido.tipo_forma,
             pedido.tipo_relleno,
             pedido.tipo_cobertura,
+            pedido.mensaje_pastel,
+            pedido.tipo_decorado,
+            pedido.decorado_liso_detalle,
+            pedido.decorado_liso_color,
+            pedido.decorado_tematica_detalle,
+            pedido.decorado_imagen_id,
+            pedido.extra_seleccionado,
             # Datos de entrega (si existen)
             pedido.datos_entrega.nombre_completo if pedido.datos_entrega else None,
             pedido.datos_entrega.telefono if pedido.datos_entrega else None,
