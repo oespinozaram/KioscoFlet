@@ -3,11 +3,12 @@ import datetime
 from .repositories import (
     PedidoRepository, TamanoRepository, CategoriaRepository,
     TipoPanRepository, TipoFormaRepository, TipoRellenoRepository,
-    TipoCoberturaRepository, FinalizarPedidoRepository, Categoria, TipoPan
+    TipoCoberturaRepository, FinalizarPedidoRepository, Categoria, TipoPan,
+    ImagenGaleriaRepository
 )
 from src.domain.datos_entrega import DatosEntrega
 from src.domain.pedido import Pedido
-from src.infrastructure.services.qr_service import QRService
+from src.domain.imagen_galeria import ImagenGaleria
 
 
 class PedidoUseCases:
@@ -15,7 +16,7 @@ class PedidoUseCases:
                  categoria_repo: CategoriaRepository, tipo_pan_repo: TipoPanRepository,
                  tipo_forma_repo: TipoFormaRepository, tipo_relleno_repo: TipoRellenoRepository,
                  tipo_cobertura_repo: TipoCoberturaRepository, finalizar_repo: FinalizarPedidoRepository,
-                 qr_service: QRService):
+                 imagen_galeria_repo: ImagenGaleriaRepository):
         self.pedido_repo = pedido_repo
         self.tamano_repo = tamano_repo
         self.categoria_repo = categoria_repo
@@ -24,8 +25,39 @@ class PedidoUseCases:
         self.tipo_relleno_repo = tipo_relleno_repo
         self.tipo_cobertura_repo = tipo_cobertura_repo
         self.finalizar_repo = finalizar_repo
-        self.qr_service = qr_service
         self.tamanos_disponibles = []
+        self.imagen_galeria_repo = imagen_galeria_repo
+
+    def guardar_detalle_decorado(self, tipo: str, detalle: str):
+        """Guarda los detalles de la decoración (liso o temática)."""
+        pedido = self.pedido_repo.obtener()
+        if tipo == "Liso c/s rosetones":
+            pedido.decorado_liso_detalle = detalle
+        elif tipo == "Diseño o Temática":
+            pedido.decorado_tematica_detalle = detalle
+        self.pedido_repo.guardar(pedido)
+
+    def obtener_imagenes_galeria(self) -> list[ImagenGaleria]:
+        return self.imagen_galeria_repo.obtener_todas()
+
+    def seleccionar_imagen_decorado(self, id_imagen: int):
+        pedido = self.pedido_repo.obtener()
+        pedido.decorado_imagen_id = id_imagen
+        self.pedido_repo.guardar(pedido)
+
+    def seleccionar_extra(self, extra: str | None):
+        pedido = self.pedido_repo.obtener()
+        pedido.extra_seleccionado = extra
+        self.pedido_repo.guardar(pedido)
+
+    def seleccionar_tipo_decorado(self, tipo_decorado: str):
+        pedido = self.pedido_repo.obtener()
+        pedido.tipo_decorado = tipo_decorado
+        # Reseteamos los detalles si cambia la opción principal
+        pedido.decorado_liso_detalle = None
+        pedido.decorado_tematica_detalle = None
+        pedido.decorado_imagen_id = None
+        self.pedido_repo.guardar(pedido)
 
     def obtener_coberturas_por_categoria(self, id_categoria: int) -> list[str]:
         return self.tipo_cobertura_repo.obtener_por_categoria(id_categoria)
@@ -145,8 +177,22 @@ class PedidoUseCases:
         pedido.tamano_pastel = tamanos[0] if tamanos else None
         self.pedido_repo.guardar(pedido)
 
+    def seleccionar_tipo_decorado(self, tipo_decorado: str):
+        """Guarda el tipo de decorado seleccionado."""
+        pedido = self.pedido_repo.obtener()
+        pedido.tipo_decorado = tipo_decorado
+        self.pedido_repo.guardar(pedido)
+        print(f"INFO: Decorado '{tipo_decorado}' seleccionado.")
 
-    def guardar_datos_y_finalizar(self, datos: dict) -> tuple[Pedido, str]:
+    def guardar_mensaje_pastel(self, mensaje: str):
+        """Guarda el mensaje para el pastel."""
+        pedido = self.pedido_repo.obtener()
+        pedido.mensaje_pastel = mensaje
+        self.pedido_repo.guardar(pedido)
+        print(f"INFO: Mensaje '{mensaje}' guardado.")
+
+
+    def guardar_datos_y_finalizar(self, datos: dict) -> Pedido:
         """
         Guarda los datos de entrega, finaliza el pedido en la BD,
         genera un QR y devuelve el pedido y el string base64 del QR.
@@ -172,8 +218,5 @@ class PedidoUseCases:
             f"Pan: {pedido.tipo_pan}"
         )
 
-        # 4. Generar el QR usando el servicio
-        qr_base64 = self.qr_service.generar_qr_base64(datos_qr)
-
         # 5. Devolver el pedido completo y el QR
-        return pedido, qr_base64
+        return pedido

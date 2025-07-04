@@ -7,16 +7,15 @@ from src.infrastructure.persistence.sqlite_repository import (
     TamanoRepositorySQLite, CategoriaRepositorySQLite,
     TipoPanRepositorySQLite, TipoFormaRepositorySQLite,
     TipoRellenoRepositorySQLite, TipoCoberturaRepositorySQLite,
-    FinalizarPedidoRepositorySQLite
+    FinalizarPedidoRepositorySQLite, ImagenGaleriaRepositorySQLite
 )
-from src.infrastructure.services.qr_service import QRService
 from src.infrastructure.flet_adapter import views
 
 
 def main(page: ft.Page):
-    page.title = "Pastelería Pepe"
+    page.title = "Pastelería Pepe - KioscoPP"
 
-    db_path = r"C:\Database\config.db"
+    db_path = r"/Users/omar/Github/KioscoFlet/config.db"
     pedido_repo = PedidoRepositoryEnMemoria()
     tamano_repo = TamanoRepositorySQLite(db_path)
     categoria_repo = CategoriaRepositorySQLite(db_path)
@@ -25,12 +24,13 @@ def main(page: ft.Page):
     tipo_relleno_repo = TipoRellenoRepositorySQLite(db_path)
     tipo_cobertura_repo = TipoCoberturaRepositorySQLite(db_path)
     finalizar_repo = FinalizarPedidoRepositorySQLite(db_path)
-    qr_service = QRService()
+    imagen_galeria_repo = ImagenGaleriaRepositorySQLite(db_path)
+
 
     pedido_use_cases = PedidoUseCases(
         pedido_repo, tamano_repo, categoria_repo,
         tipo_pan_repo, tipo_forma_repo, tipo_relleno_repo,
-        tipo_cobertura_repo, finalizar_repo, qr_service
+        tipo_cobertura_repo, finalizar_repo, imagen_galeria_repo
     )
 
     def route_change(route):
@@ -47,6 +47,12 @@ def main(page: ft.Page):
             page.views.append(views.vista_resumen(page, pedido_use_cases))
         elif page.route == "/datos_cliente":
             page.views.append(views.vista_datos_cliente(page, pedido_use_cases))
+        elif page.route == "/decorado":
+            page.views.append(views.vista_decorado(page, pedido_use_cases))
+        elif page.route == "/galeria":  # Nueva ruta
+            page.views.append(views.vista_galeria(page, pedido_use_cases))
+        elif page.route == "/extras":  # Nueva ruta
+            page.views.append(views.vista_extras(page, pedido_use_cases))
         elif page.route == "/confirmacion":
             page.views.append(views.vista_confirmacion(page))
         page.update()

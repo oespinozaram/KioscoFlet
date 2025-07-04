@@ -128,7 +128,8 @@ def vista_categorias(page: ft.Page, use_cases: PedidoUseCases):
                           lista_categorias]
     acciones_finales.controls.extend([
         ft.ElevatedButton("Volver", on_click=lambda _: page.go("/tamano")),
-        ft.ElevatedButton("Ver Resumen", on_click=lambda _: page.go("/resumen")),
+        #ft.ElevatedButton("Ver Resumen", on_click=lambda _: page.go("/resumen")),
+        ft.ElevatedButton("Elegir Decorado", on_click=lambda _: page.go("/decorado")),
     ])
 
     return ft.View(
@@ -149,6 +150,148 @@ def vista_categorias(page: ft.Page, use_cases: PedidoUseCases):
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         spacing=10,
         scroll=ft.ScrollMode.ADAPTIVE
+    )
+
+
+def vista_decorado(page: ft.Page, use_cases: PedidoUseCases):
+    # Contenedor para las sub-opciones que aparecerán dinámicamente
+    sub_opciones_container = ft.Column(spacing=10)
+    # El botón de continuar, inicialmente invisible
+    boton_continuar = ft.ElevatedButton("Continuar", on_click=lambda _: page.go("/extras"), visible=False)
+
+    def on_decorado_principal_click(e):
+        tipo_decorado = e.control.text
+        use_cases.seleccionar_tipo_decorado(tipo_decorado)
+
+        # Limpiar opciones anteriores y ocultar el botón de continuar
+        sub_opciones_container.controls.clear()
+        boton_continuar.visible = False
+
+        # Mostrar sub-opciones según el botón presionado
+        if tipo_decorado == "Liso c/s rosetones":
+            def on_sub_click(e_sub):
+                use_cases.guardar_detalle_decorado(tipo_decorado, e_sub.control.text)
+                boton_continuar.visible = True
+                page.update()
+
+            sub_opciones_container.controls.extend([
+                ft.ElevatedButton("Chantilli", on_click=on_sub_click),
+                ft.ElevatedButton("Chorreado", on_click=on_sub_click),
+            ])
+
+        elif tipo_decorado == "Diseño o Temática":
+            def on_text_change(e_text):
+                use_cases.guardar_detalle_decorado(tipo_decorado, e_text.control.value)
+                boton_continuar.visible = bool(e_text.control.value)  # Visible si hay texto
+                page.update()
+
+            sub_opciones_container.controls.append(
+                ft.TextField(label="Escribe la temática o personaje", on_change=on_text_change)
+            )
+
+        elif tipo_decorado == "Imágenes Predeterminadas":
+            # Este botón es especial, navega a otra pantalla
+            sub_opciones_container.controls.append(
+                ft.ElevatedButton("Ver Galería de Imágenes", on_click=lambda _: page.go("/galeria"))
+            )
+
+        page.update()
+
+    botones_principales = [
+        ft.ElevatedButton(text, on_click=on_decorado_principal_click)
+        for text in ["Liso c/s rosetones", "Diseño o Temática", "Imágenes Predeterminadas"]
+    ]
+
+    return ft.View(
+        route="/decorado",
+        controls=[
+            ft.Text("Paso 4: Decorado del Pastel", size=30, weight=ft.FontWeight.BOLD),
+            ft.Text("Elige un estilo de decoración:"),
+            ft.Row(controls=botones_principales, alignment=ft.MainAxisAlignment.CENTER),
+            ft.Divider(height=15),
+            sub_opciones_container,
+            ft.Divider(height=15),
+            ft.Row(
+                [
+                    ft.ElevatedButton("Volver", on_click=lambda _: page.go("/categorias")),
+                    boton_continuar,
+                ],
+                alignment=ft.MainAxisAlignment.CENTER
+            )
+        ],
+        vertical_alignment=ft.MainAxisAlignment.START,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        spacing=15, padding=20
+    )
+
+
+# --- NUEVA VISTA DE GALERÍA ---
+def vista_galeria(page: ft.Page, use_cases: PedidoUseCases):
+    def on_image_click(e):
+        id_imagen_seleccionada = e.control.data
+        use_cases.seleccionar_imagen_decorado(id_imagen_seleccionada)
+        page.go("/extras")  # Avanza a la siguiente pantalla
+
+    # Usamos un GridView para mostrar las imágenes de forma atractiva
+    grid = ft.GridView(expand=1, runs_count=2, max_extent=150, child_aspect_ratio=1.0, spacing=10, run_spacing=10)
+
+    for img in use_cases.obtener_imagenes_galeria():
+        grid.controls.append(
+            ft.Container(
+                content=ft.Stack([
+                    ft.Image(src=img.url, fit=ft.ImageFit.COVER, border_radius=ft.border_radius.all(10)),
+                    ft.Container(
+                        content=ft.Text(img.descripcion, color="white"),
+                        bgcolor=ft.Colors.BLACK45,
+                        padding=5,
+                        alignment=ft.alignment.bottom_center,
+                        border_radius=ft.border_radius.all(10)
+                    )
+                ]),
+                data=img.id,
+                on_click=on_image_click,
+                tooltip=f"Seleccionar {img.descripcion}"
+            )
+        )
+
+    return ft.View(
+        route="/galeria",
+        controls=[
+            ft.Row([ft.IconButton(ft.Icons.ARROW_BACK, on_click=lambda _: page.go("/decorado")),
+                    ft.Text("Galería de Imágenes", size=24, weight=ft.FontWeight.BOLD)]),
+            grid
+        ]
+    )
+
+
+# --- NUEVA VISTA DE EXTRAS ---
+def vista_extras(page: ft.Page, use_cases: PedidoUseCases):
+    def on_radio_change(e):
+        use_cases.seleccionar_extra(e.control.value)
+
+    opciones_extra = ft.RadioGroup(
+        content=ft.Column([
+            ft.Radio(value="Flor Artificial", label="Flor Artificial"),
+            ft.Radio(value="Chorreado dorado", label="Chorreado dorado"),
+            ft.Radio(value="Chorreado plateado", label="Chorreado plateado"),
+        ]),
+        on_change=on_radio_change,
+        value=use_cases.obtener_pedido_actual().extra_seleccionado
+    )
+
+    return ft.View(
+        route="/extras",
+        controls=[
+            ft.Text("Paso 5: ¿Deseas algún Extra?", size=30, weight=ft.FontWeight.BOLD),
+            opciones_extra,
+            ft.Row([
+                ft.ElevatedButton("Volver", on_click=lambda _: page.go("/decorado")),
+                ft.ElevatedButton("Ver Resumen", on_click=lambda _: page.go("/resumen"))
+            ], alignment=ft.MainAxisAlignment.CENTER)
+        ],
+        vertical_alignment=ft.MainAxisAlignment.CENTER,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        spacing=20
     )
 
 
@@ -180,6 +323,13 @@ def vista_resumen(page: ft.Page, use_cases: PedidoUseCases):
                     create_summary_row("Pan", pedido_actual.tipo_pan),
                     create_summary_row("Relleno", pedido_actual.tipo_relleno),
                     create_summary_row("Cobertura", pedido_actual.tipo_cobertura),
+                    create_summary_row("Decorado", pedido_actual.tipo_decorado),
+                    create_summary_row("Mensaje", pedido_actual.mensaje_pastel),
+                    create_summary_row("Detalle Liso", pedido_actual.decorado_liso_detalle),
+                    create_summary_row("Detalle Temática", pedido_actual.decorado_tematica_detalle),
+                    create_summary_row("ID Imagen", str(pedido_actual.decorado_imagen_id)),
+                    create_summary_row("Extra", pedido_actual.extra_seleccionado),
+
                 ],
                 spacing=10
             ),
@@ -357,11 +507,10 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases):
 
         try:
             # 1. Ejecutamos el caso de uso y obtenemos el pedido final y el QR
-            pedido_final, qr_base64 = use_cases.guardar_datos_y_finalizar(datos_formulario)
+            pedido_final = use_cases.guardar_datos_y_finalizar(datos_formulario)
 
             # 2. Guardamos los datos en la sesión de la página para pasarlos a la siguiente vista
             page.session.set("pedido_final", pedido_final)
-            page.session.set("qr_base64", qr_base64)
 
             # 3. Navegamos a la pantalla final
             page.go("/confirmacion")
@@ -407,9 +556,8 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases):
 def vista_confirmacion(page: ft.Page):
 
     pedido_final = page.session.get("pedido_final")
-    qr_base64 = page.session.get("qr_base64")
 
-    if not pedido_final or not qr_base64:
+    if not pedido_final:
         return ft.View("/", [ft.Text("Error: No se encontraron datos del pedido.")])
 
 
@@ -429,7 +577,6 @@ def vista_confirmacion(page: ft.Page):
         ft.Text("¡Pedido Confirmado!", size=30, weight=ft.FontWeight.BOLD),
         ft.Text(f"Gracias, {pedido_final.datos_entrega.nombre_completo}"),
         ft.Divider(),
-        ft.Image(src_base64=qr_base64, width=200, height=200),
         ft.Text("Detalles del Pedido:", weight=ft.FontWeight.BOLD),
         create_summary_row("Categoría ID", str(pedido_final.id_categoria)),
         create_summary_row("Fecha Entrega", pedido_final.fecha_entrega.strftime('%d/%m/%Y')),

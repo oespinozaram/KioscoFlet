@@ -13,6 +13,14 @@ class Pedido:
         self.tipo_relleno: str | None = None
         self.tipo_cobertura: str | None = None
         self.datos_entrega: DatosEntrega | None = None
+        self.mensaje_pastel: str | None = None
+        self.tipo_decorado: str | None = None
+        self.decorado_liso_detalle: str | None = None  # "Chantilli" o "Chorreado"
+        self.decorado_tematica_detalle: str | None = None  # "Spiderman", "Frozen", etc.
+        self.decorado_imagen_id: int | None = None  # ID de la imagen seleccionada
+
+        # --- NUEVO CAMPO PARA EXTRAS ---
+        self.extra_seleccionado: str | None = None
 
     def reiniciar(self):
         """Reinicia la entidad a su estado por defecto."""
@@ -24,9 +32,12 @@ class Pedido:
         self.tipo_relleno = None
         self.tipo_cobertura = None
         self.datos_entrega = None
+        self.mensaje_pastel = None
+        self.tipo_decorado = None
+        self.decorado_liso_detalle = None
+        self.decorado_tematica_detalle = None
+        self.decorado_imagen_id = None
+        self.extra_seleccionado = None
 
     def __str__(self):
-        return (f"Pedido(Categoria: {self.id_categoria}, Fecha: {self.fecha_entrega}, "
-                f"Tamaño: '{self.tamano_pastel}', Pan: '{self.tipo_pan}', "
-                f"Forma: '{self.tipo_forma}', Relleno: '{self.tipo_relleno}', "
-                f"Cobertura: '{self.tipo_cobertura}')")
+        return f"Pedido(Categoria: {self.id_categoria}, Decorado: '{self.tipo_decorado}', Mensaje: '{self.mensaje_pastel}')"

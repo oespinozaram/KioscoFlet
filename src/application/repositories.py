@@ -2,6 +2,7 @@
 from abc import ABC, abstractmethod
 from typing import NamedTuple
 from src.domain.pedido import Pedido
+from src.domain.imagen_galeria import ImagenGaleria
 
 
 class Categoria(NamedTuple):
@@ -61,4 +62,10 @@ class TipoCoberturaRepository(ABC):
 class FinalizarPedidoRepository(ABC):
     @abstractmethod
     def finalizar(self, pedido: Pedido):
+        pass
+
+
+class ImagenGaleriaRepository(ABC):
+    @abstractmethod
+    def obtener_todas(self) -> list[ImagenGaleria]:
         pass

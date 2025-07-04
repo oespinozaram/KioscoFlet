@@ -6,7 +6,7 @@ from src.application.repositories import (
     TamanoRepository, CategoriaRepository, TipoPanRepository,
     TipoFormaRepository, TipoRellenoRepository, TipoCoberturaRepository,
     FinalizarPedidoRepository,
-    Categoria, TipoPan
+    Categoria, TipoPan, ImagenGaleriaRepository, ImagenGaleria
 )
 
 
@@ -172,3 +172,18 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
                 conn.commit()
         except sqlite3.Error as e:
             print(f"Error al guardar el pedido final en la base de datos: {e}")
+
+class ImagenGaleriaRepositorySQLite(ImagenGaleriaRepository):
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+
+    def obtener_todas(self) -> list[ImagenGaleria]:
+        query = "SELECT id_imagen, url_imagen, descripcion FROM imagenes_galeria"
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(query)
+                return [ImagenGaleria(id=row[0], url=row[1], descripcion=row[2]) for row in cursor.fetchall()]
+        except sqlite3.Error as e:
+            print(f"Error al leer la galería de imágenes: {e}")
+            return []
