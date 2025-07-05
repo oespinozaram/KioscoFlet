@@ -154,7 +154,13 @@ def vista_categorias(page: ft.Page, use_cases: PedidoUseCases):
 
 
 def vista_decorado(page: ft.Page, use_cases: PedidoUseCases):
+    pedido_actual = use_cases.obtener_pedido_actual()
     # --- Contenedores dinámicos ---
+    campo_mensaje = ft.TextField(
+        label="Mensaje en el pastel (ej: ¡Feliz Cumpleaños!)",
+        value=pedido_actual.mensaje_pastel or ""
+    )
+
     sub_opciones_container = ft.Column(spacing=10)
     # Nuevo contenedor para los colores
     contenedor_colores = ft.Row(alignment=ft.MainAxisAlignment.CENTER, visible=False)
@@ -245,6 +251,9 @@ def vista_decorado(page: ft.Page, use_cases: PedidoUseCases):
         route="/decorado",
         controls=[
             ft.Text("Paso 4: Decorado del Pastel", size=30, weight=ft.FontWeight.BOLD),
+            ft.Text("Añade un mensaje personalizado:"),
+            campo_mensaje,
+            ft.Divider(height=10),
             ft.Text("Elige un estilo de decoración:"),
             ft.Row(controls=botones_principales, alignment=ft.MainAxisAlignment.CENTER),
             ft.Divider(height=15),
