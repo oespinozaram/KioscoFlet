@@ -20,6 +20,8 @@ class Pedido:
         self.decorado_imagen_id: int | None = None
         self.decorado_liso_color: str | None = None
         self.extra_seleccionado: str | None = None
+        self.decorado_liso_color1: str | None = None
+        self.decorado_liso_color2: str | None = None
 
     def reiniciar(self):
         """Reinicia la entidad a su estado por defecto."""

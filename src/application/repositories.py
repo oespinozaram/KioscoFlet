@@ -59,6 +59,7 @@ class TipoCoberturaRepository(ABC):
     def obtener_por_categoria_y_pan(self, id_categoria: int, id_tipo_pan: int) -> list[str]:
        pass
 
+
 class FinalizarPedidoRepository(ABC):
     @abstractmethod
     def finalizar(self, pedido: Pedido):
@@ -67,5 +68,11 @@ class FinalizarPedidoRepository(ABC):
 
 class ImagenGaleriaRepository(ABC):
     @abstractmethod
-    def obtener_todas(self) -> list[ImagenGaleria]:
+    def buscar(self, categoria: str | None = None, termino: str | None = None) -> list[ImagenGaleria]:
+        pass
+
+
+class TipoColorRepository(ABC):
+    @abstractmethod
+    def obtener_por_categoria_y_cobertura(self, id_categoria: int, nombre_cobertura: str) -> list[str]:
         pass

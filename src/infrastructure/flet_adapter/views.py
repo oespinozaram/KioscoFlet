@@ -154,111 +154,149 @@ def vista_categorias(page: ft.Page, use_cases: PedidoUseCases):
 
 
 def vista_decorado(page: ft.Page, use_cases: PedidoUseCases):
-    pedido_actual = use_cases.obtener_pedido_actual()
-    # --- Contenedores dinámicos ---
+    # --- 1. Definición de Controles de la Interfaz ---
+    # Guardamos los controles en variables para poder manipularlos desde diferentes funciones.
+
+    # Campo para el mensaje general del pastel
     campo_mensaje = ft.TextField(
         label="Mensaje en el pastel (ej: ¡Feliz Cumpleaños!)",
-        value=pedido_actual.mensaje_pastel or ""
+        value=use_cases.obtener_pedido_actual().mensaje_pastel or ""
     )
 
-    sub_opciones_container = ft.Column(spacing=10)
-    # Nuevo contenedor para los colores
-    contenedor_colores = ft.Row(alignment=ft.MainAxisAlignment.CENTER, visible=False)
+    # Contenedor para las sub-opciones que aparecen dinámicamente
+    sub_opciones_container = ft.Column(
+        spacing=10,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER
+    )
 
-    boton_continuar = ft.ElevatedButton("Continuar", on_click=lambda _: page.go("/extras"), visible=False)
+    # Dropdowns para los colores, inicialmente invisibles
+    dd_color1 = ft.Dropdown(label="Color Principal", expand=True)
+    dd_color2 = ft.Dropdown(label="Color Secundario", expand=True)
+    contenedor_colores = ft.Row(
+        controls=[dd_color1, dd_color2],
+        visible=False
+    )
 
-    def check_continuar():
-        """Verifica si se debe mostrar el botón de continuar."""
+    # Botón de continuar, inicialmente invisible
+    boton_continuar = ft.ElevatedButton(
+        "Continuar a Extras",
+        on_click=lambda _: page.go("/extras"),
+        visible=False
+    )
+
+    # --- 2. Lógica y Manejadores de Eventos ---
+
+    def check_and_show_continuar():
+        """
+        Esta función central revisa si el pedido está completo en esta sección
+        para decidir si muestra o no el botón de "Continuar".
+        """
         pedido = use_cases.obtener_pedido_actual()
-        if (pedido.tipo_decorado == "Liso c/s rosetones" and pedido.decorado_liso_color) or \
-                (pedido.tipo_decorado == "Diseño o Temática" and pedido.decorado_tematica_detalle) or \
-                (pedido.tipo_decorado == "Imágenes Predeterminadas" and pedido.decorado_imagen_id):
-            boton_continuar.visible = True
-        else:
-            boton_continuar.visible = False
+        listo_para_continuar = False
+
+        # Condición 1: Si el decorado es Liso y ya se eligió un color principal.
+        if (pedido.tipo_decorado == "Liso c/s Conchas de Betún" and
+                pedido.decorado_liso_detalle in ["Chantilli", "Chorreado"] and
+                pedido.decorado_liso_color1):
+            listo_para_continuar = True
+
+        # Condición 2: Si es Diseño/Temática y se ha escrito algo.
+        elif (pedido.decorado_liso_detalle == "Diseño o Temática" and
+              pedido.decorado_tematica_detalle):
+            listo_para_continuar = True
+
+        boton_continuar.visible = listo_para_continuar
         page.update()
 
-    def on_color_click(e):
-        use_cases.seleccionar_color_decorado_liso(e.control.text)
-        # Resaltar botón de color seleccionado
-        for btn in contenedor_colores.controls:
-            btn.selected = (btn == e.control)
-        check_continuar()
-        page.update()
+    def on_color_change(e):
+        """Se ejecuta al seleccionar un color en los Dropdowns."""
+        use_cases.seleccionar_colores_decorado(dd_color1.value, dd_color2.value)
+        check_and_show_continuar()
 
-    def on_sub_decorado_liso_click(e):
-        # Guardamos el detalle (Chantilli/Chorreado)
-        use_cases.guardar_detalle_decorado("Liso c/s rosetones", e.control.text)
+    dd_color1.on_change = on_color_change
+    dd_color2.on_change = on_color_change
+
+    def on_sub_opcion_liso_click(e):
+        """Se ejecuta al hacer clic en 'Chantilli', 'Chorreado' o 'Diseño'."""
+        detalle_seleccionado = e.control.text
 
         # Resaltamos el botón seleccionado
         for btn in sub_opciones_container.controls:
             if isinstance(btn, ft.ElevatedButton):
                 btn.selected = (btn == e.control)
 
-        # Mostramos los botones de colores
-        contenedor_colores.controls.clear()
-        colores = ["Blanco", "Rosa", "Azul", "Verde", "Amarillo"]
-        for color in colores:
-            contenedor_colores.controls.append(ft.FilledButton(text=color, on_click=on_color_click))
-        contenedor_colores.visible = True
+        use_cases.guardar_detalle_decorado("Liso c/s Conchas de Betún", detalle_seleccionado)
 
-        check_continuar()
+        # Si es Diseño/Temática, mostramos un campo de texto.
+        if detalle_seleccionado == "Diseño o Temática":
+            contenedor_colores.visible = False  # Ocultamos los colores si estaban visibles
+
+            def on_text_tematica_change(e_text):
+                use_cases.guardar_detalle_decorado("Liso c/s Conchas de Betún", detalle_seleccionado,
+                                                   e_text.control.value)
+                check_and_show_continuar()
+
+            # Reemplazamos los botones con el campo de texto y la leyenda
+            sub_opciones_container.controls.clear()
+            sub_opciones_container.controls.extend([
+                ft.TextField(label="Escribe la temática o personaje", on_change=on_text_tematica_change,
+                             autofocus=True),
+                ft.Text("El material que se usará será acetato y no es comestible.", italic=True, size=12,
+                        color=ft.Colors.GREY_600)
+            ])
+        else:  # Si es Chantilli o Chorreado, mostramos los colores.
+            colores_disponibles = use_cases.obtener_colores_disponibles()
+            opciones_color = [ft.dropdown.Option(color) for color in colores_disponibles]
+            dd_color1.options = opciones_color
+            dd_color2.options = opciones_color
+            dd_color1.value = None  # Limpiamos selección previa
+            dd_color2.value = None
+            contenedor_colores.visible = True
+
+        check_and_show_continuar()
         page.update()
 
     def on_decorado_principal_click(e):
+        """Se ejecuta al hacer clic en 'Liso...' o 'Imágenes...'."""
         tipo_decorado = e.control.text
         use_cases.seleccionar_tipo_decorado(tipo_decorado)
+        use_cases.guardar_mensaje_pastel(campo_mensaje.value)  # Guardamos el mensaje general
 
-        # Limpiar opciones anteriores
+        # Si es "Imágenes", navegamos directamente y terminamos.
+        if tipo_decorado == "Imágenes Predeterminadas":
+            page.go("/galeria")
+            return
+
+        # Si es "Liso...", mostramos las sub-opciones.
         sub_opciones_container.controls.clear()
         contenedor_colores.visible = False
         boton_continuar.visible = False
 
-        if tipo_decorado == "Liso c/s rosetones":
-            sub_opciones_container.controls.extend([
-                ft.ElevatedButton("Chantilli", on_click=on_sub_decorado_liso_click),
-                ft.ElevatedButton("Chorreado", on_click=on_sub_decorado_liso_click),
-            ])
-
-        elif tipo_decorado == "Diseño o Temática":
-            def on_text_change(e_text):
-                use_cases.guardar_detalle_decorado(tipo_decorado, e_text.control.value)
-                check_continuar()
-
-            sub_opciones_container.controls.extend([
-                ft.TextField(label="Escribe la temática o personaje", on_change=on_text_change),
-                ft.Text(
-                    "El material que se usará será acetato y no es comestible.",
-                    italic=True,
-                    size=12,
-                    color=ft.Colors.GREY_600
-                )
-            ])
-
-        elif tipo_decorado == "Imágenes Predeterminadas":
-            sub_opciones_container.controls.append(
-                ft.ElevatedButton("Ver Galería de Imágenes", on_click=lambda _: page.go("/galeria"))
-            )
-
+        sub_opciones_container.controls.extend([
+            ft.ElevatedButton("Chantilli", on_click=on_sub_opcion_liso_click),
+            ft.ElevatedButton("Chorreado", on_click=on_sub_opcion_liso_click),
+            ft.ElevatedButton("Diseño o Temática", on_click=on_sub_opcion_liso_click),
+        ])
         page.update()
 
-    botones_principales = [
-        ft.ElevatedButton(text, on_click=on_decorado_principal_click)
-        for text in ["Liso c/s rosetones", "Diseño o Temática", "Imágenes Predeterminadas"]
-    ]
-
+    # --- 3. Construcción del Layout de la Vista ---
     return ft.View(
         route="/decorado",
         controls=[
             ft.Text("Paso 4: Decorado del Pastel", size=30, weight=ft.FontWeight.BOLD),
-            ft.Text("Añade un mensaje personalizado:"),
             campo_mensaje,
             ft.Divider(height=10),
             ft.Text("Elige un estilo de decoración:"),
-            ft.Row(controls=botones_principales, alignment=ft.MainAxisAlignment.CENTER),
+            ft.Row(
+                [
+                    ft.ElevatedButton("Liso c/s Conchas de Betún", on_click=on_decorado_principal_click),
+                    ft.ElevatedButton("Imágenes Predeterminadas", on_click=on_decorado_principal_click),
+                ],
+                alignment=ft.MainAxisAlignment.CENTER
+            ),
             ft.Divider(height=15),
+            # Aquí se mostrarán las opciones dinámicas
             sub_opciones_container,
-            # Añadimos el nuevo contenedor de colores aquí
             contenedor_colores,
             ft.Divider(height=15),
             ft.Row(
@@ -278,38 +316,91 @@ def vista_decorado(page: ft.Page, use_cases: PedidoUseCases):
 
 # --- NUEVA VISTA DE GALERÍA ---
 def vista_galeria(page: ft.Page, use_cases: PedidoUseCases):
+    # --- Controles de la Interfaz ---
+    grid = ft.GridView(
+        expand=1,
+        runs_count=2,
+        max_extent=180,  # Un poco más de espacio para las imágenes
+        child_aspect_ratio=0.8,  # Ajustado para imagen + texto
+        spacing=10,
+        run_spacing=10
+    )
+
+    # --- Manejadores de Eventos ---
     def on_image_click(e):
         id_imagen_seleccionada = e.control.data
         use_cases.seleccionar_imagen_decorado(id_imagen_seleccionada)
-        page.go("/extras")  # Avanza a la siguiente pantalla
+        page.go("/extras")
 
-    # Usamos un GridView para mostrar las imágenes de forma atractiva
-    grid = ft.GridView(expand=1, runs_count=2, max_extent=150, child_aspect_ratio=1.0, spacing=10, run_spacing=10)
+    def actualizar_galeria(e=None):  # Ahora acepta el evento 'e'
+        categoria_filtro = filtro_categoria.value if filtro_categoria.value != "Todas" else None
+        termino_busqueda = campo_busqueda.value
 
-    for img in use_cases.obtener_imagenes_galeria():
-        grid.controls.append(
-            ft.Container(
-                content=ft.Stack([
-                    ft.Image(src=img.url, fit=ft.ImageFit.COVER, border_radius=ft.border_radius.all(10)),
-                    ft.Container(
-                        content=ft.Text(img.descripcion, color="white"),
-                        bgcolor=ft.Colors.BLACK45,
-                        padding=5,
-                        alignment=ft.alignment.bottom_center,
-                        border_radius=ft.border_radius.all(10)
+        grid.controls.clear()
+
+        imagenes = use_cases.buscar_imagenes_galeria(categoria_filtro, termino_busqueda)
+        for img in imagenes:
+            grid.controls.append(
+                ft.Container(
+                    data=img.id,
+                    on_click=on_image_click,
+                    tooltip=f"Seleccionar {img.descripcion}",
+                    border_radius=ft.border_radius.all(10),
+                    content=ft.Stack(
+                        # --- CÓDIGO CORREGIDO AQUÍ ---
+                        # Reemplazamos el '...' con los controles de imagen y texto reales.
+                        [
+                            ft.Image(
+                                src=img.url,
+                                fit=ft.ImageFit.COVER,
+                                border_radius=ft.border_radius.all(10)
+                            ),
+                            ft.Container(
+                                content=ft.Text(img.descripcion, color="white", weight=ft.FontWeight.BOLD),
+                                bgcolor=ft.Colors.with_opacity(0.4, ft.Colors.BLACK),
+                                padding=8,
+                                alignment=ft.alignment.bottom_center,
+                                border_radius=ft.border_radius.all(10),
+                                gradient=ft.LinearGradient(
+                                    begin=ft.alignment.top_center,
+                                    end=ft.alignment.bottom_center,
+                                    colors=[ft.Colors.TRANSPARENT, ft.Colors.BLACK],
+                                )
+                            )
+                        ]
+                        # -----------------------------
                     )
-                ]),
-                data=img.id,
-                on_click=on_image_click,
-                tooltip=f"Seleccionar {img.descripcion}"
+                )
             )
-        )
+        page.update()
 
+    # --- Controles de Filtro y Búsqueda ---
+    filtro_categoria = ft.Dropdown(
+        label="Filtrar por categoría",
+        options=[ft.dropdown.Option("Todas"), ft.dropdown.Option("Infantil"), ft.dropdown.Option("Floral")],
+        value="Todas",
+        on_change=actualizar_galeria,
+        expand=True
+    )
+    campo_busqueda = ft.TextField(
+        label="Buscar...",
+        on_change=actualizar_galeria,
+        expand=True
+    )
+
+    # Carga inicial de la galería
+    actualizar_galeria()
+
+    # --- Construcción de la Vista ---
     return ft.View(
         route="/galeria",
         controls=[
-            ft.Row([ft.IconButton(ft.Icons.ARROW_BACK, on_click=lambda _: page.go("/decorado")),
-                    ft.Text("Galería de Imágenes", size=24, weight=ft.FontWeight.BOLD)]),
+            ft.Row([
+                ft.IconButton(ft.Icons.ARROW_BACK, on_click=lambda _: page.go("/decorado"), tooltip="Volver"),
+                ft.Text("Galería de Imágenes", size=24, weight=ft.FontWeight.BOLD)
+            ]),
+            ft.Row([filtro_categoria, campo_busqueda]),
+            # El GridView se expandirá para usar el espacio restante
             grid
         ]
     )
@@ -321,6 +412,7 @@ def vista_extras(page: ft.Page, use_cases: PedidoUseCases):
 
     opciones_extra = ft.RadioGroup(
         content=ft.Column([
+            ft.Radio(value="Ninguno", label="Ninguno"),
             ft.Radio(value="Flor Artificial", label="Flor Artificial"),
             ft.Radio(value="Chorreado dorado", label="Chorreado dorado"),
             ft.Radio(value="Chorreado plateado", label="Chorreado plateado"),

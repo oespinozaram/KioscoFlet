@@ -6,7 +6,7 @@ from src.application.repositories import (
     TamanoRepository, CategoriaRepository, TipoPanRepository,
     TipoFormaRepository, TipoRellenoRepository, TipoCoberturaRepository,
     FinalizarPedidoRepository,
-    Categoria, TipoPan, ImagenGaleriaRepository, ImagenGaleria
+    Categoria, TipoPan, ImagenGaleriaRepository, ImagenGaleria, TipoColorRepository
 )
 
 
@@ -138,9 +138,9 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
                 fecha_creacion, fecha_entrega, tamano_pastel, id_categoria, tipo_pan, 
                 tipo_forma, tipo_relleno, tipo_cobertura, mensaje_pastel, tipo_decorado,
                 decorado_liso_detalle, decorado_liso_color, decorado_tematica_detalle,
-                decorado_imagen_id, extra_seleccionado, nombre_completo, telefono,
-                direccion, numero_exterior, entre_calles, codigo_postal, colonia,
-                ciudad, municipio, estado, referencias
+                decorado_imagen_id, extra_seleccionado, decorado_liso_color1, decorado_liso_color2, 
+                nombre_completo, telefono, direccion, numero_exterior, entre_calles, codigo_postal, colonia,
+                ciudad, municipio, estado, referencias 
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
 
@@ -161,6 +161,8 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
             pedido.decorado_tematica_detalle,
             pedido.decorado_imagen_id,
             pedido.extra_seleccionado,
+            pedido.decorado_liso_color1,
+            pedido.decorado_liso_color2,
             # Datos de entrega (si existen)
             pedido.datos_entrega.nombre_completo if pedido.datos_entrega else None,
             pedido.datos_entrega.telefono if pedido.datos_entrega else None,
@@ -183,17 +185,70 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
         except sqlite3.Error as e:
             print(f"Error al guardar el pedido final en la base de datos: {e}")
 
+
 class ImagenGaleriaRepositorySQLite(ImagenGaleriaRepository):
     def __init__(self, db_path: str):
         self.db_path = db_path
 
-    def obtener_todas(self) -> list[ImagenGaleria]:
-        query = "SELECT id_imagen, url_imagen, descripcion FROM imagenes_galeria"
+    def buscar(self, categoria: str | None = None, termino: str | None = None) -> list[ImagenGaleria]:
+        """Busca imágenes en la BD con filtros dinámicos."""
+        base_query = "SELECT id_imagen, url_imagen, descripcion, categoria_imagen, tags FROM imagenes_galeria"
+        conditions = []
+        params = []
+
+        if categoria:
+            conditions.append("categoria_imagen = ?")
+            params.append(categoria)
+
+        if termino:
+            # Busca en la descripción o en los tags
+            conditions.append("(descripcion LIKE ? OR tags LIKE ?)")
+            params.extend([f"%{termino}%", f"%{termino}%"])
+
+        if conditions:
+            query = f"{base_query} WHERE {' AND '.join(conditions)}"
+        else:
+            query = base_query
+
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute(query)
-                return [ImagenGaleria(id=row[0], url=row[1], descripcion=row[2]) for row in cursor.fetchall()]
+                cursor.execute(query, params)
+                return [ImagenGaleria(id=row[0], url=row[1], descripcion=row[2], categoria=row[3], tags=row[4]) for row
+                        in cursor.fetchall()]
         except sqlite3.Error as e:
-            print(f"Error al leer la galería de imágenes: {e}")
+            print(f"Error al buscar en la galería de imágenes: {e}")
+            return []
+
+
+class TipoColorRepositorySQLite(TipoColorRepository):
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+
+    def obtener_por_categoria_y_cobertura(self, id_categoria: int, nombre_cobertura: str) -> list[str]:
+        # Primero necesitamos el ID de la cobertura a partir de su nombre
+        query_id = "SELECT id_tipo_cobertura FROM tipos_cobertura WHERE nombre_tipo_cobertura = ?"
+
+        query_colores = """
+                        SELECT TC.nombre_tipo_color \
+                        FROM categorias_tipos_cobertura_colores CTCC, \
+                             tipos_colores TC
+                        WHERE CTCC.id_tipo_color = TC.id_tipo_color \
+                          AND CTCC.id_categoria = ? \
+                          AND CTCC.id_tipo_cobertura = ?
+                        ORDER BY TC.nombre_tipo_color \
+                        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(query_id, (nombre_cobertura,))
+                id_cobertura_row = cursor.fetchone()
+                if not id_cobertura_row:
+                    return []  # No se encontró la cobertura
+
+                id_cobertura = id_cobertura_row[0]
+                cursor.execute(query_colores, (id_categoria, id_cobertura))
+                return [row[0] for row in cursor.fetchall()]
+        except sqlite3.Error as e:
+            print(f"Error al leer los colores por cobertura: {e}")
             return []

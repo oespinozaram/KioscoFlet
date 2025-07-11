@@ -5,3 +5,5 @@ class ImagenGaleria(NamedTuple):
     id: int
     url: str
     descripcion: str
+    categoria: str | None
+    tags: str | None

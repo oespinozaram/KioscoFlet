@@ -7,7 +7,8 @@ from src.infrastructure.persistence.sqlite_repository import (
     TamanoRepositorySQLite, CategoriaRepositorySQLite,
     TipoPanRepositorySQLite, TipoFormaRepositorySQLite,
     TipoRellenoRepositorySQLite, TipoCoberturaRepositorySQLite,
-    FinalizarPedidoRepositorySQLite, ImagenGaleriaRepositorySQLite
+    FinalizarPedidoRepositorySQLite, ImagenGaleriaRepositorySQLite,
+    TipoColorRepositorySQLite
 )
 from src.infrastructure.flet_adapter import views
 
@@ -25,12 +26,13 @@ def main(page: ft.Page):
     tipo_cobertura_repo = TipoCoberturaRepositorySQLite(db_path)
     finalizar_repo = FinalizarPedidoRepositorySQLite(db_path)
     imagen_galeria_repo = ImagenGaleriaRepositorySQLite(db_path)
-
+    tipo_color_repo = TipoColorRepositorySQLite(db_path)
 
     pedido_use_cases = PedidoUseCases(
         pedido_repo, tamano_repo, categoria_repo,
         tipo_pan_repo, tipo_forma_repo, tipo_relleno_repo,
-        tipo_cobertura_repo, finalizar_repo, imagen_galeria_repo
+        tipo_cobertura_repo, finalizar_repo, imagen_galeria_repo,
+        tipo_color_repo
     )
 
     def route_change(route):

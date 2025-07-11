@@ -4,7 +4,7 @@ from .repositories import (
     PedidoRepository, TamanoRepository, CategoriaRepository,
     TipoPanRepository, TipoFormaRepository, TipoRellenoRepository,
     TipoCoberturaRepository, FinalizarPedidoRepository, Categoria, TipoPan,
-    ImagenGaleriaRepository
+    ImagenGaleriaRepository, TipoColorRepository
 )
 from src.domain.datos_entrega import DatosEntrega
 from src.domain.pedido import Pedido
@@ -16,7 +16,7 @@ class PedidoUseCases:
                  categoria_repo: CategoriaRepository, tipo_pan_repo: TipoPanRepository,
                  tipo_forma_repo: TipoFormaRepository, tipo_relleno_repo: TipoRellenoRepository,
                  tipo_cobertura_repo: TipoCoberturaRepository, finalizar_repo: FinalizarPedidoRepository,
-                 imagen_galeria_repo: ImagenGaleriaRepository):
+                 imagen_galeria_repo: ImagenGaleriaRepository, tipo_color_repo: TipoColorRepository):
         self.pedido_repo = pedido_repo
         self.tamano_repo = tamano_repo
         self.categoria_repo = categoria_repo
@@ -27,18 +27,14 @@ class PedidoUseCases:
         self.finalizar_repo = finalizar_repo
         self.tamanos_disponibles = []
         self.imagen_galeria_repo = imagen_galeria_repo
+        self.tipo_color_repo = tipo_color_repo
 
-    def guardar_detalle_decorado(self, tipo: str, detalle: str):
-        """Guarda los detalles de la decoración (liso o temática)."""
-        pedido = self.pedido_repo.obtener()
-        if tipo == "Liso c/s rosetones":
-            pedido.decorado_liso_detalle = detalle
-        elif tipo == "Diseño o Temática":
-            pedido.decorado_tematica_detalle = detalle
-        self.pedido_repo.guardar(pedido)
+    #def obtener_imagenes_galeria(self) -> list[ImagenGaleria]:
+    #    return self.imagen_galeria_repo.obtener_todas()
 
-    def obtener_imagenes_galeria(self) -> list[ImagenGaleria]:
-        return self.imagen_galeria_repo.obtener_todas()
+    def buscar_imagenes_galeria(self, categoria: str | None, termino: str | None) -> list[ImagenGaleria]:
+        """Busca imágenes por categoría y/o término de búsqueda."""
+        return self.imagen_galeria_repo.buscar(categoria, termino)
 
     def seleccionar_imagen_decorado(self, id_imagen: int):
         pedido = self.pedido_repo.obtener()
@@ -53,7 +49,7 @@ class PedidoUseCases:
     def seleccionar_tipo_decorado(self, tipo_decorado: str):
         pedido = self.pedido_repo.obtener()
         pedido.tipo_decorado = tipo_decorado
-        # Reseteamos los detalles si cambia la opción principal
+        # Reseteamos todos los detalles al cambiar la opción principal
         pedido.decorado_liso_detalle = None
         pedido.decorado_tematica_detalle = None
         pedido.decorado_imagen_id = None
@@ -237,3 +233,24 @@ class PedidoUseCases:
         pedido.decorado_liso_color = color
         self.pedido_repo.guardar(pedido)
         print(f"INFO: Color de decorado '{color}' seleccionado.")
+
+    def obtener_colores_disponibles(self) -> list[str]:
+        pedido = self.pedido_repo.obtener()
+        if not pedido.id_categoria or not pedido.tipo_cobertura:
+            return []
+        return self.tipo_color_repo.obtener_por_categoria_y_cobertura(pedido.id_categoria, pedido.tipo_cobertura)
+
+    def seleccionar_colores_decorado(self, color1: str | None, color2: str | None):
+        pedido = self.pedido_repo.obtener()
+        pedido.decorado_liso_color1 = color1
+        pedido.decorado_liso_color2 = color2
+        self.pedido_repo.guardar(pedido)
+
+    def guardar_detalle_decorado(self, tipo: str, detalle: str, texto_tematica: str | None = None):
+        pedido = self.pedido_repo.obtener()
+        if tipo == "Liso c/s Conchas de Betún":
+            if pedido.decorado_liso_detalle != detalle:
+                # Reseteamos los colores si cambia el detalle (Chantilli/Chorreado)
+                pedido.decorado_liso_color1 = None
+                pedido.decorado_liso_color2 = None
+            pedido.decorado_liso_detalle = detalle
