@@ -15,8 +15,9 @@ from src.infrastructure.flet_adapter import views
 
 def main(page: ft.Page):
     page.title = "Pastelería Pepe - KioscoPP"
-
-    db_path = r"/Users/omar/Github/KioscoFlet/config.db"
+    page.window_width = 1050
+    page.window_height = 800
+    db_path = r"config.db"
     pedido_repo = PedidoRepositoryEnMemoria()
     tamano_repo = TamanoRepositorySQLite(db_path)
     categoria_repo = CategoriaRepositorySQLite(db_path)

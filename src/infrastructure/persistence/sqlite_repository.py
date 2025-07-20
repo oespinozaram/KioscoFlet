@@ -220,6 +220,21 @@ class ImagenGaleriaRepositorySQLite(ImagenGaleriaRepository):
             print(f"Error al buscar en la galería de imágenes: {e}")
             return []
 
+    def obtener_por_id(self, id_imagen: int) -> ImagenGaleria | None:
+        """Ejecuta una consulta SQL para encontrar una imagen por su ID."""
+        query = "SELECT id_imagen, url_imagen, descripcion, categoria_imagen, tags FROM imagenes_galeria WHERE id_imagen = ?"
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (id_imagen,))
+                row = cursor.fetchone()
+                if row:
+                    return ImagenGaleria(id=row[0], url=row[1], descripcion=row[2], categoria=row[3], tags=row[4])
+                return None
+        except sqlite3.Error as e:
+            print(f"Error al obtener imagen por ID: {e}")
+            return None
+
 
 class TipoColorRepositorySQLite(TipoColorRepository):
     def __init__(self, db_path: str):

@@ -29,8 +29,15 @@ class PedidoUseCases:
         self.imagen_galeria_repo = imagen_galeria_repo
         self.tipo_color_repo = tipo_color_repo
 
-    #def obtener_imagenes_galeria(self) -> list[ImagenGaleria]:
-    #    return self.imagen_galeria_repo.obtener_todas()
+    def obtener_url_imagen_galeria_por_id(self, id_imagen: int) -> str | None:
+        print(f"DIAGNÓSTICO: Buscando imagen con ID: {id_imagen}")
+        imagen = self.imagen_galeria_repo.obtener_por_id(id_imagen)
+        if imagen:
+            print(f"DIAGNÓSTICO: Imagen encontrada. URL: {imagen.url}")
+            return imagen.url
+        else:
+            print(f"DIAGNÓSTICO: No se encontró ninguna imagen con el ID {id_imagen}.")
+            return None
 
     def buscar_imagenes_galeria(self, categoria: str | None, termino: str | None) -> list[ImagenGaleria]:
         """Busca imágenes por categoría y/o término de búsqueda."""
@@ -199,10 +206,6 @@ class PedidoUseCases:
 
 
     def guardar_datos_y_finalizar(self, datos: dict) -> Pedido:
-        """
-        Guarda los datos de entrega, finaliza el pedido en la BD,
-        genera un QR y devuelve el pedido y el string base64 del QR.
-        """
         # 1. Guardar los datos en el objeto Pedido
         pedido = self.pedido_repo.obtener()
         pedido.datos_entrega = DatosEntrega(**datos)
@@ -246,11 +249,20 @@ class PedidoUseCases:
         pedido.decorado_liso_color2 = color2
         self.pedido_repo.guardar(pedido)
 
-    def guardar_detalle_decorado(self, tipo: str, detalle: str, texto_tematica: str | None = None):
+    def guardar_detalle_decorado(self, tipo_principal: str, detalle: str, texto_tematica: str | None = None):
+        """Guarda los detalles de la decoración."""
         pedido = self.pedido_repo.obtener()
-        if tipo == "Liso c/s Conchas de Betún":
+        if tipo_principal == "Liso c/s Conchas de Betún":
+            # Si se selecciona un nuevo detalle (Chantilli/Chorreado/Diseño),
+            # reseteamos los colores para forzar una nueva selección.
             if pedido.decorado_liso_detalle != detalle:
-                # Reseteamos los colores si cambia el detalle (Chantilli/Chorreado)
                 pedido.decorado_liso_color1 = None
                 pedido.decorado_liso_color2 = None
             pedido.decorado_liso_detalle = detalle
+            # Guardamos el texto de la temática solo si el detalle es el correcto
+            if detalle == "Diseño o Temática":
+                pedido.decorado_tematica_detalle = texto_tematica
+            else:
+                # Si se elige otra opción, nos aseguramos de que la temática quede limpia.
+                pedido.decorado_tematica_detalle = None
+        self.pedido_repo.guardar(pedido)

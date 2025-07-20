@@ -71,6 +71,11 @@ class ImagenGaleriaRepository(ABC):
     def buscar(self, categoria: str | None = None, termino: str | None = None) -> list[ImagenGaleria]:
         pass
 
+    @abstractmethod
+    def obtener_por_id(self, id_imagen: int) -> ImagenGaleria | None:
+        """Busca una única imagen por su ID primario."""
+        pass
+
 
 class TipoColorRepository(ABC):
     @abstractmethod
