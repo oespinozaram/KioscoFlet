@@ -8,10 +8,28 @@ from src.domain.imagen_galeria import ImagenGaleria
 class Categoria(NamedTuple):
     id: int
     nombre: str
+    imagen_url: str
+
 
 class TipoPan(NamedTuple):
     id: int
     nombre: str
+    imagen_url: str
+
+
+class FormaPastel(NamedTuple):
+    nombre: str
+    imagen_url: str
+
+
+class TipoRelleno(NamedTuple):
+    nombre: str
+    imagen_url: str
+
+
+class TipoCobertura(NamedTuple):
+    nombre: str
+    imagen_url: str
 
 
 class CategoriaRepository(ABC):
@@ -44,19 +62,19 @@ class TipoPanRepository(ABC):
 
 class TipoFormaRepository(ABC):
     @abstractmethod
-    def obtener_por_categoria(self, id_categoria: int) -> list[str]:
+    def obtener_por_categoria(self, id_categoria: int) -> list[FormaPastel]:
         pass
 
 
 class TipoRellenoRepository(ABC):
     @abstractmethod
-    def obtener_por_categoria_y_pan(self, id_categoria: int, id_tipo_pan: int) -> list[str]:
+    def obtener_por_categoria_y_pan(self, id_categoria: int, id_tipo_pan: int) -> list[TipoRelleno]:
         pass
 
 
 class TipoCoberturaRepository(ABC):
     @abstractmethod
-    def obtener_por_categoria_y_pan(self, id_categoria: int, id_tipo_pan: int) -> list[str]:
+    def obtener_por_categoria_y_pan(self, id_categoria: int, id_tipo_pan: int) -> list[TipoCobertura]:
        pass
 
 

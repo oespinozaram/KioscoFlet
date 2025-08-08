@@ -5,7 +5,7 @@ from src.domain.pedido import Pedido
 from src.application.repositories import (
     TamanoRepository, CategoriaRepository, TipoPanRepository,
     TipoFormaRepository, TipoRellenoRepository, TipoCoberturaRepository,
-    FinalizarPedidoRepository,
+    FinalizarPedidoRepository, FormaPastel, TipoRelleno, TipoCobertura,
     Categoria, TipoPan, ImagenGaleriaRepository, ImagenGaleria, TipoColorRepository
 )
 
@@ -18,9 +18,9 @@ class CategoriaRepositorySQLite(CategoriaRepository):
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT id_categoria, nombre_categoria FROM categorias ORDER BY id_categoria")
+                cursor.execute("SELECT id_categoria, nombre_categoria, imagen_url FROM categorias ORDER BY id_categoria")
                 # Convertimos las filas de la BD en objetos Categoria
-                return [Categoria(id=row[0], nombre=row[1]) for row in cursor.fetchall()]
+                return [Categoria(id=row[0], nombre=row[1], imagen_url=row[2]) for row in cursor.fetchall()]
         except sqlite3.Error as e:
             print(f"Error al leer la tabla de categorías: {e}")
             return []
@@ -32,7 +32,7 @@ class TipoPanRepositorySQLite(TipoPanRepository):
 
     def obtener_por_categoria(self, id_categoria: int) -> list[TipoPan]:
         query = """
-            SELECT tp.id_tipo_pan, tp.nombre_tipo_pan 
+            SELECT tp.id_tipo_pan, tp.nombre_tipo_pan, ctd.imagen_quiosco  
             FROM categoria_tipos_pan_disponibles ctd, tipos_pan tp 
             WHERE ctd.id_tipo_pan = tp.id_tipo_pan AND ctd.id_categoria = ?
             ORDER BY tp.nombre_tipo_pan
@@ -41,7 +41,7 @@ class TipoPanRepositorySQLite(TipoPanRepository):
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute(query, (id_categoria,))
-                return [TipoPan(id=row[0], nombre=row[1]) for row in cursor.fetchall()]
+                return [TipoPan(id=row[0], nombre=row[1], imagen_url=row[2]) for row in cursor.fetchall()]
         except sqlite3.Error as e:
             print(f"Error al leer los tipos de pan por categoría: {e}")
             return []
@@ -51,9 +51,9 @@ class TipoFormaRepositorySQLite(TipoFormaRepository):
     def __init__(self, db_path: str):
         self.db_path = db_path
 
-    def obtener_por_categoria(self, id_categoria: int) -> list[str]:
+    def obtener_por_categoria(self, id_categoria: int) -> list[FormaPastel]:
         query = """
-            SELECT tf.nombre_tipo_forma 
+            SELECT tf.nombre_tipo_forma, ctfd.imagen_quiosco  
             FROM categoria_tipos_forma_disponibles ctfd, tipos_forma tf 
             WHERE ctfd.id_tipo_forma = tf.id_tipo_forma AND ctfd.id_categoria = ?
             ORDER BY tf.nombre_tipo_forma
@@ -62,7 +62,7 @@ class TipoFormaRepositorySQLite(TipoFormaRepository):
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute(query, (id_categoria,))
-                return [row[0] for row in cursor.fetchall()]
+                return [FormaPastel(nombre=row[0], imagen_url=row[1]) for row in cursor.fetchall()]
         except sqlite3.Error as e:
             print(f"Error al leer los tipos de forma por categoría: {e}")
             return []
@@ -88,9 +88,9 @@ class TipoRellenoRepositorySQLite(TipoRellenoRepository):
     def __init__(self, db_path: str):
         self.db_path = db_path
 
-    def obtener_por_categoria_y_pan(self, id_categoria: int, id_tipo_pan: int) -> list[str]:
+    def obtener_por_categoria_y_pan(self, id_categoria: int, id_tipo_pan: int) -> list[TipoRelleno]:
         query = """
-            SELECT tr.nombre_tipo_relleno 
+            SELECT tr.nombre_tipo_relleno, ctrd.imagen_quiosco 
             FROM categoria_tipos_relleno_disponibles ctrd, tipos_relleno tr 
             WHERE ctrd.id_tipo_relleno = tr.id_tipo_relleno 
             AND ctrd.id_categoria = ? AND ctrd.id_tipo_pan = ?
@@ -100,7 +100,7 @@ class TipoRellenoRepositorySQLite(TipoRellenoRepository):
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute(query, (id_categoria, id_tipo_pan))
-                return [row[0] for row in cursor.fetchall()]
+                return [TipoRelleno(nombre=row[0], imagen_url=row[1]) for row in cursor.fetchall()]
         except sqlite3.Error as e:
             print(f"Error al leer los tipos de relleno: {e}")
             return []
@@ -110,9 +110,9 @@ class TipoCoberturaRepositorySQLite(TipoCoberturaRepository):
     def __init__(self, db_path: str):
         self.db_path = db_path
 
-    def obtener_por_categoria_y_pan(self, id_categoria: int, id_tipo_pan: int) -> list[str]:
+    def obtener_por_categoria_y_pan(self, id_categoria: int, id_tipo_pan: int) -> list[TipoCobertura]:
         query = """
-            SELECT tc.nombre_tipo_cobertura 
+            SELECT tc.nombre_tipo_cobertura, ctcd.imagen_quiosco 
             FROM categoria_tipos_cobertura_disponibles ctcd, tipos_cobertura tc 
             WHERE ctcd.id_tipo_cobertura = tc.id_tipo_cobertura AND ctcd.id_categoria = ? AND ctcd.id_tipo_pan = ?
             ORDER BY tc.nombre_tipo_cobertura
@@ -121,7 +121,7 @@ class TipoCoberturaRepositorySQLite(TipoCoberturaRepository):
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute(query, (id_categoria, id_tipo_pan))
-                return [row[0] for row in cursor.fetchall()]
+                return [TipoCobertura(nombre=row[0], imagen_url=row[1]) for row in cursor.fetchall()]
         except sqlite3.Error as e:
             print(f"Error al leer los tipos de cobertura por categoría: {e}")
             return []

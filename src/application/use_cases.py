@@ -1,10 +1,10 @@
 # src/application/use_cases.py
 import datetime
 from .repositories import (
-    PedidoRepository, TamanoRepository, CategoriaRepository,
+    PedidoRepository, TamanoRepository, CategoriaRepository, TipoCobertura,
     TipoPanRepository, TipoFormaRepository, TipoRellenoRepository,
     TipoCoberturaRepository, FinalizarPedidoRepository, Categoria, TipoPan,
-    ImagenGaleriaRepository, TipoColorRepository
+    ImagenGaleriaRepository, TipoColorRepository, FormaPastel, TipoRelleno
 )
 from src.domain.datos_entrega import DatosEntrega
 from src.domain.pedido import Pedido
@@ -62,7 +62,7 @@ class PedidoUseCases:
         pedido.decorado_imagen_id = None
         self.pedido_repo.guardar(pedido)
 
-    def obtener_coberturas_disponibles(self, id_categoria: int, id_tipo_pan: int) -> list[str]:
+    def obtener_coberturas_disponibles(self, id_categoria: int, id_tipo_pan: int) -> list[TipoCobertura]:
         return self.tipo_cobertura_repo.obtener_por_categoria_y_pan(id_categoria, id_tipo_pan)
 
     def seleccionar_tipo_cobertura(self, nombre_cobertura: str):
@@ -71,7 +71,7 @@ class PedidoUseCases:
         self.pedido_repo.guardar(pedido)
         print(f"INFO: Cobertura '{nombre_cobertura}' seleccionada. Estado del pedido: {pedido}")
 
-    def obtener_rellenos_disponibles(self, id_categoria: int, id_tipo_pan: int) -> list[str]:
+    def obtener_rellenos_disponibles(self, id_categoria: int, id_tipo_pan: int) -> list[TipoRelleno]:
         return self.tipo_relleno_repo.obtener_por_categoria_y_pan(id_categoria, id_tipo_pan)
 
     def seleccionar_tipo_relleno(self, nombre_relleno: str):
@@ -80,7 +80,7 @@ class PedidoUseCases:
         self.pedido_repo.guardar(pedido)
         print(f"INFO: Relleno '{nombre_relleno}' seleccionado. Estado del pedido: {pedido}")
 
-    def obtener_formas_por_categoria(self, id_categoria: int) -> list[str]:
+    def obtener_formas_por_categoria(self, id_categoria: int) -> list[FormaPastel]:
         formas_disponibles = self.tipo_forma_repo.obtener_por_categoria(id_categoria)
         pedido = self.pedido_repo.obtener()
         if pedido.tamano_pastel:
@@ -91,7 +91,7 @@ class PedidoUseCases:
                 # Si el tamaño es 10 o menos, filtramos la lista
                 if tamano_personas > 10:
                     print(f"INFO: Tamaño para {tamano_personas} personas detectado. Ocultando forma de corazón.")
-                    formas_filtradas = [forma for forma in formas_disponibles if "corazón" not in forma.lower()]
+                    formas_filtradas = [forma for forma in formas_disponibles if "corazón" not in forma.nombre.lower()]
                     return formas_filtradas
             except (ValueError, TypeError):
                 # Si el tamaño no es un número válido, no hacer nada y devolver todo
@@ -265,4 +265,12 @@ class PedidoUseCases:
             else:
                 # Si se elige otra opción, nos aseguramos de que la temática quede limpia.
                 pedido.decorado_tematica_detalle = None
+        self.pedido_repo.guardar(pedido)
+
+    def reiniciar_componentes(self):
+        """Resetea las selecciones de forma, pan y relleno del pedido."""
+        pedido = self.pedido_repo.obtener()
+        pedido.tipo_forma = None
+        pedido.tipo_pan = None
+        pedido.tipo_relleno = None
         self.pedido_repo.guardar(pedido)
