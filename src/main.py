@@ -16,14 +16,14 @@ from src.infrastructure.flet_adapter import views
 def main(page: ft.Page):
     page.title = "Pastelería Pepe"
 
-    page.window.width = 1024
+    page.window.width = 900
     page.window.height = 1024
     page.padding = 0
-    page.window.resizable = False
+    #page.window.resizable = False
 
     page.fonts = {
-        "Bebas Neue": "/assets/BebasNeue-Regular.ttf",
-        "Be Vietnam Pro": "/assets/BeVietnamPro-Regular.ttf"
+        "Bebas Neue": "fuentes/BebasNeue-Regular.ttf",
+        "Be Vietnam Pro": "fuentes/BeVietnamPro-Regular.ttf"
     }
 
     db_path = r"config.db"
@@ -128,7 +128,7 @@ def main(page: ft.Page):
     page.add(
         ft.Stack(
             [
-                ft.Image(src="/assets/fondo_rr.png", fit=ft.ImageFit.COVER, expand=True),
+                ft.Image(src="fondos/fondo1.png", fit=ft.ImageFit.COVER, expand=True),
                 layout_centrado
             ]
         )
@@ -138,4 +138,4 @@ def main(page: ft.Page):
 
 
 if __name__ == "__main__":
-    ft.app(target=main)
+    ft.app(target=main, assets_dir="assets")

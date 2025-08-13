@@ -4,8 +4,8 @@ import datetime
 from dateutil.relativedelta import relativedelta
 from src.application.use_cases import PedidoUseCases
 from .keyboard import VirtualKeyboard
+from .controles_comunes import crear_boton_navegacion
 
-ruta_assets = "C:/Source/Python/KioscoFlet/src/assets/"
 
 # --- Vista de Bienvenida ---
 def vista_bienvenida(page: ft.Page):
@@ -31,7 +31,7 @@ def vista_bienvenida(page: ft.Page):
 
     # La imagen del pastel, que será parte del flujo responsivo.
     imagen_pastel = ft.Image(
-        src="{}Logo Pepe.png".format(ruta_assets),
+        src="Logo Pepe.png",
         fit=ft.ImageFit.CONTAIN,
         height=250,  # Altura máxima para la imagen
     )
@@ -103,7 +103,7 @@ def vista_bienvenida(page: ft.Page):
         controls=[
             # Capa 1: Imagen de fondo
             ft.Image(
-                src="C:/Source/Python/KioscoFlet/src/assets/fondo_rr.png",
+                src="fondo.png",
                 fit=ft.ImageFit.FILL,
                 expand=True,
             ),
@@ -124,8 +124,6 @@ def vista_bienvenida(page: ft.Page):
         ],
         padding=0,
     )
-
-
 
 
 def vista_seleccion(page: ft.Page):
@@ -166,9 +164,15 @@ def vista_seleccion(page: ft.Page):
                 ]
             ),
             on_click=on_click_handler,
-            on_hover=lambda e: setattr(e.control, "shadow", ft.BoxShadow(spread_radius=5, blur_radius=20,
-                                                                         color=ft.Colors.with_opacity(0.5,
-                                                                                                      "#DC6262")) if e.data == "true" else ft.BoxShadow(
+            on_hover=lambda e: setattr(
+                e.control,
+                "shadow",
+                ft.BoxShadow(
+                    spread_radius=5,
+                    blur_radius=20,
+                    color=ft.Colors.with_opacity(0.5,
+                                                 "#DC6262")
+                ) if e.data == "true" else ft.BoxShadow(
                 spread_radius=2, blur_radius=10, color=ft.Colors.with_opacity(0.3, ft.Colors.BLACK),
                 offset=ft.Offset(6, 6))) or page.update()
         )
@@ -182,12 +186,12 @@ def vista_seleccion(page: ft.Page):
         controls=[
             crear_tarjeta_opcion(
                 titulo="Conoce nuestro catálogo\ny promociones",
-                imagen_src="C:/Source/Python/KioscoFlet/src/assets/promos.png",
+                imagen_src="seleccion/promos.png",
                 on_click_handler=lambda _: print("Navegando a promociones...")
             ),
             crear_tarjeta_opcion(
                 titulo="Arma y personaliza\ntu pastel",
-                imagen_src="C:/Source/Python/KioscoFlet/src/assets/arma.png",
+                imagen_src="seleccion/arma.png",
                 on_click_handler=lambda _: page.go("/fecha")
             ),
         ]
@@ -202,13 +206,18 @@ def vista_seleccion(page: ft.Page):
 
     # La imagen del pastel, que será parte del flujo responsivo.
     imagen_pastel = ft.Image(
-        src="{}Logo Pepe.png".format(ruta_assets),
+        src="Logo Pepe.png",
         fit=ft.ImageFit.CONTAIN,
         height=180,  # Altura máxima para la imagen
     )
 
     # Botón para volver
-    boton_volver = ft.ElevatedButton("Volver", on_click=lambda _: page.go("/"))
+    boton_volver = crear_boton_navegacion(
+                            texto="Volver",
+                            on_click_handler=lambda _: page.go("/"),
+                            es_primario=False
+                        )
+    #ft.ElevatedButton("Volver", on_click=lambda _: page.go("/"))
 
     # --- CAMBIO PRINCIPAL: Se aplica el mismo patrón de layout que en bienvenida ---
     # Usamos una Columna con espaciadores para centrar verticalmente el contenido.
@@ -230,7 +239,7 @@ def vista_seleccion(page: ft.Page):
     # El Stack final para el fondo y el contenido
     layout_final = ft.Stack(
         controls=[
-            ft.Image(src="C:/Source/Python/KioscoFlet/src/assets/fondo.png", fit=ft.ImageFit.COVER, expand=True),
+            ft.Image(src="fondos/fondo2.png", fit=ft.ImageFit.COVER, expand=True),
             ft.Container(bgcolor=ft.Colors.with_opacity(0.5, ft.Colors.BLACK), expand=True),
             contenido_superpuesto,
         ]
@@ -248,13 +257,15 @@ def vista_fecha(page: ft.Page, use_cases: PedidoUseCases):
         value=f"Fecha: {use_cases.obtener_pedido_actual().fecha_entrega.strftime('%d/%m/%Y')}" if use_cases.obtener_pedido_actual().fecha_entrega else "Elige la fecha de entrega",
         color=ft.Colors.WHITE, size=40, font_family="Bebas Neue", weight=ft.FontWeight.W_400,
     )
-    boton_continuar = ft.ElevatedButton("Continuar", disabled=not use_cases.obtener_pedido_actual().fecha_entrega)
+    #boton_continuar = ft.ElevatedButton("Continuar", disabled=not use_cases.obtener_pedido_actual().fecha_entrega)
+    ref_boton_continuar = ft.Ref[ft.Container]()
 
     def on_date_change(e):
         fecha_seleccionada = e.control.value.date()
         use_cases.seleccionar_fecha(fecha_seleccionada)
         texto_del_boton.value = f"Fecha: {fecha_seleccionada.strftime('%d/%m/%Y')}"
-        boton_continuar.disabled = False
+        if ref_boton_continuar.current:
+            ref_boton_continuar.current.disabled = False
         page.update()
 
     fecha_hoy = datetime.date.today()
@@ -279,7 +290,7 @@ def vista_fecha(page: ft.Page, use_cases: PedidoUseCases):
         else:
             page.go("/tamano")
 
-    boton_continuar.on_click = continuar
+    #boton_continuar.on_click = continuar
 
     # --- 2. Construcción de los Componentes ---
     banner_superior = ft.Container(
@@ -304,14 +315,25 @@ def vista_fecha(page: ft.Page, use_cases: PedidoUseCases):
         content=ft.Column(
             [
                 # ft.Text("Paso 1", size=20, color=ft.Colors.BLACK),
-                ft.Text("Fecha de Entrega", size=40, weight=ft.FontWeight.BOLD, color=ft.Colors.BLACK),
+                ft.Text("Fecha de Entrega", size=40, weight=ft.FontWeight.BOLD, color=ft.Colors.BLACK,
+                        font_family="Bebas Neue"),
                 ft.Container(expand=True),
                 boton_fecha,
                 ft.Container(expand=True),
                 ft.Row(
                     [
-                        ft.ElevatedButton("Volver", on_click=lambda _: page.go("/")),
-                        boton_continuar,
+                        #ft.ElevatedButton("Volver", on_click=lambda _: page.go("/seleccion")),
+                        crear_boton_navegacion(
+                            texto="Volver",
+                            on_click_handler=lambda _: page.go("/seleccion"),
+                            es_primario=False
+                        ),
+                        crear_boton_navegacion(
+                            texto="Continuar",
+                            on_click_handler=continuar,
+                            ref=ref_boton_continuar,  # Le pasamos la referencia
+                            disabled=not use_cases.obtener_pedido_actual().fecha_entrega  # Estado inicial
+                        ),
                     ],
                     alignment=ft.MainAxisAlignment.CENTER
                 )
@@ -326,7 +348,7 @@ def vista_fecha(page: ft.Page, use_cases: PedidoUseCases):
     contenido_principal = ft.Row(
         vertical_alignment=ft.CrossAxisAlignment.CENTER,
         controls=[
-            ft.Image(src="{}Logo Pepe.png".format(ruta_assets), fit=ft.ImageFit.CONTAIN, expand=1),
+            ft.Image(src="Logo Pepe.png", fit=ft.ImageFit.CONTAIN, expand=1),
             ft.Container(content=panel_derecho, expand=1, padding=20)
         ]
     )
@@ -346,7 +368,7 @@ def vista_fecha(page: ft.Page, use_cases: PedidoUseCases):
     layout_final = ft.Stack(
         controls=[
             ft.Image(
-                src="{}fondo.png".format(ruta_assets),
+                src="fondo.png",
                 fit=ft.ImageFit.COVER,
                 expand=True,
             ),
@@ -442,16 +464,16 @@ def vista_tamano(page: ft.Page, use_cases: PedidoUseCases):
                     alignment=ft.MainAxisAlignment.CENTER,
                     spacing=20,
                     controls=[
-                        ft.ElevatedButton("Volver", on_click=lambda _: page.go("/fecha")),
-                        ft.Container(
-                            width=137,
-                            height=45,
-                            bgcolor="#E5ADAD",
-                            border_radius=ft.border_radius.all(10),
-                            content=ft.Text("Continuar", color=ft.Colors.WHITE, size=20, font_family="Bebas Neue"),
-                            alignment=ft.alignment.center,
-                            on_click=lambda _: page.go("/categorias"),
-                        )
+                        #ft.ElevatedButton("Volver", on_click=lambda _: page.go("/fecha")),
+                        crear_boton_navegacion(
+                            texto="Volver",
+                            on_click_handler=lambda _: page.go("/fecha"),
+                            es_primario=False
+                        ),
+                        crear_boton_navegacion(
+                            texto="Continuar",
+                            on_click_handler=lambda _: page.go("/categorias")
+                        ),
                     ]
                 ),
             ]
@@ -471,7 +493,7 @@ def vista_tamano(page: ft.Page, use_cases: PedidoUseCases):
                 spacing=20,
                 controls=[
                     ft.Image(
-                        src="{}Logo Pepe 50.png".format(ruta_assets),
+                        src="Logo Pepe 50.png",
                         fit=ft.ImageFit.CONTAIN,
                         height=250
                     ),
@@ -505,7 +527,7 @@ def vista_tamano(page: ft.Page, use_cases: PedidoUseCases):
 
     layout_final = ft.Stack(
         controls=[
-            ft.Image(src="{}Sin título-2_Mesa de trabajo 1.png".format(ruta_assets), fit=ft.ImageFit.COVER, expand=True),
+            ft.Image(src="Sin título-2_Mesa de trabajo 1.png", fit=ft.ImageFit.COVER, expand=True),
             ft.Container(bgcolor=ft.Colors.with_opacity(0.2, "#DC6262"), expand=True),
             ft.Row(
                 controls=[ft.Container(bgcolor=ft.Colors.with_opacity(0.3, "#DC6262"), expand=1) for _ in range(8)],
@@ -513,7 +535,7 @@ def vista_tamano(page: ft.Page, use_cases: PedidoUseCases):
                 expand=True
             ),
             ft.Image(
-                src="{}5cfc8f887f97645860409428bc94c92cd53abcd4.png".format(ruta_assets),
+                src="5cfc8f887f97645860409428bc94c92cd53abcd4.png",
                 fit=ft.ImageFit.COVER,
                 height=page.window.height,
                 top=0,
@@ -559,7 +581,6 @@ def vista_categorias(page: ft.Page, use_cases: PedidoUseCases):
     tarjetas_categorias = []
 
     for categoria in lista_categorias:
-        print(categoria.imagen_url)
         tarjeta = ft.Container(
             width=226,
             height=314,
@@ -581,7 +602,7 @@ def vista_categorias(page: ft.Page, use_cases: PedidoUseCases):
                         margin=ft.margin.only(top=25),
                         border_radius=ft.border_radius.all(10),
                         # Puedes añadir imágenes a tus categorías en la BD y cargarlas aquí
-                        content=ft.Image(src="C:/Source/Python/KioscoFlet/src/assets/categorias/{}".format(categoria.imagen_url), fit=ft.ImageFit.COVER)
+                        content=ft.Image(src="categorias/{}".format(categoria.imagen_url), fit=ft.ImageFit.COVER)
                     ),
                     ft.Divider(height=1, color=ft.Colors.GREY_300),
                     ft.Text(
@@ -635,7 +656,11 @@ def vista_categorias(page: ft.Page, use_cases: PedidoUseCases):
             ft.Container(  # Espacio para el botón de volver
                 padding=20,
                 alignment=ft.alignment.center,
-                content=ft.ElevatedButton("Volver", on_click=lambda _: page.go("/tamano"))
+                content=crear_boton_navegacion(
+                            texto="Volver",
+                            on_click_handler=lambda _: page.go("/tamano"),
+                            es_primario=False
+                        )
             )
         ]
     )
@@ -643,7 +668,7 @@ def vista_categorias(page: ft.Page, use_cases: PedidoUseCases):
     # El Stack final que une todas las capas visuales
     layout_final = ft.Stack(
         controls=[
-            ft.Image(src="{}fondo_rr.png".format(ruta_assets), fit=ft.ImageFit.COVER, expand=True),
+            ft.Image(src="fondo_rr.png", fit=ft.ImageFit.COVER, expand=True),
             ft.Container(bgcolor=ft.Colors.with_opacity(0.2, "#DC6262"), expand=True),
             contenido_superpuesto,
         ]
@@ -655,89 +680,235 @@ def vista_categorias(page: ft.Page, use_cases: PedidoUseCases):
         padding=0
     )
 
+# def vista_relleno(page: ft.Page, use_cases: PedidoUseCases):
+#     # --- 1. Lógica y Manejadores de Eventos ---
+#     def check_continuar():
+#         pedido = use_cases.obtener_pedido_actual()
+#         if pedido.tipo_forma and pedido.tipo_pan and pedido.tipo_relleno:
+#             boton_continuar.visible = True
+#             page.update()
+#
+#     def on_relleno_selected(e):
+#         # El 'data' de la tarjeta de relleno es solo el nombre.
+#         use_cases.seleccionar_tipo_relleno(e.control.data)
+#         for card in relleno_cards.controls:
+#             card.visible = (card == e.control) # Solo al control que se dio click es visible
+#             card.border = ft.border.all(2, ft.Colors.GREEN) if card.visible else None
+#         check_continuar()
+#         page.update()
+#
+#     def on_pan_selected(e):
+#         # --- CAMBIO IMPORTANTE: Desempacamos el ID y el nombre desde 'data' ---
+#         id_pan_seleccionado, nombre_pan_seleccionado = e.control.data
+#
+#         use_cases.seleccionar_tipo_pan(nombre_pan_seleccionado)
+#         for card in pan_cards.controls:
+#             card.visible = (card == e.control)
+#             card.border = ft.border.all(2, ft.Colors.GREEN) if card.visible else None
+#
+#         relleno_cards.controls.clear()
+#         id_categoria_actual = use_cases.obtener_pedido_actual().id_categoria
+#         lista_rellenos = use_cases.obtener_rellenos_disponibles(id_categoria_actual, id_pan_seleccionado)
+#
+#         if not lista_rellenos:
+#             relleno_cards.controls.append(ft.Text("No hay rellenos para esta combinación."))
+#         else:
+#             for relleno in lista_rellenos:
+#                 relleno_cards.controls.append(
+#                     crear_tarjeta_seleccion(
+#                         relleno.nombre,
+#                         "rellenos/{}".format(relleno.imagen_url),
+#                         on_relleno_selected
+#                     )
+#                 )
+#
+#         seccion_rellenos.visible = True
+#         check_continuar()
+#         page.update()
+#
+#     def on_forma_selected(e):
+#         # El 'data' de la tarjeta de forma es solo el nombre.
+#         use_cases.seleccionar_tipo_forma(e.control.data)
+#         for card in forma_cards.controls:
+#             card.visible = (card == e.control)
+#             card.border = ft.border.all(2, ft.Colors.GREEN) if card.visible else None
+#         seccion_panes.visible = True
+#         check_continuar()
+#         page.update()
+#
+#     def restablecer_selecciones(e):
+#         # Limpiamos el estado en la lógica de negocio
+#         use_cases.reiniciar_componentes()
+#
+#         # Restauramos la visibilidad y el borde de todos los botones
+#         for card in forma_cards.controls:
+#             card.visible = True
+#             card.border = None
+#         for card in pan_cards.controls:
+#             card.visible = True
+#             card.border = None
+#         for card in relleno_cards.controls:
+#             card.visible = True
+#             card.border = None
+#
+#         # Ocultamos las secciones dinámicas y el botón de continuar
+#         seccion_panes.visible = False
+#         seccion_rellenos.visible = False
+#         boton_continuar.visible = False
+#         page.update()
+#
+#     # --- 2. Construcción de Componentes ---
+#     def crear_tarjeta_seleccion(texto, imagen_src, on_click_handler):
+#         return ft.Container(
+#             width=226, height=314, bgcolor=ft.Colors.WHITE,
+#             border_radius=ft.border_radius.all(30),
+#             data=texto,  # Por defecto, 'data' es el texto. Lo sobrescribiremos para los panes.
+#             on_click=on_click_handler,
+#             content=ft.Column(
+#                 spacing=15, horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+#                 controls=[
+#                     ft.Container(
+#                         width=176, height=119, margin=ft.margin.only(top=25),
+#                         border_radius=ft.border_radius.all(10),
+#                         content=ft.Image(src=imagen_src, fit=ft.ImageFit.COVER)
+#                     ),
+#                     ft.Divider(height=2, color=ft.Colors.GREY_300),
+#                     ft.Text(texto, text_align=ft.TextAlign.CENTER, size=20, font_family="Bebas Neue"),
+#                 ]
+#             )
+#         )
+#
+#     id_categoria_actual = use_cases.obtener_pedido_actual().id_categoria
+#
+#     forma_cards = ft.Row(wrap=True, spacing=30, run_spacing=30, alignment=ft.MainAxisAlignment.CENTER)
+#
+#     for forma in use_cases.obtener_formas_por_categoria(id_categoria_actual):
+#         forma_cards.controls.append(crear_tarjeta_seleccion(
+#             forma.nombre,
+#             "formas/{}".format(forma.imagen_url),
+#             on_forma_selected)
+#         )
+#
+#     pan_cards = ft.Row(wrap=True, spacing=30, run_spacing=30, alignment=ft.MainAxisAlignment.CENTER)
+#     for pan in use_cases.obtener_panes_por_categoria(id_categoria_actual):
+#         # --- CAMBIO IMPORTANTE: Pasamos una tupla (id, nombre) a la propiedad 'data' ---
+#         tarjeta_pan = crear_tarjeta_seleccion(
+#             pan.nombre,
+#             "panes/{}".format(pan.imagen_url),
+#             on_pan_selected
+#         )
+#         tarjeta_pan.data = (pan.id, pan.nombre)
+#         pan_cards.controls.append(tarjeta_pan)
+#
+#     relleno_cards = ft.Row(wrap=True, spacing=30, run_spacing=30, alignment=ft.MainAxisAlignment.CENTER)
+#
+#     seccion_formas = ft.Column(
+#         [ft.Text("1. Elige la forma", size=25, font_family="Bebas Neue", color="#673C1C"), forma_cards],
+#         horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=20)
+#     seccion_panes = ft.Column(
+#         [ft.Text("2. Elige el pan", size=25, font_family="Bebas Neue", color="#673C1C"), pan_cards],
+#         horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=20, visible=False)
+#     seccion_rellenos = ft.Column(
+#         [ft.Text("3. Elige el relleno", size=25, font_family="Bebas Neue", color="#673C1C"), relleno_cards],
+#         horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=20, visible=False)
+#
+#     boton_continuar = ft.ElevatedButton("Elegir Decorado", on_click=lambda _: page.go("/decorado"), visible=False)
+#     boton_restablecer = ft.ElevatedButton("Restablecer", on_click=restablecer_selecciones)
+#     # --- 3. Construcción del Layout Final (Sin cambios) ---
+#     return ft.View(
+#         route="/relleno",
+#         controls=[
+#             ft.Text("Paso 3.1: Componentes del Pastel", size=30, weight=ft.FontWeight.BOLD),
+#             seccion_formas,
+#             seccion_panes,
+#             seccion_rellenos,
+#             ft.Divider(height=20),
+#             ft.Row(
+#                 [
+#                     ft.ElevatedButton("Volver", on_click=lambda _: page.go("/categorias")),
+#                     boton_restablecer,
+#                     boton_continuar,
+#                 ],
+#                 alignment=ft.MainAxisAlignment.CENTER
+#             )
+#         ],
+#         vertical_alignment=ft.MainAxisAlignment.START,
+#         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+#         spacing=20,
+#         padding=20,
+#         scroll=ft.ScrollMode.ADAPTIVE
+#     )
+
 def vista_relleno(page: ft.Page, use_cases: PedidoUseCases):
-    # --- 1. Lógica y Manejadores de Eventos ---
+    # --- Manejadores de Eventos ---
     def check_continuar():
         pedido = use_cases.obtener_pedido_actual()
         if pedido.tipo_forma and pedido.tipo_pan and pedido.tipo_relleno:
             boton_continuar.visible = True
-            page.update()
+        else:
+            boton_continuar.visible = False
+        page.update()
 
     def on_relleno_selected(e):
-        # El 'data' de la tarjeta de relleno es solo el nombre.
         use_cases.seleccionar_tipo_relleno(e.control.data)
         for card in relleno_cards.controls:
-            card.visible = (card == e.control) # Solo el control clickeado es visible
-            card.border = ft.border.all(2, ft.Colors.GREEN) if card.visible else None
+            card.border = ft.border.all(3, ft.Colors.GREEN_500) if card == e.control else None
         check_continuar()
         page.update()
 
     def on_pan_selected(e):
-        # --- CAMBIO IMPORTANTE: Desempacamos el ID y el nombre desde 'data' ---
         id_pan_seleccionado, nombre_pan_seleccionado = e.control.data
-
         use_cases.seleccionar_tipo_pan(nombre_pan_seleccionado)
         for card in pan_cards.controls:
-            card.visible = (card == e.control)
-            card.border = ft.border.all(2, ft.Colors.GREEN) if card.visible else None
+            card.border = ft.border.all(3, ft.Colors.GREEN_500) if card == e.control else None
 
+        seccion_rellenos.visible = False
         relleno_cards.controls.clear()
+
         id_categoria_actual = use_cases.obtener_pedido_actual().id_categoria
         lista_rellenos = use_cases.obtener_rellenos_disponibles(id_categoria_actual, id_pan_seleccionado)
 
         if not lista_rellenos:
             relleno_cards.controls.append(ft.Text("No hay rellenos para esta combinación."))
         else:
-            for relleno in lista_rellenos:
+            for nombre_relleno in lista_rellenos:
                 relleno_cards.controls.append(
-                    crear_tarjeta_seleccion(
-                        relleno.nombre,
-                        "C:/Source/Python/KioscoFlet/src/assets/rellenos/{}".format(relleno.imagen_url),
-                        on_relleno_selected
-                    )
-                )
+                    crear_tarjeta_seleccion(nombre_relleno.nombre, "rellenos/{}".format(nombre_relleno.imagen_url),
+                                            on_relleno_selected))
 
         seccion_rellenos.visible = True
         check_continuar()
         page.update()
 
     def on_forma_selected(e):
-        # El 'data' de la tarjeta de forma es solo el nombre.
         use_cases.seleccionar_tipo_forma(e.control.data)
         for card in forma_cards.controls:
-            card.visible = (card == e.control)
-            card.border = ft.border.all(2, ft.Colors.GREEN) if card.visible else None
+            card.border = ft.border.all(3, ft.Colors.GREEN_500) if card == e.control else None
+
         seccion_panes.visible = True
+        seccion_rellenos.visible = False
+        for card in pan_cards.controls: card.border = None
+        for card in relleno_cards.controls: card.border = None
+
         check_continuar()
         page.update()
 
     def restablecer_selecciones(e):
-        # Limpiamos el estado en la lógica de negocio
         use_cases.reiniciar_componentes()
-
-        # Restauramos la visibilidad y el borde de todos los botones
-        for card in forma_cards.controls:
-            card.visible = True
-            card.border = None
-        for card in pan_cards.controls:
-            card.visible = True
-            card.border = None
-        for card in relleno_cards.controls:
-            card.visible = True
-            card.border = None
-
-        # Ocultamos las secciones dinámicas y el botón de continuar
+        for card_row in [forma_cards, pan_cards, relleno_cards]:
+            for card in card_row.controls:
+                card.border = None
         seccion_panes.visible = False
         seccion_rellenos.visible = False
-        boton_continuar.visible = False
+        check_continuar()
         page.update()
 
-    # --- 2. Construcción de Componentes ---
+    # --- Componente de Tarjeta ---
     def crear_tarjeta_seleccion(texto, imagen_src, on_click_handler):
         return ft.Container(
             width=226, height=314, bgcolor=ft.Colors.WHITE,
             border_radius=ft.border_radius.all(30),
-            data=texto,  # Por defecto, 'data' es el texto. Lo sobrescribiremos para los panes.
+            data=texto,
             on_click=on_click_handler,
             content=ft.Column(
                 spacing=15, horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -745,6 +916,7 @@ def vista_relleno(page: ft.Page, use_cases: PedidoUseCases):
                     ft.Container(
                         width=176, height=119, margin=ft.margin.only(top=25),
                         border_radius=ft.border_radius.all(10),
+                        clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
                         content=ft.Image(src=imagen_src, fit=ft.ImageFit.COVER)
                     ),
                     ft.Divider(height=2, color=ft.Colors.GREY_300),
@@ -753,30 +925,23 @@ def vista_relleno(page: ft.Page, use_cases: PedidoUseCases):
             )
         )
 
+    # --- Carga inicial de datos ---
     id_categoria_actual = use_cases.obtener_pedido_actual().id_categoria
 
     forma_cards = ft.Row(wrap=True, spacing=30, run_spacing=30, alignment=ft.MainAxisAlignment.CENTER)
-
     for forma in use_cases.obtener_formas_por_categoria(id_categoria_actual):
-        forma_cards.controls.append(crear_tarjeta_seleccion(
-            forma.nombre,
-            "C:/Source/Python/KioscoFlet/src/assets/formas/{}".format(forma.imagen_url),
-            on_forma_selected)
-        )
+        forma_cards.controls.append(crear_tarjeta_seleccion(forma.nombre, "formas/{}".format(forma.imagen_url), on_forma_selected))
 
     pan_cards = ft.Row(wrap=True, spacing=30, run_spacing=30, alignment=ft.MainAxisAlignment.CENTER)
     for pan in use_cases.obtener_panes_por_categoria(id_categoria_actual):
-        # --- CAMBIO IMPORTANTE: Pasamos una tupla (id, nombre) a la propiedad 'data' ---
-        tarjeta_pan = crear_tarjeta_seleccion(
-            pan.nombre,
-            "C:/Source/Python/KioscoFlet/src/assets/panes/{}".format(pan.imagen_url),
-            on_pan_selected
-        )
+        tarjeta_pan = crear_tarjeta_seleccion(pan.nombre, "panes/{}".format(pan.imagen_url),
+                                              on_pan_selected)
         tarjeta_pan.data = (pan.id, pan.nombre)
         pan_cards.controls.append(tarjeta_pan)
 
     relleno_cards = ft.Row(wrap=True, spacing=30, run_spacing=30, alignment=ft.MainAxisAlignment.CENTER)
 
+    # Definición de las secciones de la UI
     seccion_formas = ft.Column(
         [ft.Text("1. Elige la forma", size=25, font_family="Bebas Neue", color="#673C1C"), forma_cards],
         horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=20)
@@ -789,11 +954,18 @@ def vista_relleno(page: ft.Page, use_cases: PedidoUseCases):
 
     boton_continuar = ft.ElevatedButton("Elegir Decorado", on_click=lambda _: page.go("/decorado"), visible=False)
     boton_restablecer = ft.ElevatedButton("Restablecer", on_click=restablecer_selecciones)
-    # --- 3. Construcción del Layout Final (Sin cambios) ---
+
+    # --- Layout Final ---
     return ft.View(
         route="/relleno",
+        scroll=ft.ScrollMode.ADAPTIVE,
+        padding=20,
+        spacing=20,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        vertical_alignment=ft.MainAxisAlignment.START,
         controls=[
             ft.Text("Paso 3.1: Componentes del Pastel", size=30, weight=ft.FontWeight.BOLD),
+            ft.Divider(height=10, color=ft.Colors.TRANSPARENT),
             seccion_formas,
             seccion_panes,
             seccion_rellenos,
@@ -804,14 +976,10 @@ def vista_relleno(page: ft.Page, use_cases: PedidoUseCases):
                     boton_restablecer,
                     boton_continuar,
                 ],
-                alignment=ft.MainAxisAlignment.CENTER
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=20
             )
-        ],
-        vertical_alignment=ft.MainAxisAlignment.START,
-        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        spacing=20,
-        padding=20,
-        scroll=ft.ScrollMode.ADAPTIVE
+        ]
     )
 
 
@@ -901,9 +1069,9 @@ def vista_decorado(page: ft.Page, use_cases: PedidoUseCases):
         opciones_color = [ft.dropdown.Option(color) for color in colores_disponibles] or [
             ft.dropdown.Option(key="no-color", text="No hay opciones", disabled=True)]
 
-        dd_color1.options = opciones_color;
+        dd_color1.options = opciones_color
         dd_color2.options = opciones_color
-        dd_color1.value = None;
+        dd_color1.value = None
         dd_color2.value = None
         contenedor_colores.visible = True
 
@@ -972,7 +1140,6 @@ def vista_decorado(page: ft.Page, use_cases: PedidoUseCases):
             lista_coberturas = use_cases.obtener_coberturas_disponibles(pedido_actual.id_categoria, pan_obj.id)
             if lista_coberturas:
                 for cobertura in lista_coberturas:
-                    # contenedor_coberturas.controls.append(ft.FilledButton(text=cobertura.nombre, on_click=on_cobertura_click))
                     contenedor_coberturas.controls.append(
                         crear_tarjeta_decorado(cobertura.nombre, on_cobertura_click)
                     )
@@ -998,6 +1165,7 @@ def vista_decorado(page: ft.Page, use_cases: PedidoUseCases):
         sub_opciones_container,
         tematica_container,
         contenedor_colores,
+        ft.Divider(height=10),
         campo_mensaje,
     ]
 
@@ -1422,99 +1590,199 @@ def vista_extras(page: ft.Page, use_cases: PedidoUseCases):
     )
 
 
+# def vista_resumen(page: ft.Page, use_cases: PedidoUseCases):
+#     # 1. Obtenemos el estado final del pedido desde los casos de uso
+#     pedido_actual = use_cases.obtener_pedido_actual()
+#
+#     # Para mostrar el nombre de la categoría en lugar de solo el ID
+#     categorias = {c.id: c.nombre for c in use_cases.obtener_categorias()}
+#     nombre_categoria = categorias.get(pedido_actual.id_categoria, "No seleccionada")
+#
+#     # --- 2. Función de Ayuda para Crear Filas ---
+#     def create_summary_row(title: str, value: str | None):
+#         """
+#         Crea una fila de resumen consistente. Si el valor es None o está vacío,
+#         muestra 'No especificado' para mayor claridad.
+#         """
+#         return ft.Row(
+#             [
+#                 ft.Text(f"{title}:", weight=ft.FontWeight.BOLD, width=150),
+#                 ft.Text(value if value else "No especificado", expand=True),
+#             ]
+#         )
+#
+#     # --- 3. Construcción de la Lista de Controles del Resumen ---
+#     # Creamos una lista para añadir dinámicamente solo los detalles relevantes.
+#
+#     controles_resumen = [
+#         # --- Detalles Generales ---
+#         create_summary_row("Categoría", nombre_categoria),
+#         create_summary_row("Fecha de Entrega",
+#                            pedido_actual.fecha_entrega.strftime('%d/%m/%Y') if pedido_actual.fecha_entrega else None),
+#         create_summary_row("Tamaño (personas)", pedido_actual.tamano_pastel),
+#         create_summary_row("Forma", pedido_actual.tipo_forma),
+#         create_summary_row("Pan", pedido_actual.tipo_pan),
+#         create_summary_row("Relleno", pedido_actual.tipo_relleno),
+#         create_summary_row("Cobertura", pedido_actual.tipo_cobertura),
+#         create_summary_row("Extra", pedido_actual.extra_seleccionado),
+#         ft.Divider(),
+#
+#         # --- Detalles del Decorado ---
+#         ft.Text("Detalles del Decorado:", weight=ft.FontWeight.BOLD, size=18),
+#         create_summary_row("Mensaje en Pastel", pedido_actual.mensaje_pastel),
+#         create_summary_row("Estilo Principal", pedido_actual.tipo_decorado),
+#     ]
+#
+#     # --- Lógica Condicional para mostrar solo los detalles relevantes ---
+#     if pedido_actual.tipo_decorado == "Liso c/s Conchas de Betún":
+#         controles_resumen.append(create_summary_row("  ↳ Detalle", pedido_actual.decorado_liso_detalle))
+#         # --- CAMBIO: Mostramos los colores y la temática si existen ---
+#         if pedido_actual.decorado_liso_detalle == "Diseño o Temática":
+#             controles_resumen.append(create_summary_row("  ↳ Temática", pedido_actual.decorado_tematica_detalle))
+#
+#         # Mostramos los colores para TODAS las opciones de "Liso"
+#         controles_resumen.append(create_summary_row("  ↳ Color Principal", pedido_actual.decorado_liso_color1))
+#         controles_resumen.append(create_summary_row("  ↳ Color Secundario", pedido_actual.decorado_liso_color2))
+#
+#     elif pedido_actual.tipo_decorado == "Imágenes Predeterminadas":
+#         controles_resumen.append(create_summary_row("  ↳ ID de Imagen", str(pedido_actual.decorado_imagen_id)))
+#         if pedido_actual.decorado_imagen_id:
+#             url_imagen = use_cases.obtener_url_imagen_galeria_por_id(pedido_actual.decorado_imagen_id)
+#             if url_imagen:
+#                 controles_resumen.append(
+#                     ft.Row([
+#                         ft.Text("  ↳ Miniatura:", weight=ft.FontWeight.BOLD, width=150),
+#                         ft.Image(src=url_imagen, width=100, height=100, fit=ft.ImageFit.CONTAIN, border_radius=ft.border_radius.all(5)),
+#                     ])
+#                 )
+#
+#     # --- 4. Construcción del Layout Final de la Vista ---
+#     return ft.View(
+#         route="/resumen",
+#         controls=[
+#             ft.Text("Resumen de tu Pedido", size=30, weight=ft.FontWeight.BOLD),
+#             ft.Text("Por favor, verifica que toda la información sea correcta."),
+#             ft.Divider(height=20),
+#
+#             # Usamos la lista de controles que acabamos de construir
+#             ft.Column(controls=controles_resumen, spacing=8),
+#
+#             ft.Divider(height=30),
+#             ft.Row(
+#                 [
+#                     ft.ElevatedButton("Modificar Pedido", on_click=lambda _: page.go("/decorado")),
+#                     ft.ElevatedButton("Continuar", on_click=lambda _: page.go("/datos_cliente")),
+#                 ],
+#                 alignment=ft.MainAxisAlignment.CENTER
+#             )
+#         ],
+#         vertical_alignment=ft.MainAxisAlignment.START,
+#         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+#         spacing=15,
+#         padding=20,
+#         scroll=ft.ScrollMode.ADAPTIVE
+#     )
 def vista_resumen(page: ft.Page, use_cases: PedidoUseCases):
-    # 1. Obtenemos el estado final del pedido desde los casos de uso
+    # --- 1. Obtención de Datos ---
     pedido_actual = use_cases.obtener_pedido_actual()
-
-    # Para mostrar el nombre de la categoría en lugar de solo el ID
     categorias = {c.id: c.nombre for c in use_cases.obtener_categorias()}
     nombre_categoria = categorias.get(pedido_actual.id_categoria, "No seleccionada")
 
-    # --- 2. Función de Ayuda para Crear Filas ---
-    def create_summary_row(title: str, value: str | None):
-        """
-        Crea una fila de resumen consistente. Si el valor es None o está vacío,
-        muestra 'No especificado' para mayor claridad.
-        """
-        return ft.Row(
-            [
-                ft.Text(f"{title}:", weight=ft.FontWeight.BOLD, width=150),
-                ft.Text(value if value else "No especificado", expand=True),
+    # --- 2. Construcción de Componentes ---
+
+    # Panel izquierdo con el resumen en texto
+    panel_resumen_texto = ft.Container(
+        width=749,
+        height=333,
+        bgcolor=ft.Colors.with_opacity(0.9, ft.Colors.WHITE),
+        border_radius=ft.border_radius.all(40),
+        padding=25,
+        content=ft.Column(
+            controls=[
+                ft.Text("Resumen de tu pedido", size=30, font_family="Bebas Neue", color="#673C1C"),
+                ft.Row([
+                    ft.Column([
+                        ft.Text("Categoría:", weight=ft.FontWeight.BOLD),
+                        ft.Text("Fecha de entrega:", weight=ft.FontWeight.BOLD),
+                        ft.Text("Tamaño (#Personas):", weight=ft.FontWeight.BOLD),
+                        ft.Text("Forma del pastel:", weight=ft.FontWeight.BOLD),
+                        ft.Text("Pan:", weight=ft.FontWeight.BOLD),
+                        ft.Text("Relleno:", weight=ft.FontWeight.BOLD),
+                        ft.Text("Cobertura:", weight=ft.FontWeight.BOLD),
+                        ft.Text("Extra:", weight=ft.FontWeight.BOLD),
+                    ], expand=1),
+                    ft.Column([
+                        ft.Text(nombre_categoria),
+                        ft.Text(
+                            pedido_actual.fecha_entrega.strftime('%d/%m/%Y') if pedido_actual.fecha_entrega else "N/A"),
+                        ft.Text(pedido_actual.tamano_pastel),
+                        ft.Text(pedido_actual.tipo_forma),
+                        ft.Text(pedido_actual.tipo_pan),
+                        ft.Text(pedido_actual.tipo_relleno),
+                        ft.Text(pedido_actual.tipo_cobertura),
+                        ft.Text(pedido_actual.extra_seleccionado),
+                        #
+                        #         # --- Detalles del Decorado ---
+                        #         ft.Text("Detalles del Decorado:", weight=ft.FontWeight.BOLD, size=18),
+                        #         create_summary_row("Mensaje en Pastel", pedido_actual.mensaje_pastel),
+                        #         create_summary_row("Estilo Principal", pedido_actual.tipo_decorado),
+                    ], expand=1),
+                ]),
+                # ... Aquí puedes añadir más filas para los demás detalles
             ]
         )
-
-    # --- 3. Construcción de la Lista de Controles del Resumen ---
-    # Creamos una lista para añadir dinámicamente solo los detalles relevantes.
-
-    controles_resumen = [
-        # --- Detalles Generales ---
-        create_summary_row("Categoría", nombre_categoria),
-        create_summary_row("Fecha de Entrega",
-                           pedido_actual.fecha_entrega.strftime('%d/%m/%Y') if pedido_actual.fecha_entrega else None),
-        create_summary_row("Tamaño (personas)", pedido_actual.tamano_pastel),
-        create_summary_row("Forma", pedido_actual.tipo_forma),
-        create_summary_row("Pan", pedido_actual.tipo_pan),
-        create_summary_row("Relleno", pedido_actual.tipo_relleno),
-        create_summary_row("Cobertura", pedido_actual.tipo_cobertura),
-        create_summary_row("Extra", pedido_actual.extra_seleccionado),
-        ft.Divider(),
-
-        # --- Detalles del Decorado ---
-        ft.Text("Detalles del Decorado:", weight=ft.FontWeight.BOLD, size=18),
-        create_summary_row("Mensaje en Pastel", pedido_actual.mensaje_pastel),
-        create_summary_row("Estilo Principal", pedido_actual.tipo_decorado),
-    ]
-
-    # --- Lógica Condicional para mostrar solo los detalles relevantes ---
-    if pedido_actual.tipo_decorado == "Liso c/s Conchas de Betún":
-        controles_resumen.append(create_summary_row("  ↳ Detalle", pedido_actual.decorado_liso_detalle))
-        # --- CAMBIO: Mostramos los colores y la temática si existen ---
-        if pedido_actual.decorado_liso_detalle == "Diseño o Temática":
-            controles_resumen.append(create_summary_row("  ↳ Temática", pedido_actual.decorado_tematica_detalle))
-
-        # Mostramos los colores para TODAS las opciones de "Liso"
-        controles_resumen.append(create_summary_row("  ↳ Color Principal", pedido_actual.decorado_liso_color1))
-        controles_resumen.append(create_summary_row("  ↳ Color Secundario", pedido_actual.decorado_liso_color2))
-
-    elif pedido_actual.tipo_decorado == "Imágenes Predeterminadas":
-        controles_resumen.append(create_summary_row("  ↳ ID de Imagen", str(pedido_actual.decorado_imagen_id)))
-        if pedido_actual.decorado_imagen_id:
-            url_imagen = use_cases.obtener_url_imagen_galeria_por_id(pedido_actual.decorado_imagen_id)
-            if url_imagen:
-                controles_resumen.append(
-                    ft.Row([
-                        ft.Text("  ↳ Miniatura:", weight=ft.FontWeight.BOLD, width=150),
-                        ft.Image(src=url_imagen, width=100, height=100, fit=ft.ImageFit.CONTAIN, border_radius=ft.border_radius.all(5)),
-                    ])
-                )
-
-    # --- 4. Construcción del Layout Final de la Vista ---
-    return ft.View(
-        route="/resumen",
-        controls=[
-            ft.Text("Resumen de tu Pedido", size=30, weight=ft.FontWeight.BOLD),
-            ft.Text("Por favor, verifica que toda la información sea correcta."),
-            ft.Divider(height=20),
-
-            # Usamos la lista de controles que acabamos de construir
-            ft.Column(controls=controles_resumen, spacing=8),
-
-            ft.Divider(height=30),
-            ft.Row(
-                [
-                    ft.ElevatedButton("Modificar Pedido", on_click=lambda _: page.go("/decorado")),
-                    ft.ElevatedButton("Continuar", on_click=lambda _: page.go("/datos_cliente")),
-                ],
-                alignment=ft.MainAxisAlignment.CENTER
-            )
-        ],
-        vertical_alignment=ft.MainAxisAlignment.START,
-        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        spacing=15,
-        padding=20,
-        scroll=ft.ScrollMode.ADAPTIVE
     )
 
+    # Botones de acción
+    boton_modificar = ft.ElevatedButton("Modificar Pedido", on_click=lambda _: page.go("/decorado"))
+    boton_continuar = ft.Container(
+        width=169, height=58, bgcolor="#87D5BA", border_radius=15,
+        content=ft.Text("Continuar", color=ft.Colors.WHITE, size=30, font_family="Poppins"),
+        alignment=ft.alignment.center,
+        on_click=lambda _: page.go("/datos_cliente")
+    )
+
+    # --- 3. Construcción del Layout Final ---
+
+    contenido_superpuesto = ft.Column(
+        expand=True,
+        controls=[
+            ft.Container(  # Banner superior
+                height=67, bgcolor="#89C5B0", alignment=ft.alignment.center,
+                content=ft.Text('Para envío gratuito en compras de $500 o más', color=ft.Colors.WHITE, size=36,
+                                font_family="Bebas Neue")
+            ),
+            ft.Container(expand=True,
+                         content=ft.ResponsiveRow(
+                             alignment=ft.MainAxisAlignment.CENTER,
+                             vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                             controls=[
+                                 ft.Column(col={"md": 7}, controls=[panel_resumen_texto]),
+                                 ft.Column(col={"md": 5}, controls=[
+                                     ft.Image(src="tres_leches_final.png", border_radius=20) # 253 x 287
+                                 ])
+                             ]
+                         )
+                         ),
+            ft.Row([boton_modificar, boton_continuar], alignment=ft.MainAxisAlignment.CENTER, spacing=20),
+            ft.Container(height=30)
+        ]
+    )
+
+    layout_final = ft.Stack(
+        controls=[
+            #ft.Image(src="https://placehold.co/1520x1192", fit=ft.ImageFit.COVER, expand=True),
+            ft.Image(src="15fc9b754973ad7c32288c9216fe5d62b84512b4.jpg", fit=ft.ImageFit.FILL, expand=True),
+            ft.Container(bgcolor=ft.Colors.with_opacity(0.2, "#DC6262"), expand=True),
+            contenido_superpuesto,
+        ]
+    )
+
+    return ft.View(
+        route="/resumen",
+        controls=[layout_final],
+        padding=0
+    )
 
 def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases):
     # --- 1. Estado de la Vista ---
