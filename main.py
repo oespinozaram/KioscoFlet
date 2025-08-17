@@ -1,7 +1,7 @@
 # main.py
 import flet as ft
 
-from src.application.use_cases import PedidoUseCases
+from src.application.use_cases import PedidoUseCases, AuthUseCases
 from src.infrastructure.persistence.memory_repository import PedidoRepositoryEnMemoria
 from src.infrastructure.persistence.sqlite_repository import (
     TamanoRepositorySQLite, CategoriaRepositorySQLite,
@@ -26,7 +26,7 @@ def main(page: ft.Page):
         "Be Vietnam Pro": "fuentes/BeVietnamPro-Regular.ttf"
     }
 
-    db_path = r"config.db"
+    db_path = r"C:/KioscoPP/config.db"
     pedido_repo = PedidoRepositoryEnMemoria()
     tamano_repo = TamanoRepositorySQLite(db_path)
     categoria_repo = CategoriaRepositorySQLite(db_path)
@@ -38,6 +38,7 @@ def main(page: ft.Page):
     imagen_galeria_repo = ImagenGaleriaRepositorySQLite(db_path)
     tipo_color_repo = TipoColorRepositorySQLite(db_path)
 
+    auth_use_cases = AuthUseCases()
     pedido_use_cases = PedidoUseCases(
         pedido_repo, tamano_repo, categoria_repo,
         tipo_pan_repo, tipo_forma_repo, tipo_relleno_repo,
@@ -91,7 +92,9 @@ def main(page: ft.Page):
         print(f"Cambiando a la ruta: {page.route}")
         page.views.clear()
 
-        if page.route == "/":
+        if page.route == "/login":
+            page.views.append(views.vista_login(page, auth_use_cases))
+        elif page.route == "/":
             page.views.append(views.vista_bienvenida(page))
         elif page.route == "/seleccion":
             page.views.append(views.vista_seleccion(page))
@@ -134,7 +137,7 @@ def main(page: ft.Page):
         )
     )
 
-    page.go("/")
+    page.go("/login")
 
 
 if __name__ == "__main__":

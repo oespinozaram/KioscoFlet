@@ -5,6 +5,7 @@ from dateutil.relativedelta import relativedelta
 from src.application.use_cases import PedidoUseCases
 from .keyboard import VirtualKeyboard
 from .controles_comunes import crear_boton_navegacion
+from src.application.use_cases import AuthUseCases
 
 
 # --- Vista de Bienvenida ---
@@ -602,7 +603,7 @@ def vista_categorias(page: ft.Page, use_cases: PedidoUseCases):
                         margin=ft.margin.only(top=25),
                         border_radius=ft.border_radius.all(10),
                         # Puedes añadir imágenes a tus categorías en la BD y cargarlas aquí
-                        content=ft.Image(src="categorias/{}".format(categoria.imagen_url), fit=ft.ImageFit.COVER)
+                        content=ft.Image(src="{}".format(categoria.imagen_url), fit=ft.ImageFit.COVER)
                     ),
                     ft.Divider(height=1, color=ft.Colors.GREY_300),
                     ft.Text(
@@ -873,7 +874,7 @@ def vista_relleno(page: ft.Page, use_cases: PedidoUseCases):
         else:
             for nombre_relleno in lista_rellenos:
                 relleno_cards.controls.append(
-                    crear_tarjeta_seleccion(nombre_relleno.nombre, "rellenos/{}".format(nombre_relleno.imagen_url),
+                    crear_tarjeta_seleccion(nombre_relleno.nombre, "{}".format(nombre_relleno.imagen_url),
                                             on_relleno_selected))
 
         seccion_rellenos.visible = True
@@ -930,11 +931,11 @@ def vista_relleno(page: ft.Page, use_cases: PedidoUseCases):
 
     forma_cards = ft.Row(wrap=True, spacing=30, run_spacing=30, alignment=ft.MainAxisAlignment.CENTER)
     for forma in use_cases.obtener_formas_por_categoria(id_categoria_actual):
-        forma_cards.controls.append(crear_tarjeta_seleccion(forma.nombre, "formas/{}".format(forma.imagen_url), on_forma_selected))
+        forma_cards.controls.append(crear_tarjeta_seleccion(forma.nombre, "{}".format(forma.imagen_url), on_forma_selected))
 
     pan_cards = ft.Row(wrap=True, spacing=30, run_spacing=30, alignment=ft.MainAxisAlignment.CENTER)
     for pan in use_cases.obtener_panes_por_categoria(id_categoria_actual):
-        tarjeta_pan = crear_tarjeta_seleccion(pan.nombre, "panes/{}".format(pan.imagen_url),
+        tarjeta_pan = crear_tarjeta_seleccion(pan.nombre, "{}".format(pan.imagen_url),
                                               on_pan_selected)
         tarjeta_pan.data = (pan.id, pan.nombre)
         pan_cards.controls.append(tarjeta_pan)
@@ -985,23 +986,36 @@ def vista_relleno(page: ft.Page, use_cases: PedidoUseCases):
 
 def vista_decorado(page: ft.Page, use_cases: PedidoUseCases):
     # --- 1. Componente Reutilizable para Tarjetas ---
-    def crear_tarjeta_decorado(texto: str, on_click_handler, data=None):
-        """Crea una tarjeta de selección estilizada y clickeable."""
+    def crear_tarjeta_decorado(texto: str, imagen_src: str, on_click_handler, data=None):
         return ft.Container(
-            width=280,
-            height=80,
+            width=226,
+            height=200, # Aumentamos la altura para la imagen
             bgcolor=ft.Colors.WHITE,
             border_radius=ft.border_radius.all(20),
             shadow=ft.BoxShadow(
                 spread_radius=1, blur_radius=8,
-                color=ft.Colors.with_opacity(0.2, ft.Colors.BLACK),
-                offset=ft.Offset(4, 4)
-            ),
-            content=ft.Text(
-                texto,
-                size=20,
-                font_family="Bebas Neue",
-                text_align=ft.TextAlign.CENTER
+                 color=ft.Colors.with_opacity(0.2, ft.Colors.BLACK),
+                 offset=ft.Offset(4, 4)
+            ), # Sin cambios
+            content=ft.Column(
+                spacing=10,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                controls=[
+                    # Añadimos el contenedor de la imagen
+                    ft.Container(
+                        width=226,
+                        height=110,
+                        clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
+                        border_radius=ft.border_radius.only(top_left=20, top_right=20),
+                        content=ft.Image(src=imagen_src, fit=ft.ImageFit.COVER)
+                    ),
+                    ft.Text(
+                        texto,
+                        size=18,
+                        font_family="Bebas Neue",
+                        text_align=ft.TextAlign.CENTER
+                    ),
+                ]
             ),
             alignment=ft.alignment.center,
             on_click=on_click_handler,
@@ -1108,7 +1122,7 @@ def vista_decorado(page: ft.Page, use_cases: PedidoUseCases):
         opciones = ["Chantilli", "Chorreado", "Diseño o Temática"]
         for opcion in opciones:
             sub_opciones_container.controls.append(
-                crear_tarjeta_decorado(opcion, on_sub_opcion_liso_click)
+                crear_tarjeta_decorado(opcion, "", on_sub_opcion_liso_click)
             )
         page.update()
 
@@ -1129,7 +1143,34 @@ def vista_decorado(page: ft.Page, use_cases: PedidoUseCases):
         panel_decorado.visible = True
         page.update()
 
+    def restablecer_decorado(e):
+        # 1. Llama al caso de uso para limpiar los datos del pedido
+        use_cases.reiniciar_decorado()
+
+        # 2. Resetea la interfaz a su estado inicial
+        # Limpia el feedback visual de las tarjetas principales
+        for card in panel_decorado.controls[2].controls:
+            card.border = None
+
+        # Oculta todos los contenedores dinámicos
+        sub_opciones_container.controls.clear()
+        tematica_container.visible = False
+        contenedor_colores.visible = False
+        boton_continuar.visible = False
+
+        # Limpia el campo de mensaje
+        campo_mensaje.value = ""
+
+        page.update()
+
     # --- 4. Construcción del Layout ---
+
+    boton_restablecer = crear_boton_navegacion(
+        texto="Restablecer",
+        on_click_handler=restablecer_decorado,
+        es_primario=False
+    )
+
     contenedor_coberturas = ft.Row(wrap=True, spacing=10, run_spacing=10, alignment=ft.MainAxisAlignment.CENTER)
     pedido_actual = use_cases.obtener_pedido_actual()
     if pedido_actual.id_categoria and pedido_actual.tipo_pan:
@@ -1141,7 +1182,7 @@ def vista_decorado(page: ft.Page, use_cases: PedidoUseCases):
             if lista_coberturas:
                 for cobertura in lista_coberturas:
                     contenedor_coberturas.controls.append(
-                        crear_tarjeta_decorado(cobertura.nombre, on_cobertura_click)
+                        crear_tarjeta_decorado(cobertura.nombre, cobertura.imagen_url, on_cobertura_click)
                     )
             else:
                 contenedor_coberturas.controls.append(ft.Text("No hay coberturas disponibles para esta selección."))
@@ -1157,8 +1198,8 @@ def vista_decorado(page: ft.Page, use_cases: PedidoUseCases):
             alignment=ft.MainAxisAlignment.CENTER,
             spacing=20,
             controls=[
-                crear_tarjeta_decorado("Liso c/s Conchas de Betún", on_decorado_principal_click),
-                crear_tarjeta_decorado("Imágenes Predeterminadas", on_decorado_principal_click),
+                crear_tarjeta_decorado("Liso c/s Conchas de Betún", "", on_decorado_principal_click),
+                crear_tarjeta_decorado("Imágenes Predeterminadas", "", on_decorado_principal_click),
             ]
         ),
         ft.Divider(height=15),
@@ -1180,6 +1221,7 @@ def vista_decorado(page: ft.Page, use_cases: PedidoUseCases):
             ft.Row(
                 [
                     ft.ElevatedButton("Volver", on_click=lambda _: page.go("/categorias")),
+                    boton_restablecer,
                     boton_continuar,
                 ],
                 alignment=ft.MainAxisAlignment.CENTER
@@ -1723,7 +1765,7 @@ def vista_resumen(page: ft.Page, use_cases: PedidoUseCases):
                         ft.Text(pedido_actual.extra_seleccionado),
                         #
                         #         # --- Detalles del Decorado ---
-                        #         ft.Text("Detalles del Decorado:", weight=ft.FontWeight.BOLD, size=18),
+                        #         ftText("Detalles del Decorado:", weight=ft.FontWeight.BOLD, size=18),
                         #         create_summary_row("Mensaje en Pastel", pedido_actual.mensaje_pastel),
                         #         create_summary_row("Estilo Principal", pedido_actual.tipo_decorado),
                     ], expand=1),
@@ -1947,5 +1989,97 @@ def vista_confirmacion(page: ft.Page, use_cases: PedidoUseCases):
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         spacing=10,
         padding=20
+    )
+
+
+def vista_login(page: ft.Page, auth_use_cases: AuthUseCases):
+    """
+    Crea una pantalla de login independiente con un diseño limpio,
+    fondo blanco y una imagen decorativa a la izquierda en pantallas grandes.
+    """
+
+    # --- 1. Definición de Controles del Formulario ---
+    campo_usuario = ft.TextField(
+        label="Usuario",
+        width=300,
+        prefix_icon=ft.Icons.PERSON
+    )
+    campo_password = ft.TextField(
+        label="Contraseña",
+        width=300,
+        password=True,
+        can_reveal_password=True,
+        prefix_icon=ft.Icons.LOCK
+    )
+    boton_entrar = ft.ElevatedButton(
+        text="Entrar",
+        width=300,
+        bgcolor=ft.Colors.BLUE_GREY_400,
+        color=ft.Colors.WHITE
+    )
+
+    # --- 2. Manejador de Eventos ---
+    def on_login_click(e):
+        usuario = campo_usuario.value
+        password = campo_password.value
+
+        if auth_use_cases.login(usuario, password):
+            page.go("/")  # Navega a la bienvenida si el login es exitoso
+        else:
+            page.snack_bar = ft.SnackBar(
+                content=ft.Text("Usuario o contraseña incorrectos."),
+                bgcolor=ft.Colors.RED_ACCENT_700
+            )
+            page.snack_bar.open = True
+            page.update()
+
+    # Asignamos el evento al botón
+    boton_entrar.on_click = on_login_click
+
+    # --- 3. Construcción del Layout Responsivo ---
+
+    # Columna izquierda con la imagen decorativa.
+    # Esta columna se ocultará en pantallas pequeñas.
+    columna_imagen = ft.Column(
+        col={"sm": 0, "md": 6},  # Ocupa 0 columnas en móvil, 6 en escritorio
+        controls=[
+            ft.Image(
+                src="Recurso 3.png",  # Asegúrate de tener esta imagen en tu carpeta 'assets'
+                fit=ft.ImageFit.COVER,
+                expand=True
+            )
+        ]
+    )
+
+    # Columna derecha con el formulario de login.
+    columna_formulario = ft.Column(
+        col={"sm": 12, "md": 6},  # Ocupa 12 columnas en móvil, 6 en escritorio
+        alignment=ft.MainAxisAlignment.CENTER,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        spacing=20,
+        controls=[
+            ft.Text("Iniciar Sesión", size=40, weight=ft.FontWeight.BOLD),
+            ft.Container(height=20),
+            campo_usuario,
+            campo_password,
+            boton_entrar,
+        ]
+    )
+
+    # La función ahora devuelve un objeto ft.View completo e independiente.
+    return ft.View(
+        route="/login",
+        padding=0,
+        bgcolor=ft.Colors.WHITE,
+        controls=[
+            ft.ResponsiveRow(
+                controls=[
+                    columna_imagen,
+                    columna_formulario,
+                ],
+                expand=True,
+                vertical_alignment=ft.CrossAxisAlignment.STRETCH
+            )
+        ]
     )
 

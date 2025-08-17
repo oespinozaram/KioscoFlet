@@ -11,6 +11,21 @@ from src.domain.pedido import Pedido
 from src.domain.imagen_galeria import ImagenGaleria
 
 
+class AuthUseCases:
+    def login(self, username: str, password: str) -> bool:
+        """
+        Verifica las credenciales del usuario.
+        TODO: Conectar a una base de datos de usuarios en el futuro.
+        """
+        # Por ahora, usamos credenciales fijas para la demostración
+        if username.lower() == "admin" and password == "1234":
+            print("INFO: Credenciales correctas.")
+            return True
+        else:
+            print("ERROR: Credenciales incorrectas.")
+            return False
+
+
 class PedidoUseCases:
     def __init__(self, pedido_repo: PedidoRepository, tamano_repo: TamanoRepository,
                  categoria_repo: CategoriaRepository, tipo_pan_repo: TipoPanRepository,
@@ -273,4 +288,16 @@ class PedidoUseCases:
         pedido.tipo_forma = None
         pedido.tipo_pan = None
         pedido.tipo_relleno = None
+        self.pedido_repo.guardar(pedido)
+
+    def reiniciar_decorado(self):
+        """Resetea todas las selecciones de la sección de decorado."""
+        pedido = self.pedido_repo.obtener()
+        pedido.tipo_decorado = None
+        pedido.mensaje_pastel = None
+        pedido.decorado_liso_detalle = None
+        pedido.decorado_tematica_detalle = None
+        pedido.decorado_imagen_id = None
+        pedido.decorado_liso_color1 = None
+        pedido.decorado_liso_color2 = None
         self.pedido_repo.guardar(pedido)
