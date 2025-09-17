@@ -104,18 +104,24 @@ def main(page: ft.Page):
             page.views.append(views.vista_tamano(page, pedido_use_cases))
         elif page.route == "/categorias":
             page.views.append(views.vista_categorias(page, pedido_use_cases))
+        elif page.route == "/forma":
+            page.views.append(views.vista_forma(page, pedido_use_cases))
+        elif page.route == "/pan":
+            page.views.append(views.vista_pan(page, pedido_use_cases))
         elif page.route == "/relleno":
             page.views.append(views.vista_relleno(page, pedido_use_cases))
+        elif page.route == "/cobertura":
+            page.views.append(views.vista_cobertura(page, pedido_use_cases))
+        elif page.route == "/decorado":
+            page.views.append(views.vista_decorado(page, pedido_use_cases))
+        elif page.route == "/galeria":
+            page.views.append(views.vista_galeria(page, pedido_use_cases))
+        elif page.route == "/extras":
+            page.views.append(views.vista_extras(page, pedido_use_cases))
         elif page.route == "/resumen":
             page.views.append(views.vista_resumen(page, pedido_use_cases))
         elif page.route == "/datos_cliente":
             page.views.append(views.vista_datos_cliente(page, pedido_use_cases))
-        elif page.route == "/decorado":
-            page.views.append(views.vista_decorado(page, pedido_use_cases))
-        elif page.route == "/galeria":  # Nueva ruta
-            page.views.append(views.vista_galeria(page, pedido_use_cases))
-        elif page.route == "/extras":  # Nueva ruta
-            page.views.append(views.vista_extras(page, pedido_use_cases))
         elif page.route == "/confirmacion":
             page.views.append(views.vista_confirmacion(page, pedido_use_cases))
         page.update()

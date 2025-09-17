@@ -1,7 +1,6 @@
 import flet as ft
 
 
-# CAMBIO: La clase ya no hereda de ft.UserControl
 class VirtualKeyboard:
     # CAMBIO: El constructor ahora recibe el objeto 'page'
     def __init__(self, page: ft.Page, on_key):

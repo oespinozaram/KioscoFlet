@@ -100,16 +100,13 @@ class PedidoUseCases:
         pedido = self.pedido_repo.obtener()
         if pedido.tamano_pastel:
             try:
-                # Convertimos el tamaño (que es un string) a un número entero
                 tamano_personas = int(pedido.tamano_pastel)
 
-                # Si el tamaño es 10 o menos, filtramos la lista
                 if tamano_personas > 10:
                     print(f"INFO: Tamaño para {tamano_personas} personas detectado. Ocultando forma de corazón.")
                     formas_filtradas = [forma for forma in formas_disponibles if "corazón" not in forma.nombre.lower()]
                     return formas_filtradas
             except (ValueError, TypeError):
-                # Si el tamaño no es un número válido, no hacer nada y devolver todo
                 print(f"ADVERTENCIA: El tamaño '{pedido.tamano_pastel}' no es un número válido.")
                 pass
         return formas_disponibles
@@ -167,7 +164,6 @@ class PedidoUseCases:
         if not self.tamanos_disponibles:
             self.tamanos_disponibles = self.tamano_repo.obtener_todos()
 
-        # Seleccionar el primero por defecto si no hay ninguno
         pedido = self.pedido_repo.obtener()
         if not pedido.tamano_pastel and self.tamanos_disponibles:
             pedido.tamano_pastel = self.tamanos_disponibles[0]
@@ -187,7 +183,6 @@ class PedidoUseCases:
             pedido.tamano_pastel = tamanos[nuevo_idx]
             self.pedido_repo.guardar(pedido)
         except ValueError:
-            # Si el tamaño actual no está en la lista, selecciona el primero
             pedido.tamano_pastel = tamanos[0]
             self.pedido_repo.guardar(pedido)
 
@@ -213,7 +208,6 @@ class PedidoUseCases:
         self.pedido_repo.guardar(pedido)
 
     def guardar_mensaje_pastel(self, mensaje: str):
-        """Guarda el mensaje para el pastel."""
         pedido = self.pedido_repo.obtener()
         pedido.mensaje_pastel = mensaje
         self.pedido_repo.guardar(pedido)
@@ -221,18 +215,14 @@ class PedidoUseCases:
 
 
     def guardar_datos_y_finalizar(self, datos: dict) -> Pedido:
-        # 1. Guardar los datos en el objeto Pedido
         pedido = self.pedido_repo.obtener()
         pedido.datos_entrega = DatosEntrega(**datos)
         self.pedido_repo.guardar(pedido)
 
-        # 2. Guardar permanentemente en la base de datos
         print("INFO: Finalizando pedido y guardando en la base de datos...")
         self.finalizar_repo.finalizar(pedido)
         print("INFO: ¡Pedido guardado permanentemente!")
 
-        # 3. Preparar datos para el QR
-        # (Omitimos datos sensibles o muy largos para que el QR no sea muy denso)
         datos_qr = (
             f"Cliente: {pedido.datos_entrega.nombre_completo}\n"
             f"Telefono: {pedido.datos_entrega.telefono}\n"
@@ -246,7 +236,6 @@ class PedidoUseCases:
         return pedido
 
     def seleccionar_color_decorado_liso(self, color: str):
-        """Guarda el color para el decorado liso."""
         pedido = self.pedido_repo.obtener()
         pedido.decorado_liso_color = color
         self.pedido_repo.guardar(pedido)
@@ -265,29 +254,49 @@ class PedidoUseCases:
         self.pedido_repo.guardar(pedido)
 
     def guardar_detalle_decorado(self, tipo_principal: str, detalle: str, texto_tematica: str | None = None):
-        """Guarda los detalles de la decoración."""
         pedido = self.pedido_repo.obtener()
         if tipo_principal == "Liso c/s Conchas de Betún":
-            # Si se selecciona un nuevo detalle (Chantilli/Chorreado/Diseño),
-            # reseteamos los colores para forzar una nueva selección.
             if pedido.decorado_liso_detalle != detalle:
                 pedido.decorado_liso_color1 = None
                 pedido.decorado_liso_color2 = None
             pedido.decorado_liso_detalle = detalle
-            # Guardamos el texto de la temática solo si el detalle es el correcto
             if detalle == "Diseño o Temática":
                 pedido.decorado_tematica_detalle = texto_tematica
             else:
-                # Si se elige otra opción, nos aseguramos de que la temática quede limpia.
                 pedido.decorado_tematica_detalle = None
         self.pedido_repo.guardar(pedido)
 
     def reiniciar_componentes(self):
-        """Resetea las selecciones de forma, pan y relleno del pedido."""
         pedido = self.pedido_repo.obtener()
         pedido.tipo_forma = None
         pedido.tipo_pan = None
         pedido.tipo_relleno = None
+        self.pedido_repo.guardar(pedido)
+
+    def seleccionar_hora(self, hora: str):
+        pedido = self.pedido_repo.obtener()
+        pedido.hora_entrega = hora
+        self.pedido_repo.guardar(pedido)
+
+    def reiniciar_forma(self):
+        pedido = self.pedido_repo.obtener()
+        pedido.tipo_forma = None
+        self.pedido_repo.guardar(pedido)
+
+    def reiniciar_pan(self):
+        pedido = self.pedido_repo.obtener()
+        pedido.tipo_pan = None
+        self.pedido_repo.guardar(pedido)
+
+    def reiniciar_relleno(self):
+        pedido = self.pedido_repo.obtener()
+        pedido.tipo_relleno = None
+        self.pedido_repo.guardar(pedido)
+
+    def reiniciar_cobertura(self):
+        """Resetea la selección de cobertura del pedido."""
+        pedido = self.pedido_repo.obtener()
+        pedido.tipo_cobertura = None
         self.pedido_repo.guardar(pedido)
 
     def reiniciar_decorado(self):

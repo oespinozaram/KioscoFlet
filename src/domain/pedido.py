@@ -6,6 +6,7 @@ class Pedido:
     """Entidad que representa el estado de un pedido de pastel."""
     def __init__(self):
         self.fecha_entrega: datetime.date | None = None
+        self.hora_entrega: str | None = None
         self.tamano_pastel: str | None = None
         self.id_categoria: int | None = None
         self.tipo_pan: str | None = None
@@ -26,6 +27,7 @@ class Pedido:
     def reiniciar(self):
         """Reinicia la entidad a su estado por defecto."""
         self.fecha_entrega = None
+        self.hora_entrega = None
         self.tamano_pastel = None
         self.id_categoria = None
         self.tipo_pan = None

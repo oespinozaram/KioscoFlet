@@ -1,6 +1,6 @@
 # src/infrastructure/persistence/memory_repository.py
-from src.domain.pedido import Pedido
-from src.application.repositories import PedidoRepository
+from ...domain.pedido import Pedido
+from ...application.repositories import PedidoRepository
 
 class PedidoRepositoryEnMemoria(PedidoRepository):
     _pedido_actual: Pedido | None = None
