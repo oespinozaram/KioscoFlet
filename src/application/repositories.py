@@ -78,12 +78,6 @@ class TipoCoberturaRepository(ABC):
        pass
 
 
-class FinalizarPedidoRepository(ABC):
-    @abstractmethod
-    def finalizar(self, pedido: Pedido):
-        pass
-
-
 class ImagenGaleriaRepository(ABC):
     @abstractmethod
     def buscar(self, categoria: str | None = None, termino: str | None = None) -> list[ImagenGaleria]:
@@ -98,4 +92,19 @@ class ImagenGaleriaRepository(ABC):
 class TipoColorRepository(ABC):
     @abstractmethod
     def obtener_por_categoria_y_cobertura(self, id_categoria: int, nombre_cobertura: str) -> list[str]:
+        pass
+
+
+class Ticket(NamedTuple):
+    id_pedido: int
+    nombre_cliente: str
+
+
+class FinalizarPedidoRepository(ABC):
+    @abstractmethod
+    def finalizar(self, pedido: Pedido) -> int:
+        pass
+
+    @abstractmethod
+    def obtener_por_id(self, id_pedido: int) -> Ticket | None:
         pass

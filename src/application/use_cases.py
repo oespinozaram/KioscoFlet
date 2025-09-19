@@ -4,11 +4,15 @@ from .repositories import (
     PedidoRepository, TamanoRepository, CategoriaRepository, TipoCobertura,
     TipoPanRepository, TipoFormaRepository, TipoRellenoRepository,
     TipoCoberturaRepository, FinalizarPedidoRepository, Categoria, TipoPan,
-    ImagenGaleriaRepository, TipoColorRepository, FormaPastel, TipoRelleno
+    ImagenGaleriaRepository, TipoColorRepository, FormaPastel, TipoRelleno, Ticket
 )
 from src.domain.datos_entrega import DatosEntrega
 from src.domain.pedido import Pedido
 from src.domain.imagen_galeria import ImagenGaleria
+import io
+import base64
+import barcode
+from barcode.writer import ImageWriter
 
 
 class AuthUseCases:
@@ -55,7 +59,6 @@ class PedidoUseCases:
             return None
 
     def buscar_imagenes_galeria(self, categoria: str | None, termino: str | None) -> list[ImagenGaleria]:
-        """Busca imágenes por categoría y/o término de búsqueda."""
         return self.imagen_galeria_repo.buscar(categoria, termino)
 
     def seleccionar_imagen_decorado(self, id_imagen: int):
@@ -66,7 +69,15 @@ class PedidoUseCases:
     def seleccionar_extra(self, extra: str | None):
         pedido = self.pedido_repo.obtener()
         pedido.extra_seleccionado = extra
+        if extra != "Flor Artificial":
+            pedido.extra_flor_cantidad = None
         self.pedido_repo.guardar(pedido)
+
+    def guardar_cantidad_flor(self, cantidad: int | None):
+        pedido = self.pedido_repo.obtener()
+        pedido.extra_flor_cantidad = cantidad
+        self.pedido_repo.guardar(pedido)
+
 
     def seleccionar_tipo_decorado(self, tipo_decorado: str):
         pedido = self.pedido_repo.obtener()
@@ -310,3 +321,29 @@ class PedidoUseCases:
         pedido.decorado_liso_color1 = None
         pedido.decorado_liso_color2 = None
         self.pedido_repo.guardar(pedido)
+
+
+class FinalizarPedidoUseCases:
+    def __init__(self, pedido_repo: PedidoRepository, finalizar_repo: FinalizarPedidoRepository):
+        self.pedido_repo = pedido_repo
+        self.finalizar_repo = finalizar_repo
+
+    def finalizar_y_obtener_ticket(self) -> Ticket | None:
+        pedido_actual = self.pedido_repo.obtener()
+        id_nuevo_pedido = self.finalizar_repo.finalizar(pedido_actual)
+        if id_nuevo_pedido:
+            return self.finalizar_repo.obtener_por_id(id_nuevo_pedido)
+        return None
+
+    def generar_codigo_barras(self, texto: str) -> str:
+        """Genera un código de barras Code128 y lo devuelve como imagen base64."""
+        CODE128 = barcode.get_barcode_class('code128')
+        codigo = CODE128(texto, writer=ImageWriter())
+
+        buffer = io.BytesIO()
+        codigo.write(buffer)
+        buffer.seek(0)
+
+        # Codificamos la imagen en base64 para mostrarla en Flet
+        encoded_string = base64.b64encode(buffer.read()).decode("utf-8")
+        return encoded_string

@@ -23,6 +23,7 @@ class Pedido:
         self.extra_seleccionado: str | None = None
         self.decorado_liso_color1: str | None = None
         self.decorado_liso_color2: str | None = None
+        self.extra_flor_cantidad: int | None = None
 
     def reiniciar(self):
         """Reinicia la entidad a su estado por defecto."""
@@ -42,6 +43,7 @@ class Pedido:
         self.decorado_imagen_id = None
         self.extra_seleccionado = None
         self.decorado_liso_color = None
+        self.extra_flor_cantidad = None
 
     def __str__(self):
         return f"Pedido(Categoria: {self.id_categoria}, Decorado: '{self.tipo_decorado}', Mensaje: '{self.mensaje_pastel}')"

@@ -1,7 +1,7 @@
 # main.py
 import flet as ft
 
-from src.application.use_cases import PedidoUseCases, AuthUseCases
+from src.application.use_cases import PedidoUseCases, AuthUseCases, FinalizarPedidoUseCases
 from src.infrastructure.persistence.memory_repository import PedidoRepositoryEnMemoria
 from src.infrastructure.persistence.sqlite_repository import (
     TamanoRepositorySQLite, CategoriaRepositorySQLite,
@@ -23,7 +23,8 @@ def main(page: ft.Page):
 
     page.fonts = {
         "Bebas Neue": "fuentes/BebasNeue-Regular.ttf",
-        "Be Vietnam Pro": "fuentes/BeVietnamPro-Regular.ttf"
+        "Be Vietnam Pro": "fuentes/BeVietnamPro-Regular.ttf",
+        "Montserrat Alternates": "fuentes/Montserrat-Alternates-Regular.ttf",
     }
 
     db_path = r"C:/KioscoPP/config.db"
@@ -46,6 +47,12 @@ def main(page: ft.Page):
         tipo_color_repo
     )
 
+    finalizar_pedido_repo = FinalizarPedidoRepositorySQLite(db_path)
+    finalizar_pedido_use_cases = FinalizarPedidoUseCases(
+        pedido_repo=pedido_repo,
+        finalizar_repo=finalizar_pedido_repo
+    )
+
     banner_superior = ft.Container(
         bgcolor="#89C5B0",
         padding=15,
@@ -55,7 +62,6 @@ def main(page: ft.Page):
             color=ft.Colors.WHITE, size=24, font_family="Bebas Neue"
         )
     )
-    # El "marco de teléfono" donde se mostrará el contenido de cada vista.
     marco_contenido = ft.Container(
         expand=True,
         # Usamos un gradiente sutil para el fondo del marco
@@ -118,8 +124,8 @@ def main(page: ft.Page):
             page.views.append(views.vista_galeria(page, pedido_use_cases))
         elif page.route == "/extras":
             page.views.append(views.vista_extras(page, pedido_use_cases))
-        elif page.route == "/resumen":
-            page.views.append(views.vista_resumen(page, pedido_use_cases))
+        # elif page.route == "/resumen":
+        #     page.views.append(views.vista_resumen(page, pedido_use_cases))
         elif page.route == "/datos_cliente":
             page.views.append(views.vista_datos_cliente(page, pedido_use_cases))
         elif page.route == "/confirmacion":

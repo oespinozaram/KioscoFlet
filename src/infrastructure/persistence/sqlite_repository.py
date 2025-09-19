@@ -6,7 +6,7 @@ from src.application.repositories import (
     TamanoRepository, CategoriaRepository, TipoPanRepository,
     TipoFormaRepository, TipoRellenoRepository, TipoCoberturaRepository,
     FinalizarPedidoRepository, FormaPastel, TipoRelleno, TipoCobertura,
-    Categoria, TipoPan, ImagenGaleriaRepository, ImagenGaleria, TipoColorRepository
+    Categoria, TipoPan, ImagenGaleriaRepository, ImagenGaleria, TipoColorRepository, Ticket
 )
 
 
@@ -138,10 +138,10 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
                 fecha_creacion, fecha_entrega, tamano_pastel, id_categoria, tipo_pan, 
                 tipo_forma, tipo_relleno, tipo_cobertura, mensaje_pastel, tipo_decorado,
                 decorado_liso_detalle, decorado_liso_color, decorado_tematica_detalle,
-                decorado_imagen_id, extra_seleccionado, decorado_liso_color1, decorado_liso_color2, 
+                decorado_imagen_id, extra_seleccionado, decorado_liso_color1, decorado_liso_color2, extra_flor_cantidad,
                 nombre_completo, telefono, direccion, numero_exterior, entre_calles, codigo_postal, colonia,
                 ciudad, municipio, estado, referencias 
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
 
         # Preparamos los datos en una tupla, en el orden correcto
@@ -163,6 +163,7 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
             pedido.extra_seleccionado,
             pedido.decorado_liso_color1,
             pedido.decorado_liso_color2,
+            pedido.extra_flor_cantidad if not pedido.extra_flor_cantidad else 0,
             # Datos de entrega (si existen)
             pedido.datos_entrega.nombre_completo if pedido.datos_entrega else None,
             pedido.datos_entrega.telefono if pedido.datos_entrega else None,
@@ -182,8 +183,23 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
                 cursor = conn.cursor()
                 cursor.execute(query, datos)
                 conn.commit()
+                return cursor.lastrowid
         except sqlite3.Error as e:
             print(f"Error al guardar el pedido final en la base de datos: {e}")
+            return 0
+
+    def obtener_por_id(self, id_pedido: int) -> Ticket | None:
+        query = "SELECT id_pedido, nombre_cliente FROM pedidos WHERE id_pedido = ?"
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (id_pedido,))
+                row = cursor.fetchone()
+                if row:
+                    return Ticket(id_pedido=row[0], nombre_cliente=row[1])
+        except sqlite3.Error as e:
+            print(f"Error al obtener el pedido por ID: {e}")
+        return None
 
 
 class ImagenGaleriaRepositorySQLite(ImagenGaleriaRepository):
@@ -267,3 +283,8 @@ class TipoColorRepositorySQLite(TipoColorRepository):
         except sqlite3.Error as e:
             print(f"Error al leer los colores por cobertura: {e}")
             return []
+
+
+
+
+
