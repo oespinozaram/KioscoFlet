@@ -5,6 +5,7 @@ from .datos_entrega import DatosEntrega
 class Pedido:
     """Entidad que representa el estado de un pedido de pastel."""
     def __init__(self):
+        self.id_pedido: int | None = None
         self.fecha_entrega: datetime.date | None = None
         self.hora_entrega: str | None = None
         self.tamano_pastel: str | None = None

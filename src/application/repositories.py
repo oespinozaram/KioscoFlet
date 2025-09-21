@@ -85,7 +85,6 @@ class ImagenGaleriaRepository(ABC):
 
     @abstractmethod
     def obtener_por_id(self, id_imagen: int) -> ImagenGaleria | None:
-        """Busca una única imagen por su ID primario."""
         pass
 
 
@@ -97,7 +96,7 @@ class TipoColorRepository(ABC):
 
 class Ticket(NamedTuple):
     id_pedido: int
-    nombre_cliente: str
+    nombre_completo: str
 
 
 class FinalizarPedidoRepository(ABC):

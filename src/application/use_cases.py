@@ -335,15 +335,8 @@ class FinalizarPedidoUseCases:
             return self.finalizar_repo.obtener_por_id(id_nuevo_pedido)
         return None
 
-    def generar_codigo_barras(self, texto: str) -> str:
-        """Genera un código de barras Code128 y lo devuelve como imagen base64."""
-        CODE128 = barcode.get_barcode_class('code128')
-        codigo = CODE128(texto, writer=ImageWriter())
-
-        buffer = io.BytesIO()
-        codigo.write(buffer)
-        buffer.seek(0)
-
-        # Codificamos la imagen en base64 para mostrarla en Flet
-        encoded_string = base64.b64encode(buffer.read()).decode("utf-8")
-        return encoded_string
+    def iniciar_nuevo_pedido(self):
+        """Llama al método para reiniciar el pedido en memoria."""
+        # Este caso de uso necesita acceso al repositorio del pedido en curso
+        # para poder limpiarlo.
+        self.pedido_repo.reiniciar()

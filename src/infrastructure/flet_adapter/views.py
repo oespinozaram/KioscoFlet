@@ -865,8 +865,6 @@ def vista_forma(page: ft.Page, use_cases: PedidoUseCases):
         boton_continuar.disabled = True
         page.update()
 
-    # TODO Pegar la función 'crear_tarjeta_seleccion' de 'vista_relleno' anterior
-
     carrusel_formas = ft.Row(scroll=ft.ScrollMode.ALWAYS, spacing=30)
     for forma in use_cases.obtener_formas_por_categoria(use_cases.obtener_pedido_actual().id_categoria):
         carrusel_formas.controls.append(crear_tarjeta_seleccion(forma.nombre, forma.imagen_url, on_forma_selected))
@@ -1238,166 +1236,6 @@ def vista_galeria(page: ft.Page, use_cases: PedidoUseCases):
         ]
     )
 
-
-# def vista_extras(page: ft.Page, use_cases: PedidoUseCases):
-#     campo_cantidad_flores = ft.TextField(
-#         label="Cantidad",
-#         width=100,
-#         keyboard_type=ft.KeyboardType.NUMBER,
-#         visible=False
-#     )
-#
-#     def on_cantidad_change(e):
-#         valor = e.control.value
-#         if valor:
-#             try:
-#                 cantidad = int(valor)
-#                 if not (1 <= cantidad <= 10):
-#                     e.control.error_text = "Max. 10"
-#                     use_cases.guardar_cantidad_flor(None)
-#                 else:
-#                     e.control.error_text = None
-#                     use_cases.guardar_cantidad_flor(cantidad)
-#             except ValueError:
-#                 e.control.error_text = "Inválido"
-#                 use_cases.guardar_cantidad_flor(None)
-#         else:
-#             e.control.error_text = None
-#             use_cases.guardar_cantidad_flor(None)
-#
-#         page.update()
-#
-#     campo_cantidad_flores.on_change = on_cantidad_change
-#
-#     def on_radio_change(e):
-#         #use_cases.seleccionar_extra(e.control.value)
-#         seleccion = e.control.value
-#         use_cases.seleccionar_extra(seleccion)
-#
-#         if seleccion == "Flor Artificial":
-#             campo_cantidad_flores.visible = True
-#         else:
-#             campo_cantidad_flores.visible = False
-#             campo_cantidad_flores.value = ""
-#             campo_cantidad_flores.error_text = None
-#
-#         page.update()
-#
-#     opcion_flor_artificial = ft.Row(
-#         spacing=10,
-#         vertical_alignment=ft.CrossAxisAlignment.START,
-#         controls=[
-#             ft.Radio(value="Flor Artificial"),
-#             ft.Text("Flor Artificial", size=20, font_family="Montserrat Alternates", weight=ft.FontWeight.W_600),
-#             campo_cantidad_flores
-#         ]
-#     )
-#
-#     opciones_extra = ft.RadioGroup(
-#         on_change=on_radio_change,
-#         value=use_cases.obtener_pedido_actual().extra_seleccionado,
-#         content=ft.Column(
-#             spacing=15,
-#             controls=[
-#                 ft.Row([
-#                     ft.Radio(value="Ninguno"),
-#                     ft.Text("Ninguno", size=20, font_family="Montserrat Alternates", weight=ft.FontWeight.W_600)
-#                 ]),
-#                 opcion_flor_artificial,
-#                 ft.Row([
-#                     ft.Radio(value="Chorreado dorado"),
-#                     ft.Text("Chorreado Dorado", size=20, font_family="Montserrat Alternates",
-#                             weight=ft.FontWeight.W_600)
-#                 ]),
-#                 ft.Row([
-#                     ft.Radio(value="Chorreado plateado"),
-#                     ft.Text("Chorreado Plateado", size=20, font_family="Montserrat Alternates",
-#                             weight=ft.FontWeight.W_600)
-#                 ]),
-#             ]
-#         )
-#     )
-#
-#     panel_interactivo = ft.Container(
-#         width=524,
-#         padding=30,
-#         bgcolor=ft.Colors.with_opacity(0.9, ft.Colors.WHITE),
-#         border_radius=ft.border_radius.all(50),
-#         shadow=ft.BoxShadow(
-#             spread_radius=8, blur_radius=8,
-#             color=ft.Colors.with_opacity(0.25, ft.Colors.BLACK),
-#             offset=ft.Offset(4, 4),
-#         ),
-#         content=ft.Column(
-#             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-#             controls=[
-#                 ft.Text(
-#                     '¿Deseas algún extra?',
-#                     size=35,
-#                     font_family="Cabin",
-#                     weight=ft.FontWeight.W_700,
-#                     text_align=ft.TextAlign.CENTER
-#                 ),
-#                 ft.Divider(height=20, color=ft.Colors.TRANSPARENT),
-#                 opciones_extra,
-#             ]
-#         )
-#     )
-#
-#     contenido_superpuesto = ft.Column(
-#         expand=True,
-#         controls=[
-#             ft.Container( # Banner superior
-#                 height=67, bgcolor="#89C5B0", alignment=ft.alignment.center,
-#                 content=ft.Text('Para envío gratuito en compras de $500 o más', color=ft.Colors.WHITE, size=28, font_family="Bebas Neue")
-#             ),
-#             ft.Container( # Contenedor que centra el panel
-#                 expand=True,
-#                 alignment=ft.alignment.center,
-#                 content=panel_interactivo
-#             ),
-#         ]
-#     )
-#
-#     layout_final = ft.Stack(
-#         controls=[
-#             ft.Image(src="929f8d1fff68e3deddd0d09b79812005b5683447.png", fit=ft.ImageFit.COVER, expand=True),
-#             ft.Container(
-#                 alignment=ft.alignment.center,
-#                 top=300,
-#                 expand=True,
-#                 content=ft.Column(
-#                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-#                     controls=[
-#                         ft.Image(src="Logo Pepe.png", width=424, height=254),
-#                         ft.Container(height=30),
-#                     ]
-#                 )
-#             ),
-#             contenido_superpuesto,
-#             ft.Container(
-#                 alignment=ft.alignment.center,
-#                 bottom=40,  # Anclado a 40px del fondo
-#                 left=0,
-#                 right=0,
-#                 content=ft.Row(
-#                     alignment=ft.MainAxisAlignment.CENTER,
-#                     spacing=20,
-#                     controls=[
-#                         ft.ElevatedButton("Volver", on_click=lambda _: page.go("/decorado")),
-#                         ft.ElevatedButton("Datos del Cliente", on_click=lambda _: page.go("/datos_cliente")),
-#                     ]
-#                 )
-#             )
-#         ]
-#     )
-#
-#     return ft.View(
-#         route="/extras",
-#         controls=[layout_final],
-#         padding=0
-#     )
-
 def vista_extras(page: ft.Page, use_cases: PedidoUseCases):
     campo_cantidad_flores = ft.TextField(
         label="Cantidad",
@@ -1551,7 +1389,7 @@ def vista_extras(page: ft.Page, use_cases: PedidoUseCases):
     )
 
 
-def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases):
+def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_cases: FinalizarPedidoUseCases):
     # --- 1. Lógica y Manejadores para Teclado Virtual ---
     campo_enfocado = ft.Ref[ft.TextField]()
 
@@ -1599,7 +1437,7 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases):
     referencias = crear_campo_texto("Referencias del domicilio", multiline=True, min_lines=3)
 
     # --- 3. Lógica para Finalizar el Pedido ---
-    def finalizar_pedido(e):
+    def finalizar_pedido_e_imprimir(e):
         teclado_virtual.keyboard_control.visible = False
         page.update()
 
@@ -1679,7 +1517,7 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases):
     # Stack que une el fondo y el contenido
     layout_final = ft.Stack(
         controls=[
-            ft.Image(src="https://placehold.co/662x1024", fit=ft.ImageFit.COVER, expand=True),
+            ft.Image(src="929f8d1fff68e3deddd0d09b79812005b5683447.png", fit=ft.ImageFit.COVER, expand=True),
             contenido_superpuesto,
             # Contenedor posicionado para los botones de navegación
             ft.Container(
@@ -1696,7 +1534,7 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases):
                                      content=ft.Text("Ver resumen", color=ft.Colors.WHITE, size=24,
                                                      font_family="Outfit", weight=ft.FontWeight.W_600)),
                         ft.Container(width=233, height=76, bgcolor="#DC6262", border_radius=15,
-                                     alignment=ft.alignment.center, on_click=finalizar_pedido,
+                                     alignment=ft.alignment.center, on_click=finalizar_pedido_e_imprimir,
                                      content=ft.Text("Finalizar pedido", color=ft.Colors.WHITE, size=24,
                                                      font_family="Outfit", weight=ft.FontWeight.W_600)),
                     ]
@@ -1720,380 +1558,84 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases):
         ]
     )
 
-#
-# def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases):
-#     # --- 1. Lógica y Manejadores para Teclado Virtual ---
-#     campo_enfocado = ft.Ref[ft.TextField]()
-#
-#     def on_keyboard_key(key: str):
-#         target = campo_enfocado.current
-#         if not target: return
-#         if key == "BACKSPACE":
-#             target.value = target.value[:-1] if target.value else ""
-#         else:
-#             target.value += key
-#         page.update()
-#
-#     teclado_virtual = VirtualKeyboard(page, on_keyboard_key)
-#     teclado_virtual.keyboard_control.visible = False
-#
-#     def on_textfield_focus(e):
-#         campo_enfocado.current = e.control
-#         teclado_virtual.keyboard_control.visible = True
-#         page.update()
-#
-#     # --- 2. Lógica para el Modal de Resumen ---
-#     pedido_actual = use_cases.obtener_pedido_actual()
-#     categorias = {c.id: c.nombre for c in use_cases.obtener_categorias()}
-#     nombre_categoria = categorias.get(pedido_actual.id_categoria, "N/A")
-#
-#     def crear_fila_resumen(etiqueta: str, valor: str):
-#         return ft.Row(
-#             controls=[
-#                 ft.Text(etiqueta, weight=ft.FontWeight.BOLD, width=120),
-#                 ft.Text(valor or "No seleccionado"),
-#             ]
-#         )
-#
-#     dialogo_resumen = ft.AlertDialog(
-#         modal=True,
-#         title=ft.Text("Resumen del Pedido"),
-#         content=ft.Column(
-#             height=300,
-#             scroll=ft.ScrollMode.ADAPTIVE,
-#             controls=[
-#                 crear_fila_resumen("Categoría:", nombre_categoria),
-#                 crear_fila_resumen("Fecha:", pedido_actual.fecha_entrega.strftime(
-#                     '%d/%m/%Y') if pedido_actual.fecha_entrega else "N/A"),
-#                 crear_fila_resumen("Hora:", pedido_actual.hora_entrega),
-#                 crear_fila_resumen("Tamaño:", pedido_actual.tamano_pastel),
-#                 crear_fila_resumen("Forma:", pedido_actual.tipo_forma),
-#                 crear_fila_resumen("Pan:", pedido_actual.tipo_pan),
-#                 crear_fila_resumen("Relleno:", pedido_actual.tipo_relleno),
-#                 crear_fila_resumen("Cobertura:", pedido_actual.tipo_cobertura),
-#                 crear_fila_resumen("Decorado:", pedido_actual.tipo_decorado),
-#                 crear_fila_resumen("Mensaje:", pedido_actual.mensaje_pastel),
-#                 crear_fila_resumen("Extras:", pedido_actual.extra_seleccionado),
-#             ]
-#         ),
-#         actions=[
-#             ft.TextButton("Cerrar", on_click=lambda e: cerrar_dialogo(e)),
-#         ],
-#         actions_alignment=ft.MainAxisAlignment.END,
-#     )
-#
-#     def abrir_dialogo(e):
-#         page.dialog = dialogo_resumen
-#         dialogo_resumen.open = True
-#         page.update()
-#
-#     def cerrar_dialogo(e):
-#         dialogo_resumen.open = False
-#         page.update()
-#
-#     # --- 3. Definición de Controles del Formulario ---
-#     nombre = ft.TextField(label="Nombre completo", on_focus=on_textfield_focus)
-#     telefono = ft.TextField(label="Teléfono", on_focus=on_textfield_focus)
-#     direccion = ft.TextField(label="Dirección (calle)", on_focus=on_textfield_focus)
-#     num_ext = ft.TextField(label="Número exterior", on_focus=on_textfield_focus)
-#     entre_calles = ft.TextField(label="Entre calles", on_focus=on_textfield_focus)
-#     cp = ft.TextField(label="Código postal", on_focus=on_textfield_focus)
-#     colonia = ft.TextField(label="Colonia", on_focus=on_textfield_focus)
-#     ciudad = ft.TextField(label="Ciudad", on_focus=on_textfield_focus)
-#     municipio = ft.TextField(label="Municipio", on_focus=on_textfield_focus)
-#     estado = ft.TextField(label="Estado", on_focus=on_textfield_focus)
-#     referencias = ft.TextField(label="Referencias del domicilio", min_lines=2, on_focus=on_textfield_focus)
-#
-#     # --- 4. Lógica para Finalizar el Pedido ---
-#     def finalizar_pedido(e):
-#         teclado_virtual.keyboard_control.visible = False
-#         page.update()
-#         datos_formulario = {
-#                         "nombre_completo": nombre.value,
-#                         "telefono": telefono.value,
-#                         "direccion": direccion.value,
-#                         "numero_exterior": num_ext.value,
-#                         "entre_calles": entre_calles.value,
-#                         "codigo_postal": cp.value,
-#                         "colonia": colonia.value,
-#                         "ciudad": ciudad.value,
-#                         "municipio": municipio.value,
-#                         "estado": estado.value,
-#                         "referencias": referencias.value
-#                     }
-#         try:
-#             pedido_final = use_cases.guardar_datos_y_finalizar(datos_formulario)
-#
-#             page.session.set("pedido_final", pedido_final)
-#
-#             page.go("/confirmacion")
-#         except Exception as ex:
-#             print(f"ERROR: Ocurrió un error al finalizar el pedido: {ex}")
-#             page.snack_bar = ft.SnackBar(ft.Text("Error al guardar el pedido."), bgcolor=ft.Colors.RED)
-#             page.snack_bar.open = True
-#             page.update()
-#         page.go("/confirmacion")
-#
-#     # --- 5. Construcción del Layout ---
-#     contenido_formulario = [
-#         ft.Row(
-#             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-#             vertical_alignment=ft.CrossAxisAlignment.CENTER,
-#             controls=[
-#                 ft.Text("Datos de Entrega", size=30, weight=ft.FontWeight.BOLD),
-#                 ft.IconButton(
-#                     icon=ft.Icons.INFO_OUTLINE,
-#                     tooltip="Ver resumen del pedido",
-#                     on_click=abrir_dialogo
-#                 )
-#             ]
-#         ),
-#         ft.Text("Toca un campo para activar el teclado."),
-#         nombre,
-#         telefono,
-#         direccion,
-#         ft.Row([ft.Container(content=num_ext, expand=True), ft.Container(content=cp, expand=True)]),
-#         entre_calles,
-#         colonia,
-#         ciudad,
-#         municipio,
-#         estado,
-#         referencias,
-#     ]
-#
-#     vista = crear_vista_estandar(
-#         page,
-#         "/datos_cliente",
-#         contenido_formulario
-#     )
-#
-#     vista.controls[0].controls.append(teclado_virtual.build())
-#
-#     vista.controls[0].controls[1].content.controls[2] = ft.Row(
-#         alignment=ft.MainAxisAlignment.CENTER,
-#         spacing=20,
-#         controls=[
-#             ft.ElevatedButton("Volver al Resumen", on_click=lambda _: page.go("/resumen")),
-#             ft.ElevatedButton("Finalizar Pedido", on_click=finalizar_pedido)
-#         ]
-#     )
-#
-#     return vista
 
-# def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases):
-#     campo_enfocado = ft.Ref[ft.TextField]()
-#
-#     def on_keyboard_key(key: str):
-#         target = campo_enfocado.current
-#         if not target: return
-#         if key == "BACKSPACE":
-#             target.value = target.value[:-1] if target.value else ""
-#         else:
-#             target.value += key
-#         page.update()
-#
-#     teclado_virtual = VirtualKeyboard(page, on_keyboard_key)
-#     teclado_virtual.keyboard_control.visible = False
-#
-#     def on_textfield_focus(e):
-#         campo_enfocado.current = e.control
-#         teclado_virtual.keyboard_control.visible = True
-#         page.update()
-#
-#     def crear_campo_texto(label: str, expand=False):
-#         return ft.TextField(
-#             label=label,
-#             on_focus=on_textfield_focus,
-#             border=ft.InputBorder.NONE,
-#             height=48,
-#             bgcolor=ft.Colors.WHITE,
-#             border_radius=14,
-#             expand=expand,
-#             content_padding=15
-#         )
-#
-#     nombre = crear_campo_texto("Nombre completo", expand=True)
-#     telefono = crear_campo_texto("Teléfono")
-#     direccion = crear_campo_texto("Dirección (calle)", expand=True)
-#     num_ext = crear_campo_texto("Número exterior")
-#     cp = crear_campo_texto("Código postal")
-#     colonia = crear_campo_texto("Colonia", expand=True)
-#     entre_calles = crear_campo_texto("Entre calles", expand=True)
-#     ciudad = crear_campo_texto("Ciudad", expand=True)
-#     municipio = crear_campo_texto("Municipio", expand=True)
-#     estado = crear_campo_texto("Estado", expand=True)
-#     referencias = ft.TextField(label="Referencias del domicilio", min_lines=3, on_focus=on_textfield_focus,
-#                                border=ft.InputBorder.NONE, bgcolor=ft.Colors.WHITE, border_radius=14)
-#
-#     def finalizar_pedido(e):
-#         if not nombre.value or not telefono.value or not direccion.value:
-#             page.snack_bar = ft.SnackBar(ft.Text("Nombre, teléfono y dirección son obligatorios."),
-#                                          bgcolor=ft.Colors.RED)
-#             page.snack_bar.open = True
-#             page.update()
-#             return
-#
-#         datos_formulario = {
-#             "nombre_completo": nombre.value,
-#             "telefono": telefono.value,
-#             "direccion": direccion.value,
-#             "numero_exterior": num_ext.value,
-#             "entre_calles": entre_calles.value,
-#             "codigo_postal": cp.value,
-#             "colonia": colonia.value,
-#             "ciudad": ciudad.value,
-#             "municipio": municipio.value,
-#             "estado": estado.value,
-#             "referencias": referencias.value
-#         }
-#
-#         try:
-#             pedido_final = use_cases.guardar_datos_y_finalizar(datos_formulario)
-#
-#             page.session.set("pedido_final", pedido_final)
-#
-#             page.go("/confirmacion")
-#         except Exception as ex:
-#             print(f"ERROR: Ocurrió un error al finalizar el pedido: {ex}")
-#             page.snack_bar = ft.SnackBar(ft.Text("Error al guardar el pedido."), bgcolor=ft.Colors.RED)
-#             page.snack_bar.open = True
-#             page.update()
-#
-#         page.go("/confirmacion")
-#
-#     panel_formulario = ft.Container(
-#         width=728,
-#         height=487,
-#         bgcolor=ft.Colors.with_opacity(0.35, ft.Colors.WHITE),
-#         border_radius=30,
-#         shadow=ft.BoxShadow(spread_radius=1, blur_radius=15, color=ft.Colors.with_opacity(0.2, ft.Colors.BLACK)),
-#         padding=20,
-#         content=ft.Column(
-#             scroll=ft.ScrollMode.ADAPTIVE,
-#             controls=[
-#                 ft.Row([nombre, telefono]),
-#                 ft.Row([direccion, num_ext]),
-#                 ft.Row([cp, colonia]),
-#                 ft.Row([ciudad, municipio, estado]),
-#                 ft.Row([entre_calles]),
-#                 referencias,
-#             ]
-#         )
-#     )
-#
-#     contenido_superpuesto = ft.Column(
-#         expand=True,
-#         controls=[
-#             ft.Container(
-#                 height=67, bgcolor="#89C5B0", alignment=ft.alignment.center,
-#                 content=ft.Text('Para envío gratuito en compras de $500 o más', color=ft.Colors.WHITE, size=28,
-#                                 font_family="Bebas Neue")
-#             ),
-#             ft.Container(expand=True,
-#                          alignment=ft.alignment.center,
-#                          content=ft.Column(
-#                              horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-#                              controls=[
-#                                  ft.Text("Datos de entrega", size=40, color=ft.Colors.WHITE, font_family="Cabin",
-#                                          weight=ft.FontWeight.W_700),
-#                                  ft.Container(height=20),
-#                                  panel_formulario,
-#                              ]
-#                          )
-#                          ),
-#             ft.Row(
-#                 alignment=ft.MainAxisAlignment.CENTER,
-#                 spacing=20,
-#                 controls=[
-#                     ft.Container(width=188, height=76, bgcolor="#89C5B0", border_radius=15,
-#                                  alignment=ft.alignment.center, on_click=lambda _: page.go("/resumen"),
-#                                  content=ft.Text("Ver resumen", color=ft.Colors.WHITE, size=30)),
-#                     ft.Container(width=233, height=76, bgcolor="#DC6262", border_radius=15,
-#                                  alignment=ft.alignment.center, on_click=lambda _: page.go("/confirmacion"),
-#                                  content=ft.Text("Finalizar pedido", color=ft.Colors.WHITE, size=30)),
-#                 ]
-#             ),
-#             ft.Container(height=20)
-#         ]
-#     )
-#
-#     layout_final = ft.Stack(
-#         controls=[
-#             ft.Image(src="929f8d1fff68e3deddd0d09b79812005b5683447.png", fit=ft.ImageFit.COVER, expand=True),
-#             contenido_superpuesto,
-#             ft.Container(content=teclado_virtual.build(), bottom=0, left=0, right=0),
-#         ]
-#     )
-#
-#     return ft.View(
-#         route="/datos_cliente",
-#         controls=[layout_final],
-#         padding=0
-#     )
-
-
-def vista_confirmacion(page: ft.Page, use_cases: PedidoUseCases):
-    def animar_entrada(e=None):
+def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases):
+    # --- 1. Lógica y Manejadores ---
+    def animar_entrada():
         import time
         time.sleep(0.1)
+
+        # Hacemos visibles los elementos (sin el QR)
         titulo.opacity = 1
         folio.opacity = 1
         gracias.opacity = 1
+        botones.opacity = 1
         page.update()
 
     def nuevo_pedido(e):
-        #use_cases #.iniciar_nuevo_pedido()
+        use_cases.iniciar_nuevo_pedido()
         page.go("/")
 
-    #pedido_finalizado = use_cases.obtener_pedido_actual()
-    folio_texto = f"Número de folio: 101" #{pedido_finalizado.id_pedido}"
+    # --- 2. Construcción de Componentes ---
+    ticket = use_cases.finalizar_y_obtener_ticket()
 
+    #if not ticket:
+    # ... (manejo de error sin cambios)
+
+    # Creamos los controles sin el QR
     titulo = ft.Text("¡Pedido confirmado!", size=60, font_family="Outfit", weight=ft.FontWeight.W_700,
-                     text_align=ft.TextAlign.CENTER, opacity=0, animate_opacity=500)
-    folio = ft.Text(folio_texto, size=35, font_family="Outfit", text_align=ft.TextAlign.CENTER, opacity=0,
-                    animate_opacity=700)
-    gracias = ft.Text(f"Gracias: Omar Espinoza", size=40, font_family="Outfit",
-                      weight=ft.FontWeight.W_500, text_align=ft.TextAlign.CENTER, opacity=0, animate_opacity=900)
+                     text_align=ft.TextAlign.CENTER, color=ft.Colors.WHITE, opacity=0, animate_opacity=500)
+    folio = ft.Text(f"Número de folio: {ticket.id_pedido}", size=35, font_family="Outfit",
+                    text_align=ft.TextAlign.CENTER, color=ft.Colors.WHITE, opacity=0, animate_opacity=700)
+    gracias = ft.Text(f"Gracias: {ticket.nombre_completo}", size=40, font_family="Outfit", weight=ft.FontWeight.W_500,
+                      text_align=ft.TextAlign.CENTER, color=ft.Colors.WHITE, opacity=0, animate_opacity=900)
 
+    botones = ft.Row(
+        controls=[
+            ft.Container(
+            alignment=ft.alignment.bottom_center,
+            padding=50,
+            content=ft.Row(
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=20,
+                controls=[
+                    ft.Container(
+                        width=294, height=76, bgcolor="#89C5B0", border_radius=15,
+                        content=ft.Text("Iniciar nuevo pedido", color=ft.Colors.WHITE, size=30),
+                        alignment=ft.alignment.center, on_click=nuevo_pedido
+                    ),
+                    ft.Container(
+                        width=274, height=76, bgcolor="#C16160", border_radius=15,
+                        content=ft.Text("Detalle del pedido", color=ft.Colors.WHITE, size=30),
+                        alignment=ft.alignment.center, on_click=lambda _: print("Ver detalle...")
+                    ),
+                ]
+            )
+        )]
+
+    )  # Sin cambios
+
+    # --- 3. Construcción del Layout Final ---
     layout_final = ft.Stack(
         controls=[
-            # Capas decorativas del fondo
+            # Fondos decorativos (sin cambios)
             ft.Container(bgcolor="#C16160", expand=True),
             ft.Container(width=795, height=745, bgcolor="#F8F2ED", shape=ft.BoxShape.CIRCLE, top=-17, left=-67),
 
-            # Contenido principal centrado
+            # Contenido principal centrado (sin el QR)
             ft.Column(
+                expand=True,
                 alignment=ft.MainAxisAlignment.CENTER,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=20,
+                spacing=35,  # Aumentamos un poco el espacio
                 controls=[
                     titulo,
                     folio,
                     gracias,
+                    ft.Container(height=40),
+                    botones
                 ]
             ),
-
-            # Botones de acción en la parte inferior
-            ft.Container(
-                alignment=ft.alignment.bottom_center,
-                padding=50,
-                content=ft.Row(
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    spacing=20,
-                    controls=[
-                        ft.Container(
-                            width=294, height=76, bgcolor="#89C5B0", border_radius=15,
-                            content=ft.Text("Iniciar nuevo pedido", color=ft.Colors.WHITE, size=30),
-                            alignment=ft.alignment.center, on_click=nuevo_pedido
-                        ),
-                        ft.Container(
-                            width=274, height=76, bgcolor="#C16160", border_radius=15,
-                            content=ft.Text("Detalle del pedido", color=ft.Colors.WHITE, size=30),
-                            alignment=ft.alignment.center, on_click=lambda _: print("Imprimir detalle...")
-                        ),
-                    ]
-                )
-            )
         ]
     )
 
@@ -2103,4 +1645,4 @@ def vista_confirmacion(page: ft.Page, use_cases: PedidoUseCases):
         padding=0
     )
 
-    return vista
+    return vista, animar_entrada

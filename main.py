@@ -98,6 +98,8 @@ def main(page: ft.Page):
         print(f"Cambiando a la ruta: {page.route}")
         page.views.clear()
 
+        funcion_animacion = None
+
         if page.route == "/login":
             page.views.append(views.vista_login(page, auth_use_cases))
         elif page.route == "/":
@@ -124,13 +126,16 @@ def main(page: ft.Page):
             page.views.append(views.vista_galeria(page, pedido_use_cases))
         elif page.route == "/extras":
             page.views.append(views.vista_extras(page, pedido_use_cases))
-        # elif page.route == "/resumen":
-        #     page.views.append(views.vista_resumen(page, pedido_use_cases))
         elif page.route == "/datos_cliente":
-            page.views.append(views.vista_datos_cliente(page, pedido_use_cases))
+            page.views.append(views.vista_datos_cliente(page, pedido_use_cases, finalizar_pedido_use_cases))
         elif page.route == "/confirmacion":
-            page.views.append(views.vista_confirmacion(page, pedido_use_cases))
+            # 1. Capturamos la vista y la función de animación
+            vista, funcion_animacion = views.vista_confirmacion(page, finalizar_pedido_use_cases)
+            page.views.append(vista)
         page.update()
+
+        if funcion_animacion:
+            funcion_animacion()
 
     def view_pop(view):
         page.views.pop()

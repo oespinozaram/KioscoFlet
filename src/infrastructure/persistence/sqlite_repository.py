@@ -135,18 +135,19 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
         """Inserta el pedido completo en la tabla 'pedidos' de la base de datos."""
         query = """
             INSERT INTO pedidos (
-                fecha_creacion, fecha_entrega, tamano_pastel, id_categoria, tipo_pan, 
+                fecha_creacion, hora_entrega, fecha_entrega, tamano_pastel, id_categoria, tipo_pan, 
                 tipo_forma, tipo_relleno, tipo_cobertura, mensaje_pastel, tipo_decorado,
                 decorado_liso_detalle, decorado_liso_color, decorado_tematica_detalle,
                 decorado_imagen_id, extra_seleccionado, decorado_liso_color1, decorado_liso_color2, extra_flor_cantidad,
                 nombre_completo, telefono, direccion, numero_exterior, entre_calles, codigo_postal, colonia,
                 ciudad, municipio, estado, referencias 
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
 
         # Preparamos los datos en una tupla, en el orden correcto
         datos = (
             datetime.datetime.now().isoformat(),
+            pedido.hora_entrega,
             pedido.fecha_entrega.isoformat() if pedido.fecha_entrega else None,
             pedido.tamano_pastel,
             pedido.id_categoria,
@@ -159,7 +160,7 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
             pedido.decorado_liso_detalle,
             pedido.decorado_liso_color,
             pedido.decorado_tematica_detalle,
-            pedido.decorado_imagen_id,
+            pedido.decorado_imagen_id if not pedido.decorado_imagen_id else 0,
             pedido.extra_seleccionado,
             pedido.decorado_liso_color1,
             pedido.decorado_liso_color2,
@@ -189,14 +190,14 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
             return 0
 
     def obtener_por_id(self, id_pedido: int) -> Ticket | None:
-        query = "SELECT id_pedido, nombre_cliente FROM pedidos WHERE id_pedido = ?"
+        query = "SELECT id_pedido, nombre_completo FROM pedidos WHERE id_pedido = ?"
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute(query, (id_pedido,))
                 row = cursor.fetchone()
                 if row:
-                    return Ticket(id_pedido=row[0], nombre_cliente=row[1])
+                    return Ticket(id_pedido=row[0], nombre_completo=row[1])
         except sqlite3.Error as e:
             print(f"Error al obtener el pedido por ID: {e}")
         return None
