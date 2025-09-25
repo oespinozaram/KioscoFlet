@@ -2,13 +2,13 @@ import flet as ft
 
 
 class VirtualKeyboard:
-    # CAMBIO: El constructor ahora recibe el objeto 'page'
-    def __init__(self, page: ft.Page, on_key):
+    def __init__(self, page: ft.Page, on_key, on_enter=None, on_hide=None):
         super().__init__()
-        self.page = page  # Guardamos la referencia a la página
+        self.page = page
         self.on_key = on_key
+        self.on_enter = on_enter
+        self.on_hide = on_hide
         self.shift_active = False
-        # Necesitamos construir los controles aquí para poder referenciarlos después
         self.keyboard_control = self._build_controls()
 
     def _create_key(self, text: str, data: str, expand: int = 1):
@@ -24,13 +24,21 @@ class VirtualKeyboard:
         )
 
     def _key_click(self, e):
-        """Manejador de clics para todas las teclas."""
         key_data = e.control.data
 
         if key_data == "SHIFT":
             self.shift_active = not self.shift_active
             self._update_keys()
+
+        elif key_data == "ENTER":
+            if self.on_enter:
+                self.on_enter(e)
+
+        elif key_data == "HIDE":
+            if self.on_hide:
+                self.on_hide(e)
         else:
+
             if self.shift_active:
                 self.on_key(key_data.upper())
                 self.shift_active = False
@@ -39,24 +47,22 @@ class VirtualKeyboard:
                 self.on_key(key_data)
 
     def _update_keys(self):
-        """Actualiza el texto de las teclas si SHIFT está activo."""
-        # El control del teclado es un Container -> Column
+
         for row in self.keyboard_control.content.controls:
             for key in row.controls:
                 key_text = key.content.value
                 if len(key_text) == 1:
                     key.content.value = key_text.upper() if self.shift_active else key_text.lower()
-        # CAMBIO: Usamos self.page.update() en lugar de self.update()
         self.page.update()
 
     def _build_controls(self):
-        """Este método privado crea la estructura de controles."""
+
         keys_layout = [
             ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
             ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
             ["a", "s", "d", "f", "g", "h", "j", "k", "l", "ñ"],
             ["SHIFT", "z", "x", "c", "v", "b", "n", "m", "BACKSPACE"],
-            ["SPACE"]
+            ["HIDE", "SPACE", "ENTER"]
         ]
 
         keyboard_rows = []
@@ -68,10 +74,14 @@ class VirtualKeyboard:
                 elif key == "BACKSPACE":
                     keys_in_row.append(self._create_key("⌫", "BACKSPACE", 2))
                 elif key == "SPACE":
-                    keys_in_row.append(self._create_key(" ", " ", 10))
+                    keys_in_row.append(self._create_key(" ", " ", 6))
+                elif key == "ENTER":
+                    keys_in_row.append(self._create_key("ENTRAR", "ENTER", 3))
+                elif key == "HIDE":
+                    keys_in_row.append(self._create_key("▼", "HIDE", 2))
                 else:
                     keys_in_row.append(self._create_key(key, key))
-            keyboard_rows.append(ft.Row(controls=keys_in_row, spacing=5))
+            keyboard_rows.append(ft.Row(controls=keys_in_row, spacing=5, height=50))
 
         return ft.Container(
             ft.Column(controls=keyboard_rows, spacing=5),
@@ -81,5 +91,4 @@ class VirtualKeyboard:
         )
 
     def build(self):
-        """El método público que devuelve el control ya construido."""
         return self.keyboard_control

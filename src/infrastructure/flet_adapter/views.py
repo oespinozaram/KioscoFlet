@@ -52,12 +52,10 @@ def crear_vista_con_fondo(ruta, titulo, contenido, page, boton_volver_ruta, boto
                     scroll=ft.ScrollMode.ADAPTIVE,
                     controls=[
                         ft.Text(titulo, size=40, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
-                        # El operador '*' desempaca la lista de contenido que le pasamos
                         *contenido
                     ]
                 )
             ),
-            # Fila final con los botones de acción
             ft.Row(
                 [
                     ft.ElevatedButton("Volver", on_click=lambda _: page.go(boton_volver_ruta)),
@@ -86,82 +84,9 @@ def crear_vista_con_fondo(ruta, titulo, contenido, page, boton_volver_ruta, boto
     )
 
 
-def crear_vista_estandar(page: ft.Page, ruta: str, contenido: list[ft.Control]):
-
-    # Diccionario que define el flujo y los títulos de cada paso
-    pasos_del_flujo = {
-        "/fecha": "Paso 1/8: Fecha y Hora",
-        "/tamano": "Paso 2/8: Tamaño",
-        "/categorias": "Paso 3/8: Categoría",
-        "/relleno": "Paso 4/8: Componentes",
-        "/cobertura": "Paso 4.1: Cobertura",
-        "/decorado": "Paso 5/8: Decorado",
-        "/extras": "Paso 6/8: Extras",
-        "/resumen": "Paso 7/8: Resumen",
-        "/datos_cliente": "Paso 8/8: Entrega"
-    }
-
-    texto_del_paso = pasos_del_flujo.get(ruta, "")
-
-    banner_superior = ft.Container(
-        bgcolor="#89C5B0",
-        padding=ft.padding.symmetric(horizontal=20, vertical=15),
-        content=ft.Row(
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-            controls=[
-                ft.Text(
-                    'Para envío gratuito en compras de $500 o más',
-                    color=ft.Colors.WHITE, size=20, font_family="Bebas Neue"
-                ),
-                ft.Text(
-                    texto_del_paso,
-                    color=ft.Colors.WHITE, size=20, font_family="Bebas Neue", weight=ft.FontWeight.BOLD
-                )
-            ]
-        )
-    )
-
-    # El marco donde se mostrará el contenido específico de cada vista
-    marco_contenido = ft.Column(
-        expand=True,
-        scroll=ft.ScrollMode.ADAPTIVE,
-        spacing=20,
-        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        controls=contenido
-    )
-
-    # Contenedor principal que simula un teléfono y centra el marco
-    layout_centrado = ft.Container(
-        expand=True,
-        alignment=ft.alignment.center,
-        padding=ft.padding.only(top=80, bottom=30, left=30, right=30),
-        content=ft.Container(
-            width=450,
-            shadow=ft.BoxShadow(spread_radius=1, blur_radius=15, color=ft.Colors.with_opacity(0.3, ft.Colors.BLACK)),
-            border_radius=30,
-            clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
-            content=marco_contenido
-        )
-    )
-
-    # El Stack final que une el fondo, el contenido y el banner
-    layout_final = ft.Stack(
-        [
-            ft.Image(src="/assets/fondo.png", fit=ft.ImageFit.COVER, expand=True),
-            layout_centrado,
-            banner_superior,
-        ]
-    )
-
-    return ft.View(
-        route=ruta,
-        controls=[layout_final],
-        padding=0
-    )
-
-
 def vista_login(page: ft.Page, auth_use_cases: AuthUseCases):
     campo_enfocado = ft.Ref[ft.TextField]()
+    imagen_personaje_ref = ft.Ref[ft.Image]()
 
     def on_keyboard_key(key: str):
         target = campo_enfocado.current
@@ -172,101 +97,139 @@ def vista_login(page: ft.Page, auth_use_cases: AuthUseCases):
             target.value += key
         page.update()
 
-    teclado_virtual = VirtualKeyboard(page, on_keyboard_key)
-    teclado_virtual.keyboard_control.visible = False
-
-    def on_textfield_focus(e):
-        campo_enfocado.current = e.control
-        teclado_virtual.keyboard_control.visible = True
-        page.update()
-
-    campo_usuario = ft.TextField(
-        hint_text="Usuario", border=ft.InputBorder.NONE, height=58,
-        text_size=15, content_padding=ft.padding.symmetric(horizontal=20, vertical=18),
-        prefix_icon=ft.Icons.PERSON, on_focus=on_textfield_focus
-    )
-    password = ft.TextField(
-        hint_text="Contraseña", password=True, can_reveal_password=True,
-        border=ft.InputBorder.NONE, height=58, text_size=15,
-        content_padding=ft.padding.symmetric(horizontal=20, vertical=18),
-        prefix_icon=ft.Icons.LOCK, on_focus=on_textfield_focus
-    )
-
     def on_login_click(e):
         teclado_virtual.keyboard_control.visible = False
+        if imagen_personaje_ref.current:
+            imagen_personaje_ref.current.visible = True
         page.update()
-        if auth_use_cases.login(campo_usuario.value, password.value):
+        if auth_use_cases.login(campo_usuario.value, campo_password.value):
             page.go("/")
         else:
             page.snack_bar = ft.SnackBar(ft.Text("Usuario o contraseña incorrectos."), bgcolor=ft.Colors.RED_ACCENT_700)
             page.snack_bar.open = True
             page.update()
 
-    formulario = ft.Column(
-        spacing=15,
+    def mostrar_teclado():
+        if imagen_personaje_ref.current:
+            imagen_personaje_ref.current.visible = False
+        teclado_virtual.keyboard_control.visible = True
+        page.update()
+
+    def ocultar_teclado(e):
+        if imagen_personaje_ref.current:
+            imagen_personaje_ref.current.visible = True
+        teclado_virtual.keyboard_control.visible = False
+        page.update()
+
+    def on_textfield_focus(e):
+        campo_enfocado.current = e.control
+        mostrar_teclado()
+
+    teclado_virtual = VirtualKeyboard(
+        page,
+        on_key=on_keyboard_key,
+        on_enter=on_login_click,
+        on_hide=ocultar_teclado
+    )
+    teclado_virtual.keyboard_control.visible = False
+
+    campo_usuario = ft.TextField(
+        hint_text="Usuario",
+        border=ft.InputBorder.NONE,
+        height=50,
+        bgcolor=ft.Colors.WHITE,
+        border_radius=25,
+        prefix_icon=ft.Icons.PERSON_OUTLINE,
+        on_focus=on_textfield_focus
+    )
+
+    campo_password = ft.TextField(
+        hint_text="Contraseña",
+        password=True,
+        can_reveal_password=True,
+        border=ft.InputBorder.NONE,
+        height=50,
+        bgcolor=ft.Colors.WHITE,
+        border_radius=25,
+        prefix_icon=ft.Icons.LOCK_OUTLINE,
+        on_focus=on_textfield_focus
+    )
+
+    boton_entrar = ft.Container(
+        height=55,
+        bgcolor="#C16160",
+        border_radius=27.5,
+        content=ft.Row(
+            alignment=ft.MainAxisAlignment.CENTER,
+            controls=[
+                ft.Icon(ft.Icons.SOUP_KITCHEN_OUTLINED, color=ft.Colors.WHITE),
+                ft.Text("INICIAR SESIÓN", color=ft.Colors.WHITE, weight=ft.FontWeight.BOLD),
+            ]
+        ),
+        on_click=on_login_click
+    )
+
+    imagen_personaje = ft.Image(
+        ref=imagen_personaje_ref,
+        src="Recurso 3.png",
+        height=400,
+        fit=ft.ImageFit.CONTAIN
+    )
+
+    contenido_dinamico = ft.Column(
+        expand=True,
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         controls=[
-            ft.Text(
-                "¡ Bienvenido a nuestra pastelería !",
-                size=52, font_family="Bebas Neue",
-                text_align=ft.TextAlign.CENTER,
-                color="#616161"  # Un color oscuro para contraste
-            ),
-            ft.Image(
-                src="Recurso 3.png",
-                width=424,
-                height=254
-            ),
             ft.Container(
-                width=450,
-                padding=ft.padding.symmetric(horizontal=40),
-                content=ft.Column([
-                    ft.Container(border_radius=10, bgcolor=ft.Colors.WHITE, content=campo_usuario),
-                    ft.Container(height=10),
-                    ft.Container(border_radius=10, bgcolor=ft.Colors.WHITE, content=password),
-                ])
-            ),
-            ft.Container(
-                width=579, height=67, bgcolor="#DC6262",
-                border_radius=ft.border_radius.all(20),
-                content=ft.Text("INICIAR SESIÓN", color=ft.Colors.WHITE, size=30, font_family="Bebas Neue"),
+                expand=True,
                 alignment=ft.alignment.center,
-                on_click=on_login_click
+                content=ft.Column(
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[
+                        ft.Container(height=20),
+                        ft.Text("¡ BIENVENIDO A NUESTRA PASTELERÍA !", size=40, font_family="Bebas Neue",
+                                color="#6D6D6D"),
+                        imagen_personaje,
+                    ]
+                )
+            ),
+            ft.Column(
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                controls=[
+                    ft.Text("INICIA SESIÓN PARA PODER CONTINUAR", weight=ft.FontWeight.BOLD, color="#6D6D6D"),
+                    ft.Container(
+                        width=450, padding=20,
+                        content=ft.Column(
+                            spacing=15,
+                            controls=[campo_usuario, campo_password, boton_entrar]
+                        )
+                    ),
+                    teclado_virtual.build(),
+                    ft.Container(height=20)
+                ]
             )
         ]
     )
 
     layout_final = ft.Stack(
+        expand=True,
         controls=[
-
             ft.Container(bgcolor="#E5ADAD", expand=True),
             ft.Container(
-                width=850, height=800,
+                width=800, height=750,
                 bgcolor="#F8F2ED",
                 shape=ft.BoxShape.CIRCLE,
-                top=-100, left=-100
+                top=-150, left=-70
             ),
-            ft.Container(
-                content=formulario,
-                alignment=ft.alignment.center,
-                expand=True,
-                padding=20
-            ),
+            contenido_dinamico
         ]
     )
 
     return ft.View(
         route="/login",
-        padding=0,
-        controls=[
-            ft.Column(
-                expand=True,
-                controls=[
-                    ft.Container(content=layout_final, expand=True),
-                    teclado_virtual.build()
-                ]
-            )
-        ]
+        controls=[layout_final],
+        padding=0
     )
 
 
@@ -275,7 +238,7 @@ def vista_bienvenida(page: ft.Page):
     banner_superior = ft.Container(
         bgcolor="#89C5B0",
         padding=15,
-        alignment=ft.alignment.center, # Centra el texto horizontalmente
+        alignment=ft.alignment.center,
         content=ft.Text(
             'Para envío gratuito en compras de $500 o más',
             color=ft.Colors.WHITE,
@@ -284,18 +247,17 @@ def vista_bienvenida(page: ft.Page):
         )
     )
 
-    # La imagen del pastel, que será parte del flujo responsivo.
     imagen_pastel = ft.Image(
         src="Logo Pepe.png",
         fit=ft.ImageFit.CONTAIN,
-        height=250,  # Altura máxima para la imagen
+        height=250,
     )
 
-    # Textos principales
+
     texto_bienvenida = ft.Text(
         '¡ Bienvenido a nuestra pastelería !',
         color=ft.Colors.WHITE,
-        size=50,  # Ajustamos el tamaño para que se vea bien en móviles
+        size=50,
         font_family="Bebas Neue",
         text_align=ft.TextAlign.CENTER,
         opacity=0.90,
@@ -304,13 +266,12 @@ def vista_bienvenida(page: ft.Page):
     texto_subtitulo = ft.Text(
         'Disfruta de nuestra amplia variedad de pasteles o si lo prefieres\nármalo y personalízalo a tu gusto.',
         color=ft.Colors.WHITE,
-        size=22,  # Tamaño ajustado
+        size=22,
         font_family="Bebas Neue",
         text_align=ft.TextAlign.CENTER,
         opacity=0.80,
     )
 
-    # Botón para comenzar
     boton_comenzar = ft.Container(
         bgcolor="#DC6262",
         border_radius=ft.border_radius.all(20),
@@ -373,6 +334,143 @@ def vista_bienvenida(page: ft.Page):
         padding=0,
     )
 
+
+# def vista_seleccion(page: ft.Page):
+#     # --- 1. Componente Reutilizable para las Nuevas Tarjetas (Sin Cambios) ---
+#     def crear_tarjeta_mejorada(titulo: str, imagen_src: str, texto_boton: str, icono_boton, on_click_handler):
+#         return ft.Container(
+#             width=350,
+#             height=480,
+#             bgcolor=ft.Colors.WHITE,
+#             border_radius=ft.border_radius.all(35),
+#             shadow=ft.BoxShadow(spread_radius=1, blur_radius=15, color=ft.Colors.BLACK26),
+#             clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
+#             content=ft.Column(
+#                 spacing=0,
+#                 controls=[
+#                     ft.Image(src=imagen_src, height=240, fit=ft.ImageFit.COVER),
+#                     ft.Container(
+#                         padding=20,
+#                         expand=True,
+#                         content=ft.Column(
+#                             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+#                             alignment=ft.MainAxisAlignment.SPACE_AROUND,
+#                             controls=[
+#                                 ft.Text(titulo, text_align=ft.TextAlign.CENTER, size=24, weight=ft.FontWeight.BOLD),
+#                                 ft.Container(
+#                                     bgcolor="#E5ADAD",
+#                                     border_radius=10,
+#                                     padding=ft.padding.symmetric(horizontal=20, vertical=10),
+#                                     on_click=on_click_handler,
+#                                     content=ft.Row(
+#                                         spacing=10,
+#                                         controls=[
+#                                             ft.Icon(icono_boton, color=ft.Colors.BLACK),
+#                                             ft.Text(texto_boton, color=ft.Colors.BLACK, weight=ft.FontWeight.BOLD)
+#                                         ]
+#                                     )
+#                                 )
+#                             ]
+#                         )
+#                     )
+#                 ]
+#             )
+#         )
+#
+#     imagen_pastel = ft.Image(
+#         src="Logo Pepe.png",
+#         fit=ft.ImageFit.CONTAIN,
+#         width=424, height=254,  # Altura máxima para la imagen
+#     )
+#
+#     contenido_principal = ft.ResponsiveRow(
+#         vertical_alignment=ft.CrossAxisAlignment.CENTER,
+#         alignment=ft.MainAxisAlignment.CENTER,
+#         spacing=40,
+#         run_spacing=40,
+#         controls=[
+#             ft.Container(
+#                 col={"sm": 12, "md": 5},
+#                 alignment=ft.alignment.center,
+#                 content=crear_tarjeta_mejorada(
+#                     titulo="CONOCE NUESTRO CATÁLOGO Y PROMOCIONES",
+#                     imagen_src="seleccion/promos.png",
+#                     texto_boton="VER PROMOCIONES",
+#                     icono_boton=ft.Icons.SEARCH,
+#                     on_click_handler=lambda _: print("Navegar a promociones")
+#                 )
+#             ),
+#             ft.Container(
+#                 col={"sm": 12, "md": 5},
+#                 alignment=ft.alignment.center,
+#                 content=crear_tarjeta_mejorada(
+#                     titulo="ARMA Y PERSONALIZA TU PASTEL",
+#                     imagen_src="seleccion/arma.png",
+#                     texto_boton="ARMA TU PASTEL",
+#                     icono_boton=ft.Icons.CAKE_OUTLINED,
+#                     on_click_handler=lambda _: page.go("/fecha")
+#                 )
+#             ),
+#         ]
+#     )
+#
+#     # --- 3. Construcción del Layout Final (CON EL LOGO) ---
+#     layout_final = ft.Stack(
+#         controls=[
+#             # Capa 1: Imagen de Fondo
+#             ft.Image(src="929f8d1fff68e3deddd0d09b79812005b5683447.png", fit=ft.ImageFit.COVER, expand=True),
+#
+#             # Capa 2: Banner Superior y Contenido Central
+#             ft.Column(
+#                 expand=True,
+#                 controls=[
+#                     ft.Container(  # Banner superior
+#                         bgcolor="#89C5B0",
+#                         padding=ft.padding.symmetric(horizontal=20, vertical=10),
+#                         content=ft.Row(
+#                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+#                             controls=[
+#                                 ft.IconButton(ft.Icons.MENU, icon_color=ft.Colors.WHITE),
+#                                 ft.Text('PARA ENVÍO GRATUITO EN COMPRAS DE $500 O MÁS', color=ft.Colors.WHITE,
+#                                         font_family="Bebas Neue", size=24),
+#                                 ft.IconButton(ft.Icons.HOME_OUTLINED, icon_color=ft.Colors.WHITE,
+#                                               on_click=lambda _: page.go("/")),
+#                             ]
+#                         )
+#                     ),
+#                     ft.Container(expand=True),
+#                     imagen_pastel,
+#                     ft.Container(expand=True),
+#                     ft.Container(  # Contenedor para las tarjetas y espaciado
+#                         alignment=ft.alignment.center,
+#                         expand=True,
+#                         padding=ft.padding.only(top=120),  # Ajusta este padding para bajar las tarjetas
+#                         content=contenido_principal
+#                     )
+#                 ]
+#             ),
+#
+#             Capa 3: El Logo de la Pastelería flotando sobre todo
+#             ft.Container(
+#                 # Posicionamiento absoluto: centro horizontal, y a cierta distancia del top
+#                 alignment=ft.alignment.center,
+#                 top=50,  # Ajusta este valor para mover el logo verticalmente
+#                 content=ft.Row(
+#                     alignment=ft.MainAxisAlignment.CENTER,
+#                     controls=[
+#                        ft.Image(src="Logo Pepe.png", width=424, height=254),
+#                     ],
+#                 ),
+#                 # Asegúrate de que esta sea la ruta correcta a tu logo
+#             ),
+#         ]
+#     )
+#
+#     return ft.View(
+#         route="/seleccion",
+#         controls=[layout_final],
+#         padding=0
+#     )
 
 def vista_seleccion(page: ft.Page):
 
@@ -449,7 +547,7 @@ def vista_seleccion(page: ft.Page):
     imagen_pastel = ft.Image(
         src="Logo Pepe.png",
         fit=ft.ImageFit.CONTAIN,
-        height=180,  # Altura máxima para la imagen
+        width=424, height=254,  # Altura máxima para la imagen
     )
 
     # Botón para volver
@@ -769,7 +867,7 @@ def vista_categorias(page: ft.Page, use_cases: PedidoUseCases):
                         height=119,
                         margin=ft.margin.only(top=25),
                         border_radius=ft.border_radius.all(10),
-                        content=ft.Image(src="{}".format(categoria.imagen_url), fit=ft.ImageFit.COVER)
+                        content=ft.Image(src="C:/KioscoPP/img/categorias/{}".format(categoria.imagen_url), fit=ft.ImageFit.COVER)
                     ),
                     ft.Divider(height=1, color=ft.Colors.GREY_300),
                     ft.Text(
@@ -867,7 +965,7 @@ def vista_forma(page: ft.Page, use_cases: PedidoUseCases):
 
     carrusel_formas = ft.Row(scroll=ft.ScrollMode.ALWAYS, spacing=30)
     for forma in use_cases.obtener_formas_por_categoria(use_cases.obtener_pedido_actual().id_categoria):
-        carrusel_formas.controls.append(crear_tarjeta_seleccion(forma.nombre, forma.imagen_url, on_forma_selected))
+        carrusel_formas.controls.append(crear_tarjeta_seleccion(forma.nombre, "C:/KioscoPP/img/formas/{}".format(forma.imagen_url), on_forma_selected))
 
     return crear_vista_con_fondo(
         ruta="/forma",
@@ -899,7 +997,7 @@ def vista_pan(page: ft.Page, use_cases: PedidoUseCases):
 
     carrusel_panes = ft.Row(scroll=ft.ScrollMode.ALWAYS, spacing=30)
     for pan in use_cases.obtener_panes_por_categoria(use_cases.obtener_pedido_actual().id_categoria):
-        tarjeta_pan = crear_tarjeta_seleccion(pan.nombre, pan.imagen_url,
+        tarjeta_pan = crear_tarjeta_seleccion(pan.nombre, "C:/KioscoPP/img/panes/{}".format(pan.imagen_url),
                                               on_pan_selected)
         tarjeta_pan.data = (pan.id, pan.nombre)
         carrusel_panes.controls.append(tarjeta_pan)
@@ -940,7 +1038,7 @@ def vista_relleno(page: ft.Page, use_cases: PedidoUseCases):
     if pan_obj:
         for relleno in use_cases.obtener_rellenos_disponibles(pedido.id_categoria, pan_obj.id):
             carrusel_rellenos.controls.append(
-                crear_tarjeta_seleccion(relleno.nombre, relleno.imagen_url,
+                crear_tarjeta_seleccion(relleno.nombre, "C:/KioscoPP/img/rellenos/{}".format(relleno.imagen_url),
                                         on_relleno_selected))
 
     return crear_vista_con_fondo(
@@ -978,7 +1076,7 @@ def vista_cobertura(page: ft.Page, use_cases: PedidoUseCases):
     if pan_obj:
         for cobertura in use_cases.obtener_coberturas_disponibles(pedido.id_categoria, pan_obj.id):
             carrusel_coberturas.controls.append(
-                crear_tarjeta_seleccion(cobertura.nombre, cobertura.imagen_url,
+                crear_tarjeta_seleccion(cobertura.nombre, "C:/KioscoPP/img/coberturas/{}".format(cobertura.imagen_url),
                                         on_cobertura_selected))
 
     return crear_vista_con_fondo(
@@ -1353,7 +1451,7 @@ def vista_extras(page: ft.Page, use_cases: PedidoUseCases):
             ft.Container(expand=True),
 
             # El logo/imagen
-            ft.Image(src="Logo Pepe.png", width=350),
+            ft.Image(src="Logo Pepe.png", width=424, height=254),
 
             # El panel interactivo con las opciones
             panel_interactivo,
@@ -1390,7 +1488,6 @@ def vista_extras(page: ft.Page, use_cases: PedidoUseCases):
 
 
 def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_cases: FinalizarPedidoUseCases):
-    # --- 1. Lógica y Manejadores para Teclado Virtual ---
     campo_enfocado = ft.Ref[ft.TextField]()
 
     def on_keyboard_key(key: str):
@@ -1410,7 +1507,6 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_
         teclado_virtual.keyboard_control.visible = True
         page.update()
 
-    # --- 2. Definición de Controles del Formulario con Nuevo Estilo ---
     def crear_campo_texto(label: str, expand=False, multiline=False, min_lines=1):
         return ft.TextField(
             label=label,
@@ -1436,8 +1532,7 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_
     estado = crear_campo_texto("Estado", expand=True)
     referencias = crear_campo_texto("Referencias del domicilio", multiline=True, min_lines=3)
 
-    # --- 3. Lógica para Finalizar el Pedido ---
-    def finalizar_pedido_e_imprimir(e):
+    def finalizar_pedido(e):
         teclado_virtual.keyboard_control.visible = False
         page.update()
 
@@ -1467,9 +1562,7 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_
             page.update()
         page.go("/confirmacion")
 
-    # --- 4. Construcción del Layout ---
 
-    # Panel semitransparente que contiene el formulario
     panel_formulario = ft.Container(
         width=628,
         height=487,
@@ -1487,6 +1580,7 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_
                 ft.Row([num_ext, cp]),
                 ft.Row([colonia]),
                 ft.Row([entre_calles]),
+                ft.Row([ciudad, municipio, estado]),
                 referencias,
             ]
         )
@@ -1496,54 +1590,50 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_
         expand=True,
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         controls=[
-            ft.Container(  # Banner superior
+            ft.Container(
                 height=67, bgcolor="#89C5B0", alignment=ft.alignment.center,
                 content=ft.Text('Para envío gratuito en compras de $500 o más', color=ft.Colors.WHITE, size=28,
                                 font_family="Bebas Neue")
             ),
-            # Espaciador para empujar el contenido hacia el centro
-            ft.Container(expand=True),
-
-            ft.Text("Datos de entrega", size=40, color=ft.Colors.WHITE, font_family="Cabin",
-                    weight=ft.FontWeight.W_700),
+            ft.Container(
+                expand=True,
+                alignment=ft.alignment.center,
+                content=ft.Column(
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[
+                        ft.Image(src="Logo Pepe.png", width=424, height=254),
+                        ft.Text("Datos de entrega", size=40, color=ft.Colors.WHITE, font_family="Cabin",
+                                weight=ft.FontWeight.W_700),
+                        ft.Container(height=15),
+                        panel_formulario,
+                        ]
+                    )
+                ),
+            ft.Row(
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=20,
+                controls=[
+                    ft.Container(width=188, height=76, bgcolor="#89C5B0", border_radius=15,
+                                 alignment=ft.alignment.center, on_click=lambda _: page.go("/resumen"),
+                                 content=ft.Text("Ver resumen", color=ft.Colors.WHITE, size=24, font_family="Outfit",
+                                                 weight=ft.FontWeight.W_600)),
+                    ft.Container(width=233, height=76, bgcolor="#DC6262", border_radius=15,
+                                 alignment=ft.alignment.center, on_click=finalizar_pedido,
+                                 content=ft.Text("Finalizar pedido", color=ft.Colors.WHITE, size=24,
+                                                 font_family="Outfit", weight=ft.FontWeight.W_600)),
+                ]
+            ),
             ft.Container(height=20),
-            panel_formulario,
-
-            # Espaciador para empujar los botones hacia abajo
-            ft.Container(expand=True),
         ]
     )
 
-    # Stack que une el fondo y el contenido
     layout_final = ft.Stack(
         controls=[
             ft.Image(src="929f8d1fff68e3deddd0d09b79812005b5683447.png", fit=ft.ImageFit.COVER, expand=True),
             contenido_superpuesto,
-            # Contenedor posicionado para los botones de navegación
-            ft.Container(
-                alignment=ft.alignment.center,
-                bottom=20,
-                left=0,
-                right=0,
-                content=ft.Row(
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    spacing=15,
-                    controls=[
-                        ft.Container(width=188, height=76, bgcolor="#89C5B0", border_radius=15,
-                                     alignment=ft.alignment.center, on_click=lambda _: page.go("/resumen"),
-                                     content=ft.Text("Ver resumen", color=ft.Colors.WHITE, size=24,
-                                                     font_family="Outfit", weight=ft.FontWeight.W_600)),
-                        ft.Container(width=233, height=76, bgcolor="#DC6262", border_radius=15,
-                                     alignment=ft.alignment.center, on_click=finalizar_pedido_e_imprimir,
-                                     content=ft.Text("Finalizar pedido", color=ft.Colors.WHITE, size=24,
-                                                     font_family="Outfit", weight=ft.FontWeight.W_600)),
-                    ]
-                )
-            ),
         ]
     )
 
-    # La vista final contiene el layout y el teclado
     return ft.View(
         route="/datos_cliente",
         padding=0,
@@ -1560,12 +1650,11 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_
 
 
 def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases):
-    # --- 1. Lógica y Manejadores ---
     def animar_entrada():
         import time
         time.sleep(0.1)
-
-        # Hacemos visibles los elementos (sin el QR)
+        logo.opacity = 1
+        circulo_verificacion.opacity = 1
         titulo.opacity = 1
         folio.opacity = 1
         gracias.opacity = 1
@@ -1576,21 +1665,44 @@ def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases):
         use_cases.iniciar_nuevo_pedido()
         page.go("/")
 
-    # --- 2. Construcción de Componentes ---
     ticket = use_cases.finalizar_y_obtener_ticket()
 
-    #if not ticket:
-    # ... (manejo de error sin cambios)
+    if not ticket:
+        vista_error = ft.View(
+            "/confirmacion",
+            [
+                ft.Text("Error al generar el ticket.", color=ft.Colors.RED),
+                ft.ElevatedButton("Volver", on_click=lambda _: page.go("/datos_cliente"))
+            ],
+            vertical_alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        )
+        return vista_error, lambda: None
 
-    # Creamos los controles sin el QR
+    logo = ft.Image(src="Logo Pepe.png", width=424, height=254, opacity=0, animate_opacity=300)
+
     titulo = ft.Text("¡Pedido confirmado!", size=60, font_family="Outfit", weight=ft.FontWeight.W_700,
                      text_align=ft.TextAlign.CENTER, color=ft.Colors.WHITE, opacity=0, animate_opacity=500)
+
+    circulo_verificacion = ft.Container(
+        width=200, height=200,
+        shape=ft.BoxShape.CIRCLE,
+        bgcolor="#DC6262",
+        alignment=ft.alignment.center,
+        content=ft.Icon(name=ft.Icons.CHECK, color=ft.Colors.WHITE, size=100),
+        opacity=0, animate_opacity=700
+    )
+
     folio = ft.Text(f"Número de folio: {ticket.id_pedido}", size=35, font_family="Outfit",
                     text_align=ft.TextAlign.CENTER, color=ft.Colors.WHITE, opacity=0, animate_opacity=700)
     gracias = ft.Text(f"Gracias: {ticket.nombre_completo}", size=40, font_family="Outfit", weight=ft.FontWeight.W_500,
                       text_align=ft.TextAlign.CENTER, color=ft.Colors.WHITE, opacity=0, animate_opacity=900)
 
     botones = ft.Row(
+        alignment=ft.MainAxisAlignment.CENTER,
+        spacing=20,
+        opacity=0,
+        animate_opacity=1300,
         controls=[
             ft.Container(
             alignment=ft.alignment.bottom_center,
@@ -1613,27 +1725,30 @@ def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases):
             )
         )]
 
-    )  # Sin cambios
+    )
 
-    # --- 3. Construcción del Layout Final ---
     layout_final = ft.Stack(
         controls=[
-            # Fondos decorativos (sin cambios)
-            ft.Container(bgcolor="#C16160", expand=True),
-            ft.Container(width=795, height=745, bgcolor="#F8F2ED", shape=ft.BoxShape.CIRCLE, top=-17, left=-67),
+            ft.Image(src="929f8d1fff68e3deddd0d09b79812005b5683447.png", fit=ft.ImageFit.COVER, expand=True),
 
-            # Contenido principal centrado (sin el QR)
             ft.Column(
                 expand=True,
                 alignment=ft.MainAxisAlignment.CENTER,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=35,  # Aumentamos un poco el espacio
+                spacing=20,
                 controls=[
+                    ft.Container(height=10),
+                    logo,
+                    ft.Container(height=10),
                     titulo,
+                    ft.Container(height=10),
+                    circulo_verificacion,
+                    ft.Container(height=10),
                     folio,
                     gracias,
-                    ft.Container(height=40),
-                    botones
+                    ft.Container(height=10, expand=True),
+                    botones,
+                    ft.Container(height=30),
                 ]
             ),
         ]
