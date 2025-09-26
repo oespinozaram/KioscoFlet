@@ -9,10 +9,9 @@ from .repositories import (
 from src.domain.datos_entrega import DatosEntrega
 from src.domain.pedido import Pedido
 from src.domain.imagen_galeria import ImagenGaleria
-import io
-import base64
-import barcode
-from barcode.writer import ImageWriter
+from src.infrastructure.printing_service import PrintingService
+import subprocess
+import os
 
 
 class AuthUseCases:
@@ -47,6 +46,30 @@ class PedidoUseCases:
         self.tamanos_disponibles = []
         self.imagen_galeria_repo = imagen_galeria_repo
         self.tipo_color_repo = tipo_color_repo
+
+    def guardar_datos_cliente(
+            self, nombre, telefono, direccion, num_ext,
+            entre_calles, cp, colonia, ciudad,
+            municipio, estado, referencias
+    ):
+        """
+        Guarda los datos del cliente en el objeto de pedido actual.
+        """
+        pedido = self.pedido_repo.obtener()
+
+        pedido.nombre_cliente = nombre
+        pedido.telefono_cliente = telefono
+        pedido.direccion_cliente = direccion
+        pedido.num_ext_cliente = num_ext
+        pedido.entre_calles_cliente = entre_calles
+        pedido.cp_cliente = cp
+        pedido.colonia_cliente = colonia
+        pedido.ciudad_cliente = ciudad
+        pedido.municipio_cliente = municipio
+        pedido.estado_cliente = estado
+        pedido.referencias_cliente = referencias
+
+        self.pedido_repo.guardar(pedido)
 
     def obtener_url_imagen_galeria_por_id(self, id_imagen: int) -> str | None:
         print(f"DIAGNÓSTICO: Buscando imagen con ID: {id_imagen}")
@@ -324,19 +347,69 @@ class PedidoUseCases:
 
 
 class FinalizarPedidoUseCases:
-    def __init__(self, pedido_repo: PedidoRepository, finalizar_repo: FinalizarPedidoRepository):
+    def __init__(self, pedido_repo: PedidoRepository, finalizar_repo: FinalizarPedidoRepository, categoria_repo: CategoriaRepository):
         self.pedido_repo = pedido_repo
         self.finalizar_repo = finalizar_repo
+        self.categoria_repo = categoria_repo
+        self.printing_service = PrintingService()
+
+
+    def finalizar_e_imprimir_ticket(self):
+        pedido_actual = self.pedido_repo.obtener()
+        id_nuevo_pedido = self.finalizar_repo.guardar(pedido_actual)
+        if id_nuevo_pedido:
+            return self.finalizar_repo.obtener_por_id(id_nuevo_pedido)
+        return None
+
+    def imprimir_ticket_por_folio(self, id_pedido: int):
+        """
+        Busca un ticket por su folio y lo manda a imprimir.
+        """
+        ticket = self.finalizar_repo.obtener_por_id(id_pedido)
+        if ticket:
+            try:
+                ruta_pdf = self.printing_service.generar_ticket_pdf(ticket)
+                subprocess.run(
+                    [os.path.join("assets", "imprimir.exe"), ruta_pdf],
+                    creationflags=subprocess.DETACHED_PROCESS
+                )
+            except Exception as e:
+                print(f"ERROR: Falló el proceso de impresión: {e}")
+
+        # if id_nuevo_pedido:
+        #     ticket = self.finalizar_repo.obtener_por_id(id_nuevo_pedido)
+        #     if ticket:
+        #         try:
+        #             # Paso 1: Generar el PDF y obtener su ruta
+        #             ruta_pdf = self.printing_service.generar_ticket_pdf(ticket)
+        #
+        #             # Paso 2: Enviar esa ruta a la impresora
+        #             # self.printing_service.enviar_a_impresora(ruta_pdf)
+        #
+        #             # O si usas el CLI de Go:
+        #             subprocess.run(
+        #                 [os.path.join("assets", "imprimir.exe"), ruta_pdf],  # <-- Uso os.path.join para compatibilidad
+        #                 creationflags=subprocess.DETACHED_PROCESS  # <-- Usa DETACHED_PROCESS para que no bloquee Flet
+        #             )
+        #
+        #             return True
+        #         except Exception as e:
+        #             print(f"ERROR: Falló el proceso de impresión: {e}")
+        #             return False
+        #     return False
+
+    def obtener_nombre_categoria(self, id_categoria: int) -> str:  # <-- NUEVO MÉTODO
+        categoria = self.categoria_repo.obtener_por_id(id_categoria)
+        return categoria.nombre if categoria else "Desconocida"
 
     def finalizar_y_obtener_ticket(self) -> Ticket | None:
         pedido_actual = self.pedido_repo.obtener()
-        id_nuevo_pedido = self.finalizar_repo.finalizar(pedido_actual)
+        id_nuevo_pedido = self.finalizar_repo.guardar(pedido_actual)
         if id_nuevo_pedido:
             return self.finalizar_repo.obtener_por_id(id_nuevo_pedido)
         return None
 
     def iniciar_nuevo_pedido(self):
-        """Llama al método para reiniciar el pedido en memoria."""
-        # Este caso de uso necesita acceso al repositorio del pedido en curso
-        # para poder limpiarlo.
-        self.pedido_repo.reiniciar()
+        pedido_actual = self.pedido_repo.obtener()
+        pedido_actual.reiniciar()
+        self.pedido_repo.guardar(pedido_actual)

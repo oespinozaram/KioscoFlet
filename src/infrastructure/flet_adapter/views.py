@@ -1488,8 +1488,12 @@ def vista_extras(page: ft.Page, use_cases: PedidoUseCases):
 
 
 def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_cases: FinalizarPedidoUseCases):
+    # --- 1. Estado y Referencias ---
     campo_enfocado = ft.Ref[ft.TextField]()
+    logo_ref = ft.Ref[ft.Image]()
+    titulo_ref = ft.Ref[ft.Text]()
 
+    # --- 2. Lógica y Manejadores ---
     def on_keyboard_key(key: str):
         target = campo_enfocado.current
         if not target: return
@@ -1499,25 +1503,59 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_
             target.value += key
         page.update()
 
-    teclado_virtual = VirtualKeyboard(page, on_keyboard_key)
-    teclado_virtual.keyboard_control.visible = False
+    def ocultar_teclado(e):
+        teclado_virtual.keyboard_control.visible = False
+        if logo_ref.current: logo_ref.current.visible = True
+        if titulo_ref.current: titulo_ref.current.visible = True
+        page.update()
+
+    def mostrar_teclado():
+        teclado_virtual.keyboard_control.visible = True
+        if logo_ref.current: logo_ref.current.visible = False
+        if titulo_ref.current: titulo_ref.current.visible = False
+        page.update()
 
     def on_textfield_focus(e):
         campo_enfocado.current = e.control
-        teclado_virtual.keyboard_control.visible = True
-        page.update()
+        mostrar_teclado()
 
+    def finalizar_pedido(e):
+        ocultar_teclado(e)
+        use_cases.guardar_datos_cliente(
+            nombre=nombre.value,
+            telefono=telefono.value,
+            direccion=direccion.value,
+            num_ext=num_ext.value,
+            entre_calles=entre_calles.value,
+            cp=cp.value,
+            colonia=colonia.value,
+            ciudad=ciudad.value,
+            municipio=municipio.value,
+            estado=estado.value,
+            referencias=referencias.value
+        )
+        # if finalizar_use_cases.finalizar_y_obtener_ticket():
+        page.go("/confirmacion")
+        # else:
+        #     page.snack_bar = ft.SnackBar(ft.Text("Error al finalizar el pedido."), bgcolor=ft.Colors.RED)
+        #     page.snack_bar.open = True
+        #     page.update()
+
+    teclado_virtual = VirtualKeyboard(
+        page,
+        on_key=on_keyboard_key,
+        on_hide=ocultar_teclado,
+        on_enter=finalizar_pedido
+    )
+    teclado_virtual.keyboard_control.visible = False
+
+    # --- 3. Construcción de Componentes ---
     def crear_campo_texto(label: str, expand=False, multiline=False, min_lines=1):
         return ft.TextField(
-            label=label,
-            on_focus=on_textfield_focus,
-            border=ft.InputBorder.NONE,
-            bgcolor=ft.Colors.WHITE,
-            border_radius=14,
-            expand=expand,
-            content_padding=15,
-            multiline=multiline,
-            min_lines=min_lines
+            label=label, on_focus=on_textfield_focus,
+            border=ft.InputBorder.NONE, bgcolor=ft.Colors.WHITE,
+            border_radius=14, expand=expand, content_padding=15,
+            multiline=multiline, min_lines=min_lines
         )
 
     nombre = crear_campo_texto("Nombre completo", expand=True)
@@ -1529,59 +1567,33 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_
     entre_calles = crear_campo_texto("Entre calles", expand=True)
     ciudad = crear_campo_texto("Ciudad", expand=True)
     municipio = crear_campo_texto("Municipio", expand=True)
-    estado = crear_campo_texto("Estado", expand=True)
+    estado = crear_campo_texto("Estado")
     referencias = crear_campo_texto("Referencias del domicilio", multiline=True, min_lines=3)
 
-    def finalizar_pedido(e):
-        teclado_virtual.keyboard_control.visible = False
-        page.update()
-
-        datos_formulario = {
-                        "nombre_completo": nombre.value,
-                        "telefono": telefono.value,
-                        "direccion": direccion.value,
-                        "numero_exterior": num_ext.value,
-                        "entre_calles": entre_calles.value,
-                        "codigo_postal": cp.value,
-                        "colonia": colonia.value,
-                        "ciudad": ciudad.value,
-                        "municipio": municipio.value,
-                        "estado": estado.value,
-                        "referencias": referencias.value
-                    }
-        try:
-            pedido_final = use_cases.guardar_datos_y_finalizar(datos_formulario)
-
-            page.session.set("pedido_final", pedido_final)
-
-            page.go("/confirmacion")
-        except Exception as ex:
-            print(f"ERROR: Ocurrió un error al finalizar el pedido: {ex}")
-            page.snack_bar = ft.SnackBar(ft.Text("Error al guardar el pedido."), bgcolor=ft.Colors.RED)
-            page.snack_bar.open = True
-            page.update()
-        page.go("/confirmacion")
-
+    # --- 4. Construcción del Layout ---
+    logo = ft.Image(ref=logo_ref, src="Logo Pepe.png", width=250)
+    titulo = ft.Text(ref=titulo_ref, value="Datos de entrega", size=40, color=ft.Colors.WHITE, font_family="Cabin",
+                     weight=ft.FontWeight.W_700)
 
     panel_formulario = ft.Container(
         width=628,
-        height=487,
         bgcolor=ft.Colors.with_opacity(0.35, ft.Colors.WHITE),
         border_radius=30,
         shadow=ft.BoxShadow(spread_radius=1, blur_radius=15, color=ft.Colors.with_opacity(0.2, ft.Colors.BLACK)),
-        padding=20,
+        padding=25,
         content=ft.Column(
             scroll=ft.ScrollMode.ADAPTIVE,
-            spacing=10,
+            spacing=12,
             controls=[
-                ft.Row([nombre]),
-                ft.Row([telefono]),
-                ft.Row([direccion]),
-                ft.Row([num_ext, cp]),
-                ft.Row([colonia]),
-                ft.Row([entre_calles]),
-                ft.Row([ciudad, municipio, estado]),
-                referencias,
+             ft.Row([nombre]),
+             ft.Row([telefono]),
+             ft.Row([direccion]),
+             ft.Row([num_ext, cp]),
+             ft.Row([colonia]),
+             ft.Row([entre_calles]),
+             ft.Row([ciudad, municipio]),
+             ft.Row([estado]),
+             referencias,
             ]
         )
     )
@@ -1592,29 +1604,34 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_
         controls=[
             ft.Container(
                 height=67, bgcolor="#89C5B0", alignment=ft.alignment.center,
-                content=ft.Text('Para envío gratuito en compras de $500 o más', color=ft.Colors.WHITE, size=28,
-                                font_family="Bebas Neue")
-            ),
-            ft.Container(
-                expand=True,
-                alignment=ft.alignment.center,
-                content=ft.Column(
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                content=ft.Row(
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     controls=[
-                        ft.Image(src="Logo Pepe.png", width=424, height=254),
-                        ft.Text("Datos de entrega", size=40, color=ft.Colors.WHITE, font_family="Cabin",
-                                weight=ft.FontWeight.W_700),
-                        ft.Container(height=15),
-                        panel_formulario,
-                        ]
-                    )
-                ),
+                        ft.IconButton(ft.Icons.MENU, icon_color=ft.Colors.WHITE),
+                        ft.Text('PARA ENVÍO GRATUITO EN COMPRAS DE $500 O MÁS', color=ft.Colors.WHITE,
+                                font_family="Bebas Neue", size=24),
+                        ft.IconButton(ft.Icons.HOME_OUTLINED, icon_color=ft.Colors.WHITE,
+                                      on_click=lambda _: page.go("/")),
+                    ]
+                )
+            ),
+            ft.Column(
+                expand=True,
+                scroll=ft.ScrollMode.ADAPTIVE,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                controls=[
+                    logo,
+                    titulo,
+                    ft.Container(height=15),
+                    panel_formulario,
+                ]
+            ),
             ft.Row(
                 alignment=ft.MainAxisAlignment.CENTER,
                 spacing=20,
                 controls=[
                     ft.Container(width=188, height=76, bgcolor="#89C5B0", border_radius=15,
-                                 alignment=ft.alignment.center, on_click=lambda _: page.go("/resumen"),
+                                 alignment=ft.alignment.center, on_click=lambda _: page.open_summary(None),
                                  content=ft.Text("Ver resumen", color=ft.Colors.WHITE, size=24, font_family="Outfit",
                                                  weight=ft.FontWeight.W_600)),
                     ft.Container(width=233, height=76, bgcolor="#DC6262", border_radius=15,
@@ -1623,7 +1640,7 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_
                                                  font_family="Outfit", weight=ft.FontWeight.W_600)),
                 ]
             ),
-            ft.Container(height=20),
+            ft.Container(height=30)
         ]
     )
 
@@ -1649,10 +1666,16 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_
     )
 
 
-def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases):
+def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases, pedido_use_cases: PedidoUseCases):
+    ticket_finalizado = use_cases.finalizar_y_obtener_ticket()
+
+    if ticket_finalizado:
+        use_cases.imprimir_ticket_por_folio(ticket_finalizado.id_pedido)
+
     def animar_entrada():
         import time
         time.sleep(0.1)
+
         logo.opacity = 1
         circulo_verificacion.opacity = 1
         titulo.opacity = 1
@@ -1665,9 +1688,78 @@ def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases):
         use_cases.iniciar_nuevo_pedido()
         page.go("/")
 
-    ticket = use_cases.finalizar_y_obtener_ticket()
+    def abrir_detalle_pedido(e):
+        """Construye y muestra el BottomSheet de detalle del pedido."""
 
-    if not ticket:
+
+        # Obtenemos el nombre de la categoría para mostrarlo
+        # (Necesitaríamos pasar PedidoUseCases a vista_confirmacion o refactorizar)
+        # Por ahora, un placeholder.
+        categorias = {c.id: c.nombre for c in pedido_use_cases.obtener_categorias()}
+        nombre_categoria = categorias.get(ticket_finalizado.id_categoria, "N/A")
+
+        def crear_fila_resumen(icono, titulo, valor):
+            """Función de ayuda para crear las filas del resumen."""
+            return ft.Row(
+                spacing=15,
+                controls=[
+                    ft.Image(src=f"/assets/icons/{icono}", width=40, height=40),
+                    ft.Column(
+                        spacing=0,
+                        controls=[
+                            ft.Text(titulo, size=12, color=ft.Colors.GREY_600),
+                            ft.Text(valor or "No seleccionado", size=16, weight=ft.FontWeight.BOLD),
+                        ]
+                    )
+                ]
+            )
+
+        # Construimos dinámicamente el contenido del BottomSheet
+        bs_detalle = ft.BottomSheet(
+            content=ft.Container(
+                content=ft.Column(
+                    controls=[
+                        ft.Row(
+                            alignment=ft.MainAxisAlignment.END,
+                            #controls=[ft.IconButton(icon=ft.Icons.CLOSE, on_click=lambda _: bs_detalle.set_attrs(open=False) or page.update())]
+                            controls=[ft.IconButton(icon=ft.Icons.CLOSE, on_click=lambda _: setattr(bs_detalle, 'open',
+                                                                                                    False) or page.update())]
+                        ),
+                        ft.Text(f"Detalle del Pedido #{ticket_finalizado.id_pedido}", size=24, weight=ft.FontWeight.BOLD),
+                        ft.Divider(height=10),
+                        ft.Row(
+                            controls=[
+                                ft.Column([
+                                    crear_fila_resumen("categoria.png", "Categoría", nombre_categoria),
+                                    crear_fila_resumen("forma.png", "Forma", ticket_finalizado.tipo_forma),
+                                    crear_fila_resumen("relleno.png", "Relleno", ticket_finalizado.tipo_relleno),
+                                ], expand=1),
+                                ft.Column([
+                                    crear_fila_resumen("tamano.png", "Tamaño", ticket_finalizado.tamano_pastel),
+                                    crear_fila_resumen("pan.png", "Pan", ticket_finalizado.tipo_pan),
+                                    crear_fila_resumen("cobertura.png", "Cobertura", ticket_finalizado.tipo_cobertura),
+                                ], expand=1),
+                            ]
+                        ),
+                        ft.Divider(height=10),
+                        ft.Text(
+                            f"Fecha de entrega: {ticket_finalizado.fecha_entrega} a las {ticket_finalizado.hora_entrega}"),
+                        ft.Text(f"Cliente: {ticket_finalizado.nombre_cliente} ({ticket_finalizado.telefono_cliente})"),
+                        ft.Text(
+                            f"Dirección: {ticket_finalizado.direccion_cliente} #{ticket_finalizado.num_ext_cliente}, {ticket_finalizado.colonia_cliente}, {ticket_finalizado.ciudad_cliente}, {ticket_finalizado.estado_cliente}, CP: {ticket_finalizado.cp_cliente}"),
+                        # No hay botón de restablecer aquí
+                    ]
+                ),
+                padding=20
+            ),
+            open=True,  # Lo abrimos inmediatamente
+            on_dismiss=lambda _: page.update()  # Para que la página se actualice al cerrar
+        )
+        page.overlay.append(bs_detalle)
+        page.update()
+
+
+    if not ticket_finalizado:
         vista_error = ft.View(
             "/confirmacion",
             [
@@ -1681,26 +1773,26 @@ def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases):
 
     logo = ft.Image(src="Logo Pepe.png", width=424, height=254, opacity=0, animate_opacity=300)
 
-    titulo = ft.Text("¡Pedido confirmado!", size=60, font_family="Outfit", weight=ft.FontWeight.W_700,
+    titulo = ft.Text("¡Pedido confirmado!", size=45, font_family="Outfit", weight=ft.FontWeight.W_700,
                      text_align=ft.TextAlign.CENTER, color=ft.Colors.WHITE, opacity=0, animate_opacity=500)
 
     circulo_verificacion = ft.Container(
-        width=200, height=200,
+        width=150, height=150,
         shape=ft.BoxShape.CIRCLE,
         bgcolor="#DC6262",
         alignment=ft.alignment.center,
-        content=ft.Icon(name=ft.Icons.CHECK, color=ft.Colors.WHITE, size=100),
+        content=ft.Icon(name=ft.Icons.CHECK, color=ft.Colors.WHITE, size=70),
         opacity=0, animate_opacity=700
     )
 
-    folio = ft.Text(f"Número de folio: {ticket.id_pedido}", size=35, font_family="Outfit",
+    folio = ft.Text(f"Número de folio: {ticket_finalizado.id_pedido}", size=30, font_family="Outfit",
                     text_align=ft.TextAlign.CENTER, color=ft.Colors.WHITE, opacity=0, animate_opacity=700)
-    gracias = ft.Text(f"Gracias: {ticket.nombre_completo}", size=40, font_family="Outfit", weight=ft.FontWeight.W_500,
+    gracias = ft.Text(f"Gracias: {ticket_finalizado.nombre_cliente}", size=35, font_family="Outfit", weight=ft.FontWeight.W_500,
                       text_align=ft.TextAlign.CENTER, color=ft.Colors.WHITE, opacity=0, animate_opacity=900)
 
     botones = ft.Row(
         alignment=ft.MainAxisAlignment.CENTER,
-        spacing=20,
+        spacing=15,
         opacity=0,
         animate_opacity=1300,
         controls=[
@@ -1712,14 +1804,14 @@ def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases):
                 spacing=20,
                 controls=[
                     ft.Container(
-                        width=294, height=76, bgcolor="#89C5B0", border_radius=15,
+                        width=250, height=60, bgcolor="#89C5B0", border_radius=15,
                         content=ft.Text("Iniciar nuevo pedido", color=ft.Colors.WHITE, size=30),
                         alignment=ft.alignment.center, on_click=nuevo_pedido
                     ),
                     ft.Container(
-                        width=274, height=76, bgcolor="#C16160", border_radius=15,
+                        width=250, height=60, bgcolor="#C16160", border_radius=15,
                         content=ft.Text("Detalle del pedido", color=ft.Colors.WHITE, size=30),
-                        alignment=ft.alignment.center, on_click=lambda _: print("Ver detalle...")
+                        alignment=ft.alignment.center, on_click=abrir_detalle_pedido
                     ),
                 ]
             )
@@ -1735,20 +1827,20 @@ def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases):
                 expand=True,
                 alignment=ft.MainAxisAlignment.CENTER,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=20,
+                spacing=10,
                 controls=[
-                    ft.Container(height=10),
+                    ft.Container(height=20),
                     logo,
-                    ft.Container(height=10),
+                    ft.Container(height=5),
                     titulo,
-                    ft.Container(height=10),
+                    ft.Container(height=15),
                     circulo_verificacion,
-                    ft.Container(height=10),
+                    ft.Container(height=15),
                     folio,
                     gracias,
-                    ft.Container(height=10, expand=True),
+                    ft.Container(height=30, expand=True),
                     botones,
-                    ft.Container(height=30),
+                    ft.Container(height=20),
                 ]
             ),
         ]

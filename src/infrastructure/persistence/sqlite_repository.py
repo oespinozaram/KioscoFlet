@@ -131,24 +131,27 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
     def __init__(self, db_path: str):
         self.db_path = db_path
 
-    def finalizar(self, pedido: Pedido):
+    # CAMBIO: El método debe llamarse 'guardar' para cumplir con la interfaz del repositorio.
+    def guardar(self, pedido: Pedido) -> int:
         """Inserta el pedido completo en la tabla 'pedidos' de la base de datos."""
-        query = """
-            INSERT INTO pedidos (
-                fecha_creacion, hora_entrega, fecha_entrega, tamano_pastel, id_categoria, tipo_pan, 
-                tipo_forma, tipo_relleno, tipo_cobertura, mensaje_pastel, tipo_decorado,
-                decorado_liso_detalle, decorado_liso_color, decorado_tematica_detalle,
-                decorado_imagen_id, extra_seleccionado, decorado_liso_color1, decorado_liso_color2, extra_flor_cantidad,
-                nombre_completo, telefono, direccion, numero_exterior, entre_calles, codigo_postal, colonia,
-                ciudad, municipio, estado, referencias 
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """
 
-        # Preparamos los datos en una tupla, en el orden correcto
+        # CAMBIO: La consulta SQL se ajusta a las columnas que hemos definido.
+        query = """
+                INSERT INTO pedidos (fecha_creacion, fecha_entrega, hora_entrega, tamano_pastel, id_categoria, tipo_pan, \
+                                     tipo_forma, tipo_relleno, tipo_cobertura, mensaje_pastel, tipo_decorado, \
+                                     decorado_liso_detalle, decorado_tematica_detalle, decorado_imagen_id, \
+                                     decorado_liso_color1, decorado_liso_color2, extra_seleccionado, \
+                                     extra_flor_cantidad, nombre_completo, telefono, direccion, \
+                                     numero_exterior, entre_calles, codigo_postal, colonia, \
+                                     referencias) \
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) \
+                """
+
+        # CAMBIO: Los datos se toman directamente del objeto 'pedido', no de 'pedido.datos_entrega'.
         datos = (
             datetime.datetime.now().isoformat(),
-            pedido.hora_entrega,
             pedido.fecha_entrega.isoformat() if pedido.fecha_entrega else None,
+            pedido.hora_entrega,
             pedido.tamano_pastel,
             pedido.id_categoria,
             pedido.tipo_pan,
@@ -158,25 +161,20 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
             pedido.mensaje_pastel,
             pedido.tipo_decorado,
             pedido.decorado_liso_detalle,
-            pedido.decorado_liso_color,
             pedido.decorado_tematica_detalle,
-            pedido.decorado_imagen_id if not pedido.decorado_imagen_id else 0,
-            pedido.extra_seleccionado,
+            pedido.decorado_imagen_id,
             pedido.decorado_liso_color1,
             pedido.decorado_liso_color2,
-            pedido.extra_flor_cantidad if not pedido.extra_flor_cantidad else 0,
-            # Datos de entrega (si existen)
-            pedido.datos_entrega.nombre_completo if pedido.datos_entrega else None,
-            pedido.datos_entrega.telefono if pedido.datos_entrega else None,
-            pedido.datos_entrega.direccion if pedido.datos_entrega else None,
-            pedido.datos_entrega.numero_exterior if pedido.datos_entrega else None,
-            pedido.datos_entrega.entre_calles if pedido.datos_entrega else None,
-            pedido.datos_entrega.codigo_postal if pedido.datos_entrega else None,
-            pedido.datos_entrega.colonia if pedido.datos_entrega else None,
-            pedido.datos_entrega.ciudad if pedido.datos_entrega else None,
-            pedido.datos_entrega.municipio if pedido.datos_entrega else None,
-            pedido.datos_entrega.estado if pedido.datos_entrega else None,
-            pedido.datos_entrega.referencias if pedido.datos_entrega else None,
+            pedido.extra_seleccionado,
+            pedido.extra_flor_cantidad,
+            pedido.nombre_cliente,
+            pedido.telefono_cliente,
+            pedido.direccion_cliente,
+            pedido.num_ext_cliente,
+            pedido.entre_calles_cliente,
+            pedido.cp_cliente,
+            pedido.colonia_cliente,
+            pedido.referencias_cliente
         )
 
         try:
@@ -189,15 +187,84 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
             print(f"Error al guardar el pedido final en la base de datos: {e}")
             return 0
 
+# class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
+#     def __init__(self, db_path: str):
+#         self.db_path = db_path
+#
+#     def finalizar(self, pedido: Pedido):
+#         """Inserta el pedido completo en la tabla 'pedidos' de la base de datos."""
+#         query = """
+#             INSERT INTO pedidos (
+#                 fecha_creacion, hora_entrega, fecha_entrega, tamano_pastel, id_categoria, tipo_pan,
+#                 tipo_forma, tipo_relleno, tipo_cobertura, mensaje_pastel, tipo_decorado,
+#                 decorado_liso_detalle, decorado_liso_color, decorado_tematica_detalle,
+#                 decorado_imagen_id, extra_seleccionado, decorado_liso_color1, decorado_liso_color2, extra_flor_cantidad,
+#                 nombre_completo, telefono, direccion, numero_exterior, entre_calles, codigo_postal, colonia,
+#                 ciudad, municipio, estado, referencias
+#             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+#         """
+#
+#         # Preparamos los datos en una tupla, en el orden correcto
+#         datos = (
+#             datetime.datetime.now().isoformat(),
+#             pedido.hora_entrega,
+#             pedido.fecha_entrega.isoformat() if pedido.fecha_entrega else None,
+#             pedido.tamano_pastel,
+#             pedido.id_categoria,
+#             pedido.tipo_pan,
+#             pedido.tipo_forma,
+#             pedido.tipo_relleno,
+#             pedido.tipo_cobertura,
+#             pedido.mensaje_pastel,
+#             pedido.tipo_decorado,
+#             pedido.decorado_liso_detalle,
+#             pedido.decorado_liso_color,
+#             pedido.decorado_tematica_detalle,
+#             (pedido.decorado_imagen_id if pedido.decorado_imagen_id is not None else 0),
+#             pedido.extra_seleccionado,
+#             pedido.decorado_liso_color1,
+#             pedido.decorado_liso_color2,
+#             (pedido.extra_flor_cantidad if pedido.extra_flor_cantidad is not None else 0),
+#             # Datos de entrega (si existen)
+#             pedido.datos_entrega.nombre_completo if pedido.datos_entrega else None,
+#             pedido.datos_entrega.telefono if pedido.datos_entrega else None,
+#             pedido.datos_entrega.direccion if pedido.datos_entrega else None,
+#             pedido.datos_entrega.numero_exterior if pedido.datos_entrega else None,
+#             pedido.datos_entrega.entre_calles if pedido.datos_entrega else None,
+#             pedido.datos_entrega.codigo_postal if pedido.datos_entrega else None,
+#             pedido.datos_entrega.colonia if pedido.datos_entrega else None,
+#             pedido.datos_entrega.ciudad if pedido.datos_entrega else None,
+#             pedido.datos_entrega.municipio if pedido.datos_entrega else None,
+#             pedido.datos_entrega.estado if pedido.datos_entrega else None,
+#             pedido.datos_entrega.referencias if pedido.datos_entrega else None,
+#         )
+#
+#         try:
+#             with sqlite3.connect(self.db_path) as conn:
+#                 cursor = conn.cursor()
+#                 cursor.execute(query, datos)
+#                 conn.commit()
+#                 return cursor.lastrowid
+#         except sqlite3.Error as e:
+#             print(f"Error al guardar el pedido final en la base de datos: {e}")
+#             return 0
+
     def obtener_por_id(self, id_pedido: int) -> Ticket | None:
-        query = "SELECT id_pedido, nombre_completo FROM pedidos WHERE id_pedido = ?"
+        query = """SELECT id_pedido, id_categoria, tipo_pan, tipo_forma, tipo_relleno, tipo_cobertura, 
+                          tamano_pastel, fecha_entrega, hora_entrega, nombre_completo, telefono, direccion, 
+                          numero_exterior, codigo_postal, colonia, ciudad, estado  
+                   FROM pedidos WHERE id_pedido = ?"""
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute(query, (id_pedido,))
                 row = cursor.fetchone()
                 if row:
-                    return Ticket(id_pedido=row[0], nombre_completo=row[1])
+                    return Ticket(id_pedido=row[0], id_categoria=row[1], tipo_pan=row[2], tipo_forma=row[3],
+                                  tipo_relleno=row[4], tipo_cobertura=row[5], tamano_pastel=row[6], fecha_entrega=row[7],
+                                  hora_entrega=row[8], nombre_cliente=row[9], telefono_cliente=row[10], direccion_cliente=row[11],
+                                  num_ext_cliente=row[12], cp_cliente=row[13], colonia_cliente=row[14], ciudad_cliente=row[15],
+                                  estado_cliente=row[16])
         except sqlite3.Error as e:
             print(f"Error al obtener el pedido por ID: {e}")
         return None

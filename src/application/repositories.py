@@ -96,12 +96,27 @@ class TipoColorRepository(ABC):
 
 class Ticket(NamedTuple):
     id_pedido: int
-    nombre_completo: str
+    id_categoria: int
+    tipo_pan: str
+    tipo_forma: str
+    tipo_relleno: str
+    tipo_cobertura: str
+    tamano_pastel: str
+    fecha_entrega: str
+    hora_entrega: str
+    nombre_cliente: str
+    telefono_cliente: str
+    direccion_cliente: str
+    num_ext_cliente: str
+    colonia_cliente: str
+    ciudad_cliente: str
+    estado_cliente: str
+    cp_cliente: str
 
 
 class FinalizarPedidoRepository(ABC):
     @abstractmethod
-    def finalizar(self, pedido: Pedido) -> int:
+    def guardar(self, pedido: Pedido) -> int:
         pass
 
     @abstractmethod

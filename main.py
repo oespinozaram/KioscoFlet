@@ -50,8 +50,93 @@ def main(page: ft.Page):
     finalizar_pedido_repo = FinalizarPedidoRepositorySQLite(db_path)
     finalizar_pedido_use_cases = FinalizarPedidoUseCases(
         pedido_repo=pedido_repo,
-        finalizar_repo=finalizar_pedido_repo
+        finalizar_repo=finalizar_pedido_repo,
+        categoria_repo=categoria_repo,
     )
+
+    def cerrar_resumen(e):
+        """Cierra el BottomSheet."""
+        bs.open = False
+        page.update()
+
+    def restablecer_pedido(e):
+        """Llama al caso de uso para reiniciar el pedido y cierra el resumen."""
+        pedido_use_cases.iniciar_nuevo_pedido()
+        cerrar_resumen(e)
+        page.go("/") # Vuelve a la pantalla de bienvenida
+
+    def crear_fila_resumen(icono, titulo, valor):
+        """Función de ayuda para crear las filas del resumen."""
+        return ft.Row(
+            spacing=15,
+            controls=[
+                ft.Image(src=f"/assets/icons/{icono}", width=40, height=40),
+                ft.Column(
+                    spacing=0,
+                    controls=[
+                        ft.Text(titulo, size=12, color=ft.Colors.GREY_600),
+                        ft.Text(valor or "No seleccionado", size=16, weight=ft.FontWeight.BOLD),
+                    ]
+                )
+            ]
+        )
+
+    bs = ft.BottomSheet(
+        # Contenido se llenará dinámicamente
+        content=ft.Container(padding=20),
+        on_dismiss=cerrar_resumen,
+    )
+
+    def abrir_resumen(e):
+        """Construye y muestra el resumen del pedido actual."""
+        pedido = pedido_use_cases.obtener_pedido_actual()
+
+        # Obtenemos el nombre de la categoría para mostrarlo
+        categorias = {c.id: c.nombre for c in pedido_use_cases.obtener_categorias()}
+        nombre_categoria = categorias.get(pedido.id_categoria, "N/A")
+
+        # Construimos dinámicamente el contenido del resumen
+        bs.content.content = ft.Column(
+            controls=[
+                ft.Row(
+                    alignment=ft.MainAxisAlignment.END,
+                    controls=[ft.IconButton(icon=ft.Icons.CLOSE, on_click=cerrar_resumen)]
+                ),
+                ft.Row(
+                    controls=[
+                        ft.Column([
+                            crear_fila_resumen("categoria.png", "Categoría", nombre_categoria),
+                            crear_fila_resumen("forma.png", "Forma", pedido.tipo_forma),
+                            crear_fila_resumen("relleno.png", "Relleno", pedido.tipo_relleno),
+                        ], expand=1),
+                        ft.Column([
+                            crear_fila_resumen("tamano.png", "Tamaño", pedido.tamano_pastel),
+                            crear_fila_resumen("pan.png", "Pan", pedido.tipo_pan),
+                            crear_fila_resumen("cobertura.png", "Cobertura", pedido.tipo_cobertura),
+                        ], expand=1),
+                    ]
+                ),
+                ft.Divider(height=20),
+                ft.Row(
+                    alignment=ft.MainAxisAlignment.SPACE_AROUND,
+                    controls=[
+                        # Aquí puedes añadir los datos de fecha y hora
+                    ]
+                ),
+                ft.Container(height=20),
+                ft.ElevatedButton(
+                    "Restablecer Pedido",
+                    icon=ft.Icons.RESTART_ALT,
+                    on_click=restablecer_pedido,
+                    width=page.window.width
+                )
+            ]
+        )
+        bs.open = True
+        page.update()
+
+    page.open_summary = abrir_resumen
+    page.overlay.append(bs)
 
     banner_superior = ft.Container(
         bgcolor="#89C5B0",
@@ -97,8 +182,11 @@ def main(page: ft.Page):
     def route_change(route):
         print(f"Cambiando a la ruta: {page.route}")
         page.views.clear()
-
         funcion_animacion = None
+
+        rutas_con_resumen = ["/datos_cliente", "/confirmacion"]
+
+
 
         if page.route == "/login":
             page.views.append(views.vista_login(page, auth_use_cases))
@@ -130,7 +218,7 @@ def main(page: ft.Page):
             page.views.append(views.vista_datos_cliente(page, pedido_use_cases, finalizar_pedido_use_cases))
         elif page.route == "/confirmacion":
             # 1. Capturamos la vista y la función de animación
-            vista, funcion_animacion = views.vista_confirmacion(page, finalizar_pedido_use_cases)
+            vista, funcion_animacion = views.vista_confirmacion(page, finalizar_pedido_use_cases, pedido_use_cases)
             page.views.append(vista)
         page.update()
 
@@ -153,6 +241,14 @@ def main(page: ft.Page):
             ]
         )
     )
+
+    #boton_ver_resumen = ft.FloatingActionButton(
+    #    icon=ft.Icons.RECEIPT_LONG,
+    #    text="Ver Resumen",
+    #    on_click=abrir_resumen,
+    #    visible=False  # Empieza oculto y el router lo mostrará
+    #)
+    #page.add(boton_ver_resumen)  # Añadimos el botón a la página
 
     page.go("/login")
 
