@@ -3,9 +3,9 @@ import datetime
 from .datos_entrega import DatosEntrega
 
 class Pedido:
-    """Entidad que representa el estado de un pedido de pastel."""
     def __init__(self):
         self.id_pedido: int | None = None
+        self.fecha_creacion: str | None = None
         self.fecha_entrega: datetime.date | None = None
         self.hora_entrega: str | None = None
         self.tamano_pastel: str | None = None
@@ -27,8 +27,8 @@ class Pedido:
         self.extra_flor_cantidad: int | None = None
 
     def reiniciar(self):
-        """Reinicia la entidad a su estado por defecto."""
         self.id_pedido: int | None = None
+        self.fecha_creacion: str | None = None
         self.fecha_entrega: datetime.date | None = None
         self.hora_entrega: str | None = None
         self.tamano_pastel: str | None = None

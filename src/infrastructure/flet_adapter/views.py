@@ -907,7 +907,6 @@ def vista_categorias(page: ft.Page, use_cases: PedidoUseCases):
             ft.Row(
                 col={"sm": 12},
                 alignment=ft.MainAxisAlignment.CENTER,
-                #wrap=True,
                 spacing=30,
                 run_spacing=30,
                 controls=tarjetas_categorias
@@ -920,7 +919,7 @@ def vista_categorias(page: ft.Page, use_cases: PedidoUseCases):
         controls=[
             banner_superior,
             ft.Container(expand=True, content=contenido_principal),
-            ft.Container(  # Espacio para el botón de volver
+            ft.Container(
                 padding=20,
                 alignment=ft.alignment.center,
                 content=crear_boton_navegacion(
@@ -1013,7 +1012,6 @@ def vista_pan(page: ft.Page, use_cases: PedidoUseCases):
     )
 
 
-# --- VISTA DE RELLENO (REDISEÑADA) ---
 def vista_relleno(page: ft.Page, use_cases: PedidoUseCases):
     boton_continuar = ft.ElevatedButton("Continuar", disabled=True, on_click=lambda _: page.go("/cobertura"))
 
@@ -1143,7 +1141,6 @@ def vista_decorado(page: ft.Page, use_cases: PedidoUseCases):
                 else:
                     listo = True
         elif pedido.tipo_decorado == "Imágenes Predeterminadas":
-            # La navegación es directa, así que no se necesita este botón.
             pass
         boton_continuar.visible = listo
         page.update()
@@ -1329,7 +1326,6 @@ def vista_galeria(page: ft.Page, use_cases: PedidoUseCases):
                 ft.Text("Galería de Imágenes", size=24, weight=ft.FontWeight.BOLD)
             ]),
             ft.Row([filtro_categoria, campo_busqueda]),
-            # El GridView se expandirá para usar el espacio restante
             grid
         ]
     )
@@ -1447,32 +1443,27 @@ def vista_extras(page: ft.Page, use_cases: PedidoUseCases):
                 content=ft.Text('Para envío gratuito en compras de $500 o más', color=ft.Colors.WHITE, size=28,
                                 font_family="Bebas Neue")
             ),
-            # Espaciador flexible para empujar el contenido hacia el centro
             ft.Container(expand=True),
 
-            # El logo/imagen
             ft.Image(src="Logo Pepe.png", width=424, height=254),
 
-            # El panel interactivo con las opciones
             panel_interactivo,
 
-            # Espaciador flexible para empujar los botones hacia abajo
             ft.Container(expand=True),
 
-            # Fila de botones de navegación
             ft.Row(
                 alignment=ft.MainAxisAlignment.CENTER,
                 spacing=20,
                 controls=[
                     ft.ElevatedButton("Volver", on_click=lambda _: page.go("/decorado")),
-                    ft.ElevatedButton("Ver Resumen", on_click=lambda _: page.go("/datos_cliente")),
+                    ft.ElevatedButton("Datos del Pedido", on_click=lambda _: page.go("/datos_cliente")),
                 ]
             ),
-            ft.Container(height=30)  # Un pequeño margen inferior
+            ft.Container(height=30)
         ]
     )
 
-    # El Stack se usa solo para el fondo
+
     layout_final = ft.Stack(
         controls=[
             ft.Image(src="929f8d1fff68e3deddd0d09b79812005b5683447.png", fit=ft.ImageFit.COVER, expand=True),
@@ -1488,12 +1479,10 @@ def vista_extras(page: ft.Page, use_cases: PedidoUseCases):
 
 
 def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_cases: FinalizarPedidoUseCases):
-    # --- 1. Estado y Referencias ---
     campo_enfocado = ft.Ref[ft.TextField]()
     logo_ref = ft.Ref[ft.Image]()
     titulo_ref = ft.Ref[ft.Text]()
 
-    # --- 2. Lógica y Manejadores ---
     def on_keyboard_key(key: str):
         target = campo_enfocado.current
         if not target: return
@@ -1534,12 +1523,8 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_
             estado=estado.value,
             referencias=referencias.value
         )
-        # if finalizar_use_cases.finalizar_y_obtener_ticket():
         page.go("/confirmacion")
-        # else:
-        #     page.snack_bar = ft.SnackBar(ft.Text("Error al finalizar el pedido."), bgcolor=ft.Colors.RED)
-        #     page.snack_bar.open = True
-        #     page.update()
+
 
     teclado_virtual = VirtualKeyboard(
         page,
@@ -1549,7 +1534,6 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_
     )
     teclado_virtual.keyboard_control.visible = False
 
-    # --- 3. Construcción de Componentes ---
     def crear_campo_texto(label: str, expand=False, multiline=False, min_lines=1):
         return ft.TextField(
             label=label, on_focus=on_textfield_focus,
@@ -1570,7 +1554,6 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_
     estado = crear_campo_texto("Estado")
     referencias = crear_campo_texto("Referencias del domicilio", multiline=True, min_lines=3)
 
-    # --- 4. Construcción del Layout ---
     logo = ft.Image(ref=logo_ref, src="Logo Pepe.png", width=250)
     titulo = ft.Text(ref=titulo_ref, value="Datos de entrega", size=40, color=ft.Colors.WHITE, font_family="Cabin",
                      weight=ft.FontWeight.W_700)
@@ -1689,17 +1672,11 @@ def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases, pedido
         page.go("/")
 
     def abrir_detalle_pedido(e):
-        """Construye y muestra el BottomSheet de detalle del pedido."""
 
-
-        # Obtenemos el nombre de la categoría para mostrarlo
-        # (Necesitaríamos pasar PedidoUseCases a vista_confirmacion o refactorizar)
-        # Por ahora, un placeholder.
         categorias = {c.id: c.nombre for c in pedido_use_cases.obtener_categorias()}
         nombre_categoria = categorias.get(ticket_finalizado.id_categoria, "N/A")
 
         def crear_fila_resumen(icono, titulo, valor):
-            """Función de ayuda para crear las filas del resumen."""
             return ft.Row(
                 spacing=15,
                 controls=[
@@ -1714,14 +1691,12 @@ def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases, pedido
                 ]
             )
 
-        # Construimos dinámicamente el contenido del BottomSheet
         bs_detalle = ft.BottomSheet(
             content=ft.Container(
                 content=ft.Column(
                     controls=[
                         ft.Row(
                             alignment=ft.MainAxisAlignment.END,
-                            #controls=[ft.IconButton(icon=ft.Icons.CLOSE, on_click=lambda _: bs_detalle.set_attrs(open=False) or page.update())]
                             controls=[ft.IconButton(icon=ft.Icons.CLOSE, on_click=lambda _: setattr(bs_detalle, 'open',
                                                                                                     False) or page.update())]
                         ),
@@ -1747,7 +1722,7 @@ def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases, pedido
                         ft.Text(f"Cliente: {ticket_finalizado.nombre_cliente} ({ticket_finalizado.telefono_cliente})"),
                         ft.Text(
                             f"Dirección: {ticket_finalizado.direccion_cliente} #{ticket_finalizado.num_ext_cliente}, {ticket_finalizado.colonia_cliente}, {ticket_finalizado.ciudad_cliente}, {ticket_finalizado.estado_cliente}, CP: {ticket_finalizado.cp_cliente}"),
-                        # No hay botón de restablecer aquí
+
                     ]
                 ),
                 padding=20
@@ -1805,7 +1780,7 @@ def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases, pedido
                 controls=[
                     ft.Container(
                         width=250, height=60, bgcolor="#89C5B0", border_radius=15,
-                        content=ft.Text("Iniciar nuevo pedido", color=ft.Colors.WHITE, size=30),
+                        content=ft.Text("Nuevo pedido", color=ft.Colors.WHITE, size=30),
                         alignment=ft.alignment.center, on_click=nuevo_pedido
                     ),
                     ft.Container(

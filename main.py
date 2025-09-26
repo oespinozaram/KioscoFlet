@@ -11,6 +11,8 @@ from src.infrastructure.persistence.sqlite_repository import (
     TipoColorRepositorySQLite
 )
 from src.infrastructure.flet_adapter import views
+from src.infrastructure.persistence.api_repository import FinalizarPedidoRepositoryAPI
+from src.infrastructure.persistence.composite_repository import FinalizarPedidoRepositoryComposite
 
 
 def main(page: ft.Page):
@@ -39,6 +41,14 @@ def main(page: ft.Page):
     imagen_galeria_repo = ImagenGaleriaRepositorySQLite(db_path)
     tipo_color_repo = TipoColorRepositorySQLite(db_path)
 
+    API_URL_PEDIDOS = "https://pepesquioscodev-dze4d8gwgfcpgwaw.mexicocentral-01.azurewebsites.net/pedidos"  # <-- CAMBIA ESTO
+
+    # --- ANTES ---
+    # finalizar_repo = FinalizarPedidoRepositorySQLite(db_path)
+
+    # --- AHORA ---
+    finalizar_repo_api = FinalizarPedidoRepositoryAPI(api_url=API_URL_PEDIDOS, db_path=db_path)
+
     auth_use_cases = AuthUseCases()
     pedido_use_cases = PedidoUseCases(
         pedido_repo, tamano_repo, categoria_repo,
@@ -48,9 +58,15 @@ def main(page: ft.Page):
     )
 
     finalizar_pedido_repo = FinalizarPedidoRepositorySQLite(db_path)
+
+    finalizar_repo_compuesto = FinalizarPedidoRepositoryComposite(
+        sqlite_repo=finalizar_pedido_repo,
+        api_repo=finalizar_repo_api
+    )
+
     finalizar_pedido_use_cases = FinalizarPedidoUseCases(
         pedido_repo=pedido_repo,
-        finalizar_repo=finalizar_pedido_repo,
+        finalizar_repo=finalizar_repo_compuesto,
         categoria_repo=categoria_repo,
     )
 
@@ -183,10 +199,6 @@ def main(page: ft.Page):
         print(f"Cambiando a la ruta: {page.route}")
         page.views.clear()
         funcion_animacion = None
-
-        rutas_con_resumen = ["/datos_cliente", "/confirmacion"]
-
-
 
         if page.route == "/login":
             page.views.append(views.vista_login(page, auth_use_cases))

@@ -10,17 +10,12 @@ from src.domain.datos_entrega import DatosEntrega
 from src.domain.pedido import Pedido
 from src.domain.imagen_galeria import ImagenGaleria
 from src.infrastructure.printing_service import PrintingService
-import subprocess
-import os
+
 
 
 class AuthUseCases:
     def login(self, username: str, password: str) -> bool:
-        """
-        Verifica las credenciales del usuario.
-        TODO: Conectar a una base de datos de usuarios en el futuro.
-        """
-        # Por ahora, usamos credenciales fijas para la demostración
+
         if username.lower() == "admin" and password == "1234":
             print("INFO: Credenciales correctas.")
             return True
@@ -52,9 +47,6 @@ class PedidoUseCases:
             entre_calles, cp, colonia, ciudad,
             municipio, estado, referencias
     ):
-        """
-        Guarda los datos del cliente en el objeto de pedido actual.
-        """
         pedido = self.pedido_repo.obtener()
 
         pedido.nombre_cliente = nombre
@@ -105,7 +97,6 @@ class PedidoUseCases:
     def seleccionar_tipo_decorado(self, tipo_decorado: str):
         pedido = self.pedido_repo.obtener()
         pedido.tipo_decorado = tipo_decorado
-        # Reseteamos todos los detalles al cambiar la opción principal
         pedido.decorado_liso_detalle = None
         pedido.decorado_tematica_detalle = None
         pedido.decorado_imagen_id = None
@@ -254,19 +245,9 @@ class PedidoUseCases:
         self.pedido_repo.guardar(pedido)
 
         print("INFO: Finalizando pedido y guardando en la base de datos...")
-        self.finalizar_repo.finalizar(pedido)
+        self.finalizar_repo.guardar(pedido)
         print("INFO: ¡Pedido guardado permanentemente!")
 
-        datos_qr = (
-            f"Cliente: {pedido.datos_entrega.nombre_completo}\n"
-            f"Telefono: {pedido.datos_entrega.telefono}\n"
-            f"Fecha Entrega: {pedido.fecha_entrega.strftime('%d/%m/%Y') if pedido.fecha_entrega else 'N/A'}\n"
-            f"Tamaño: {pedido.tamano_pastel}\n"
-            f"Forma: {pedido.tipo_forma}\n"
-            f"Pan: {pedido.tipo_pan}"
-        )
-
-        # 5. Devolver el pedido completo y el QR
         return pedido
 
     def seleccionar_color_decorado_liso(self, color: str):
@@ -328,13 +309,11 @@ class PedidoUseCases:
         self.pedido_repo.guardar(pedido)
 
     def reiniciar_cobertura(self):
-        """Resetea la selección de cobertura del pedido."""
         pedido = self.pedido_repo.obtener()
         pedido.tipo_cobertura = None
         self.pedido_repo.guardar(pedido)
 
     def reiniciar_decorado(self):
-        """Resetea todas las selecciones de la sección de decorado."""
         pedido = self.pedido_repo.obtener()
         pedido.tipo_decorado = None
         pedido.mensaje_pastel = None
@@ -362,41 +341,16 @@ class FinalizarPedidoUseCases:
         return None
 
     def imprimir_ticket_por_folio(self, id_pedido: int):
-        """
-        Busca un ticket por su folio y lo manda a imprimir.
-        """
         ticket = self.finalizar_repo.obtener_por_id(id_pedido)
         if ticket:
             try:
                 ruta_pdf = self.printing_service.generar_ticket_pdf(ticket)
-                subprocess.run(
-                    [os.path.join("assets", "imprimir.exe"), ruta_pdf],
-                    creationflags=subprocess.DETACHED_PROCESS
-                )
+
+                self.printing_service.enviar_a_impresora(ruta_pdf)
+                return True
             except Exception as e:
                 print(f"ERROR: Falló el proceso de impresión: {e}")
 
-        # if id_nuevo_pedido:
-        #     ticket = self.finalizar_repo.obtener_por_id(id_nuevo_pedido)
-        #     if ticket:
-        #         try:
-        #             # Paso 1: Generar el PDF y obtener su ruta
-        #             ruta_pdf = self.printing_service.generar_ticket_pdf(ticket)
-        #
-        #             # Paso 2: Enviar esa ruta a la impresora
-        #             # self.printing_service.enviar_a_impresora(ruta_pdf)
-        #
-        #             # O si usas el CLI de Go:
-        #             subprocess.run(
-        #                 [os.path.join("assets", "imprimir.exe"), ruta_pdf],  # <-- Uso os.path.join para compatibilidad
-        #                 creationflags=subprocess.DETACHED_PROCESS  # <-- Usa DETACHED_PROCESS para que no bloquee Flet
-        #             )
-        #
-        #             return True
-        #         except Exception as e:
-        #             print(f"ERROR: Falló el proceso de impresión: {e}")
-        #             return False
-        #     return False
 
     def obtener_nombre_categoria(self, id_categoria: int) -> str:  # <-- NUEVO MÉTODO
         categoria = self.categoria_repo.obtener_por_id(id_categoria)

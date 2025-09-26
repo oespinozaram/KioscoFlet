@@ -97,6 +97,7 @@ class TipoColorRepository(ABC):
 class Ticket(NamedTuple):
     id_pedido: int
     id_categoria: int
+    fecha_creacion: str
     tipo_pan: str
     tipo_forma: str
     tipo_relleno: str
@@ -108,10 +109,24 @@ class Ticket(NamedTuple):
     telefono_cliente: str
     direccion_cliente: str
     num_ext_cliente: str
+    entre_calles_cliente: str
     colonia_cliente: str
     ciudad_cliente: str
+    municipio_cliente: str
     estado_cliente: str
     cp_cliente: str
+    referencias_cliente: str
+    decorado_liso_color: str
+    decorado_liso_color1: str
+    decorado_liso_color2: str
+    mensaje_pastel: str
+    hora_entrega: str
+    extra_flor_cantidad: int
+    tipo_decorado: str
+    decorado_liso_detalle: str
+    decorado_tematica_detalle: str
+    decorado_imagen_id: int
+    extra_seleccionado: str
 
 
 class FinalizarPedidoRepository(ABC):

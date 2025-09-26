@@ -76,8 +76,6 @@ class TamanoRepositorySQLite(TamanoRepository):
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute("SELECT nombre_tamano FROM tipos_tamano ORDER BY id_tipo_tamano")
-                # El resultado es una lista de tuplas, ej: [('Chico',), ('Mediano',)]
-                # Lo convertimos a una lista de strings.
                 return [row[0] for row in cursor.fetchall()]
         except sqlite3.Error as e:
             print(f"Error al leer la base de datos: {e}")
@@ -131,26 +129,22 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
     def __init__(self, db_path: str):
         self.db_path = db_path
 
-    # CAMBIO: El método debe llamarse 'guardar' para cumplir con la interfaz del repositorio.
     def guardar(self, pedido: Pedido) -> int:
-        """Inserta el pedido completo en la tabla 'pedidos' de la base de datos."""
 
-        # CAMBIO: La consulta SQL se ajusta a las columnas que hemos definido.
         query = """
                 INSERT INTO pedidos (fecha_creacion, fecha_entrega, hora_entrega, tamano_pastel, id_categoria, tipo_pan, \
                                      tipo_forma, tipo_relleno, tipo_cobertura, mensaje_pastel, tipo_decorado, \
                                      decorado_liso_detalle, decorado_tematica_detalle, decorado_imagen_id, \
                                      decorado_liso_color1, decorado_liso_color2, extra_seleccionado, \
                                      extra_flor_cantidad, nombre_completo, telefono, direccion, \
-                                     numero_exterior, entre_calles, codigo_postal, colonia, \
-                                     referencias) \
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) \
+                                     numero_exterior, entre_calles, codigo_postal, colonia, ciudad, municipio, estado, \
+                                     referencias, decorado_liso_color) \
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) \
                 """
 
-        # CAMBIO: Los datos se toman directamente del objeto 'pedido', no de 'pedido.datos_entrega'.
         datos = (
             datetime.datetime.now().isoformat(),
-            pedido.fecha_entrega.isoformat() if pedido.fecha_entrega else None,
+            pedido.fecha_entrega,
             pedido.hora_entrega,
             pedido.tamano_pastel,
             pedido.id_categoria,
@@ -174,7 +168,11 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
             pedido.entre_calles_cliente,
             pedido.cp_cliente,
             pedido.colonia_cliente,
-            pedido.referencias_cliente
+            pedido.ciudad_cliente,
+            pedido.municipio_cliente,
+            pedido.estado_cliente,
+            pedido.referencias_cliente,
+            pedido.decorado_liso_color,
         )
 
         try:
@@ -187,72 +185,13 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
             print(f"Error al guardar el pedido final en la base de datos: {e}")
             return 0
 
-# class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
-#     def __init__(self, db_path: str):
-#         self.db_path = db_path
-#
-#     def finalizar(self, pedido: Pedido):
-#         """Inserta el pedido completo en la tabla 'pedidos' de la base de datos."""
-#         query = """
-#             INSERT INTO pedidos (
-#                 fecha_creacion, hora_entrega, fecha_entrega, tamano_pastel, id_categoria, tipo_pan,
-#                 tipo_forma, tipo_relleno, tipo_cobertura, mensaje_pastel, tipo_decorado,
-#                 decorado_liso_detalle, decorado_liso_color, decorado_tematica_detalle,
-#                 decorado_imagen_id, extra_seleccionado, decorado_liso_color1, decorado_liso_color2, extra_flor_cantidad,
-#                 nombre_completo, telefono, direccion, numero_exterior, entre_calles, codigo_postal, colonia,
-#                 ciudad, municipio, estado, referencias
-#             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-#         """
-#
-#         # Preparamos los datos en una tupla, en el orden correcto
-#         datos = (
-#             datetime.datetime.now().isoformat(),
-#             pedido.hora_entrega,
-#             pedido.fecha_entrega.isoformat() if pedido.fecha_entrega else None,
-#             pedido.tamano_pastel,
-#             pedido.id_categoria,
-#             pedido.tipo_pan,
-#             pedido.tipo_forma,
-#             pedido.tipo_relleno,
-#             pedido.tipo_cobertura,
-#             pedido.mensaje_pastel,
-#             pedido.tipo_decorado,
-#             pedido.decorado_liso_detalle,
-#             pedido.decorado_liso_color,
-#             pedido.decorado_tematica_detalle,
-#             (pedido.decorado_imagen_id if pedido.decorado_imagen_id is not None else 0),
-#             pedido.extra_seleccionado,
-#             pedido.decorado_liso_color1,
-#             pedido.decorado_liso_color2,
-#             (pedido.extra_flor_cantidad if pedido.extra_flor_cantidad is not None else 0),
-#             # Datos de entrega (si existen)
-#             pedido.datos_entrega.nombre_completo if pedido.datos_entrega else None,
-#             pedido.datos_entrega.telefono if pedido.datos_entrega else None,
-#             pedido.datos_entrega.direccion if pedido.datos_entrega else None,
-#             pedido.datos_entrega.numero_exterior if pedido.datos_entrega else None,
-#             pedido.datos_entrega.entre_calles if pedido.datos_entrega else None,
-#             pedido.datos_entrega.codigo_postal if pedido.datos_entrega else None,
-#             pedido.datos_entrega.colonia if pedido.datos_entrega else None,
-#             pedido.datos_entrega.ciudad if pedido.datos_entrega else None,
-#             pedido.datos_entrega.municipio if pedido.datos_entrega else None,
-#             pedido.datos_entrega.estado if pedido.datos_entrega else None,
-#             pedido.datos_entrega.referencias if pedido.datos_entrega else None,
-#         )
-#
-#         try:
-#             with sqlite3.connect(self.db_path) as conn:
-#                 cursor = conn.cursor()
-#                 cursor.execute(query, datos)
-#                 conn.commit()
-#                 return cursor.lastrowid
-#         except sqlite3.Error as e:
-#             print(f"Error al guardar el pedido final en la base de datos: {e}")
-#             return 0
-
     def obtener_por_id(self, id_pedido: int) -> Ticket | None:
         query = """SELECT id_pedido, id_categoria, tipo_pan, tipo_forma, tipo_relleno, tipo_cobertura, 
                           tamano_pastel, fecha_entrega, hora_entrega, nombre_completo, telefono, direccion, 
-                          numero_exterior, codigo_postal, colonia, ciudad, estado  
+                          numero_exterior, codigo_postal, colonia, ciudad, estado, fecha_creacion, entre_calles, 
+                          municipio, referencias, decorado_liso_color1, decorado_liso_color2, mensaje_pastel, 
+                          extra_flor_cantidad, tipo_decorado, decorado_liso_detalle, decorado_liso_color, 
+                          decorado_tematica_detalle, decorado_imagen_id, extra_seleccionado
                    FROM pedidos WHERE id_pedido = ?"""
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -260,11 +199,37 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
                 cursor.execute(query, (id_pedido,))
                 row = cursor.fetchone()
                 if row:
-                    return Ticket(id_pedido=row[0], id_categoria=row[1], tipo_pan=row[2], tipo_forma=row[3],
-                                  tipo_relleno=row[4], tipo_cobertura=row[5], tamano_pastel=row[6], fecha_entrega=row[7],
-                                  hora_entrega=row[8], nombre_cliente=row[9], telefono_cliente=row[10], direccion_cliente=row[11],
-                                  num_ext_cliente=row[12], cp_cliente=row[13], colonia_cliente=row[14], ciudad_cliente=row[15],
-                                  estado_cliente=row[16])
+                    return Ticket(id_pedido=row[0],
+                                  id_categoria=row[1],
+                                  tipo_pan=row[2],
+                                  tipo_forma=row[3],
+                                  tipo_relleno=row[4],
+                                  tipo_cobertura=row[5],
+                                  tamano_pastel=row[6],
+                                  fecha_entrega=row[7],
+                                  hora_entrega=row[8],
+                                  nombre_cliente=row[9],
+                                  telefono_cliente=row[10],
+                                  direccion_cliente=row[11],
+                                  num_ext_cliente=row[12],
+                                  cp_cliente=row[13],
+                                  colonia_cliente=row[14],
+                                  ciudad_cliente=row[15],
+                                  estado_cliente=row[16],
+                                  fecha_creacion=row[17],
+                                  entre_calles_cliente=row[18],
+                                  municipio_cliente=row[19],
+                                  referencias_cliente=row[20],
+                                  decorado_liso_color=row[27],
+                                  decorado_liso_color1=row[21],
+                                  decorado_liso_color2=row[22],
+                                  mensaje_pastel=row[23],
+                                  extra_flor_cantidad=row[24],
+                                  tipo_decorado=row[25],
+                                  decorado_liso_detalle=row[26],
+                                  decorado_tematica_detalle=row[28],
+                                  decorado_imagen_id=row[29],
+                                  extra_seleccionado=row[30],)
         except sqlite3.Error as e:
             print(f"Error al obtener el pedido por ID: {e}")
         return None
@@ -275,7 +240,6 @@ class ImagenGaleriaRepositorySQLite(ImagenGaleriaRepository):
         self.db_path = db_path
 
     def buscar(self, categoria: str | None = None, termino: str | None = None) -> list[ImagenGaleria]:
-        """Busca imágenes en la BD con filtros dinámicos."""
         base_query = "SELECT id_imagen, url_imagen, descripcion, categoria_imagen, tags FROM imagenes_galeria"
         conditions = []
         params = []
@@ -285,7 +249,6 @@ class ImagenGaleriaRepositorySQLite(ImagenGaleriaRepository):
             params.append(categoria)
 
         if termino:
-            # Busca en la descripción o en los tags
             conditions.append("(descripcion LIKE ? OR tags LIKE ?)")
             params.extend([f"%{termino}%", f"%{termino}%"])
 
@@ -305,7 +268,6 @@ class ImagenGaleriaRepositorySQLite(ImagenGaleriaRepository):
             return []
 
     def obtener_por_id(self, id_imagen: int) -> ImagenGaleria | None:
-        """Ejecuta una consulta SQL para encontrar una imagen por su ID."""
         query = "SELECT id_imagen, url_imagen, descripcion, categoria_imagen, tags FROM imagenes_galeria WHERE id_imagen = ?"
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -325,7 +287,6 @@ class TipoColorRepositorySQLite(TipoColorRepository):
         self.db_path = db_path
 
     def obtener_por_categoria_y_cobertura(self, id_categoria: int, nombre_cobertura: str) -> list[str]:
-        # Primero necesitamos el ID de la cobertura a partir de su nombre
         query_id = "SELECT id_tipo_cobertura FROM tipos_cobertura WHERE nombre_tipo_cobertura = ?"
 
         query_colores = """
@@ -343,7 +304,7 @@ class TipoColorRepositorySQLite(TipoColorRepository):
                 cursor.execute(query_id, (nombre_cobertura,))
                 id_cobertura_row = cursor.fetchone()
                 if not id_cobertura_row:
-                    return []  # No se encontró la cobertura
+                    return []
 
                 id_cobertura = id_cobertura_row[0]
                 cursor.execute(query_colores, (id_categoria, id_cobertura))
