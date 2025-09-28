@@ -6,7 +6,8 @@ from src.application.repositories import (
     TamanoRepository, CategoriaRepository, TipoPanRepository,
     TipoFormaRepository, TipoRellenoRepository, TipoCoberturaRepository,
     FinalizarPedidoRepository, FormaPastel, TipoRelleno, TipoCobertura,
-    Categoria, TipoPan, ImagenGaleriaRepository, ImagenGaleria, TipoColorRepository, Ticket
+    Categoria, TipoPan, ImagenGaleriaRepository, ImagenGaleria, TipoColorRepository,
+    Ticket, HorarioEntregaRepository, Horario, DiaFestivoRepository
 )
 
 
@@ -314,6 +315,46 @@ class TipoColorRepositorySQLite(TipoColorRepository):
             return []
 
 
+class HorarioEntregaRepositorySQLite(HorarioEntregaRepository):
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+
+    def obtener_horario(self) -> Horario | None:
+        query = "SELECT hora_inicio, hora_fin FROM horario_entrega LIMIT 1"
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(query)
+                row = cursor.fetchone()
+                if row:
+                    hora_inicial = datetime.datetime.strptime(row[0], '%H:%M').time()
+                    hora_final = datetime.datetime.strptime(row[1], '%H:%M').time()
+                    return Horario(hora_inicio=hora_inicial, hora_fin=hora_final)
+        except sqlite3.Error as e:
+            print(f"Error al obtener horario: {e}")
+        return None
 
 
+class DiaFestivoRepositorySQLite(DiaFestivoRepository):
+    def __init__(self, db_path: str):
+        self.db_path = db_path
 
+    def es_festivo(self, fecha: datetime.date) -> bool:
+        query = "SELECT 1 FROM dias_festivos WHERE strftime('%m-%d', festivo) = ?"
+
+        # Formateamos la fecha seleccionada al mismo formato 'MM-DD' para la comparación
+        fecha_str = fecha.strftime('%m-%d')
+
+        # --- DEBUG PRINT ---
+        print(f"\n[DEBUG] Verificando si '{fecha_str}' es festivo...")
+
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (fecha_str,))
+                resultado = cursor.fetchone() is not None
+                print(f"[DEBUG] Resultado: {resultado}")
+                return resultado
+        except sqlite3.Error as e:
+            print(f"Error al verificar día festivo: {e}")
+        return False

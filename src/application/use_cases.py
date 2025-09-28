@@ -4,7 +4,8 @@ from .repositories import (
     PedidoRepository, TamanoRepository, CategoriaRepository, TipoCobertura,
     TipoPanRepository, TipoFormaRepository, TipoRellenoRepository,
     TipoCoberturaRepository, FinalizarPedidoRepository, Categoria, TipoPan,
-    ImagenGaleriaRepository, TipoColorRepository, FormaPastel, TipoRelleno, Ticket
+    ImagenGaleriaRepository, TipoColorRepository, FormaPastel, TipoRelleno, Ticket,
+    HorarioEntregaRepository, DiaFestivoRepository
 )
 from src.domain.datos_entrega import DatosEntrega
 from src.domain.pedido import Pedido
@@ -29,7 +30,8 @@ class PedidoUseCases:
                  categoria_repo: CategoriaRepository, tipo_pan_repo: TipoPanRepository,
                  tipo_forma_repo: TipoFormaRepository, tipo_relleno_repo: TipoRellenoRepository,
                  tipo_cobertura_repo: TipoCoberturaRepository, finalizar_repo: FinalizarPedidoRepository,
-                 imagen_galeria_repo: ImagenGaleriaRepository, tipo_color_repo: TipoColorRepository):
+                 imagen_galeria_repo: ImagenGaleriaRepository, tipo_color_repo: TipoColorRepository,
+                 horario_repo: HorarioEntregaRepository, dia_festivo_repo: DiaFestivoRepository):
         self.pedido_repo = pedido_repo
         self.tamano_repo = tamano_repo
         self.categoria_repo = categoria_repo
@@ -41,6 +43,8 @@ class PedidoUseCases:
         self.tamanos_disponibles = []
         self.imagen_galeria_repo = imagen_galeria_repo
         self.tipo_color_repo = tipo_color_repo
+        self.horario_repo = horario_repo
+        self.dia_festivo_repo = dia_festivo_repo
 
     def guardar_datos_cliente(
             self, nombre, telefono, direccion, num_ext,
@@ -324,6 +328,49 @@ class PedidoUseCases:
         pedido.decorado_liso_color2 = None
         self.pedido_repo.guardar(pedido)
 
+    def iniciar_nuevo_pedido(self):
+        pedido_actual = self.pedido_repo.obtener()
+        pedido_actual.reiniciar()
+        self.pedido_repo.guardar(pedido_actual)
+
+    def obtener_rangos_de_hora(self, fecha_seleccionada: datetime.date) -> list[str]:
+        print(f"\n[DEBUG] === Iniciando cálculo de rangos para fecha: {fecha_seleccionada} ===")
+
+        horario = self.horario_repo.obtener_horario()
+        if not horario:
+            print("[DEBUG] No se encontró un horario de entrega en la base de datos.")
+            return []
+
+        print(
+            f"[DEBUG] Horario de operación obtenido: {horario.hora_inicio.strftime('%H:%M')} a {horario.hora_fin.strftime('%H:%M')}")
+
+        # 1. Revisa si es día festivo (esto llamará a la función con sus propios prints)
+        es_dia_festivo = self.dia_festivo_repo.es_festivo(fecha_seleccionada)
+
+        # 2. Elige el intervalo de tiempo
+        intervalo_horas = 2 if es_dia_festivo else 1
+        print(f"[DEBUG] Intervalo de horas determinado: {intervalo_horas} hora(s)")
+
+        # 3. "Corta" el día en rangos
+        rangos = []
+        hora_actual = datetime.datetime.combine(fecha_seleccionada, horario.hora_inicio)
+        hora_final = datetime.datetime.combine(fecha_seleccionada, horario.hora_fin)
+
+        print("[DEBUG] --- Generando rangos ---")
+        while hora_actual < hora_final:
+            hora_siguiente = hora_actual + datetime.timedelta(hours=intervalo_horas)
+            if hora_siguiente > hora_final:
+                hora_siguiente = hora_final
+
+            # Formateamos a AM/PM como te gustó
+            rango_str = f"{hora_actual.strftime('%I:%M %p')} - {hora_siguiente.strftime('%I:%M %p')}"
+            rangos.append(rango_str)
+            print(f"[DEBUG]   - Rango generado: {rango_str}")
+            hora_actual = hora_siguiente
+
+        print(f"[DEBUG] === Cálculo finalizado. Se generaron {len(rangos)} rangos. ===\n")
+        return rangos
+
 
 class FinalizarPedidoUseCases:
     def __init__(self, pedido_repo: PedidoRepository, finalizar_repo: FinalizarPedidoRepository, categoria_repo: CategoriaRepository):
@@ -362,8 +409,3 @@ class FinalizarPedidoUseCases:
         if id_nuevo_pedido:
             return self.finalizar_repo.obtener_por_id(id_nuevo_pedido)
         return None
-
-    def iniciar_nuevo_pedido(self):
-        pedido_actual = self.pedido_repo.obtener()
-        pedido_actual.reiniciar()
-        self.pedido_repo.guardar(pedido_actual)

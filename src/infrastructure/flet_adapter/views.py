@@ -6,6 +6,7 @@ from src.application.use_cases import PedidoUseCases, FinalizarPedidoUseCases
 from .keyboard import VirtualKeyboard
 from .controles_comunes import crear_boton_navegacion
 from src.application.use_cases import AuthUseCases
+from src.infrastructure.flet_adapter.controles_comunes import crear_layout_con_fondo
 
 
 def crear_tarjeta_seleccion(texto, imagen_src, on_click_handler):
@@ -171,7 +172,7 @@ def vista_login(page: ft.Page, auth_use_cases: AuthUseCases):
 
     imagen_personaje = ft.Image(
         ref=imagen_personaje_ref,
-        src="Recurso 3.png",
+        src="chef.png",
         height=400,
         fit=ft.ImageFit.CONTAIN
     )
@@ -253,7 +254,6 @@ def vista_bienvenida(page: ft.Page):
         height=250,
     )
 
-
     texto_bienvenida = ft.Text(
         '¡ Bienvenido a nuestra pastelería !',
         color=ft.Colors.WHITE,
@@ -287,34 +287,32 @@ def vista_bienvenida(page: ft.Page):
 
     contenido_superpuesto = ft.Column(
         expand=True,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         controls=[
             banner_superior,
-            ft.Container(expand=True),
-            ft.ResponsiveRow(
-                alignment=ft.MainAxisAlignment.CENTER,
-                controls=[
-                    ft.Column(
-                        col={"sm": 11, "md": 8, "lg": 6},
-                        controls=[
-                            imagen_pastel,
-                            texto_bienvenida,
-                            texto_subtitulo,
-                            ft.Container(height=20),
-                            boton_comenzar,
-                        ],
-                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                        spacing=15
-                    )
-                ]
+
+            ft.Container(
+                expand=True,
+                alignment=ft.alignment.center,
+                content=ft.Column(
+                    spacing=15,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[
+                        imagen_pastel,
+                        texto_bienvenida,
+                        texto_subtitulo,
+                        ft.Container(height=20),
+                        boton_comenzar,
+                    ]
+                )
             ),
-            ft.Container(expand=True),
         ]
     )
 
     layout_final = ft.Stack(
         controls=[
             ft.Image(
-                src="929f8d1fff68e3deddd0d09b79812005b5683447.png",
+                src="fondo_hd.png",
                 fit=ft.ImageFit.FILL,
                 expand=True,
             ),
@@ -322,6 +320,7 @@ def vista_bienvenida(page: ft.Page):
                 bgcolor=ft.Colors.with_opacity(0.50, ft.Colors.BLACK),
                 expand=True,
             ),
+            banner_superior,
             contenido_superpuesto,
         ]
     )
@@ -333,144 +332,219 @@ def vista_bienvenida(page: ft.Page):
         ],
         padding=0,
     )
-
-
-# def vista_seleccion(page: ft.Page):
-#     # --- 1. Componente Reutilizable para las Nuevas Tarjetas (Sin Cambios) ---
-#     def crear_tarjeta_mejorada(titulo: str, imagen_src: str, texto_boton: str, icono_boton, on_click_handler):
-#         return ft.Container(
-#             width=350,
-#             height=480,
-#             bgcolor=ft.Colors.WHITE,
-#             border_radius=ft.border_radius.all(35),
-#             shadow=ft.BoxShadow(spread_radius=1, blur_radius=15, color=ft.Colors.BLACK26),
-#             clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
-#             content=ft.Column(
-#                 spacing=0,
-#                 controls=[
-#                     ft.Image(src=imagen_src, height=240, fit=ft.ImageFit.COVER),
-#                     ft.Container(
-#                         padding=20,
-#                         expand=True,
-#                         content=ft.Column(
-#                             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-#                             alignment=ft.MainAxisAlignment.SPACE_AROUND,
-#                             controls=[
-#                                 ft.Text(titulo, text_align=ft.TextAlign.CENTER, size=24, weight=ft.FontWeight.BOLD),
-#                                 ft.Container(
-#                                     bgcolor="#E5ADAD",
-#                                     border_radius=10,
-#                                     padding=ft.padding.symmetric(horizontal=20, vertical=10),
-#                                     on_click=on_click_handler,
-#                                     content=ft.Row(
-#                                         spacing=10,
-#                                         controls=[
-#                                             ft.Icon(icono_boton, color=ft.Colors.BLACK),
-#                                             ft.Text(texto_boton, color=ft.Colors.BLACK, weight=ft.FontWeight.BOLD)
-#                                         ]
-#                                     )
-#                                 )
-#                             ]
-#                         )
-#                     )
-#                 ]
-#             )
-#         )
+# def vista_bienvenida(page: ft.Page):
+#     """
+#     Crea la vista de bienvenida con un diseño responsivo y fondo de pantalla completa.
+#     """
 #
-#     imagen_pastel = ft.Image(
-#         src="Logo Pepe.png",
-#         fit=ft.ImageFit.CONTAIN,
-#         width=424, height=254,  # Altura máxima para la imagen
+#     # --- 1. Definición de Componentes ---
+#
+#     banner_superior = ft.Container(
+#         bgcolor="#89C5B0",
+#         padding=15,
+#         alignment=ft.alignment.center,
+#         content=ft.Text(
+#             'Para envío gratuito en compras de $500 o más',
+#             color=ft.Colors.WHITE, # Corregido
+#             size=24,
+#             font_family="Bebas Neue",
+#         )
 #     )
 #
-#     contenido_principal = ft.ResponsiveRow(
-#         vertical_alignment=ft.CrossAxisAlignment.CENTER,
-#         alignment=ft.MainAxisAlignment.CENTER,
-#         spacing=40,
-#         run_spacing=40,
+#     imagen_pastel = ft.Image(
+#         src="Logo Pepe.png", # Corregido a ruta de assets
+#         fit=ft.ImageFit.CONTAIN,
+#         height=250,
+#     )
+#
+#     texto_bienvenida = ft.Text(
+#         '¡ Bienvenido a nuestra pastelería !',
+#         color=ft.Colors.WHITE, # Corregido
+#         size=50,
+#         font_family="Bebas Neue",
+#         text_align=ft.TextAlign.CENTER,
+#         opacity=0.90,
+#     )
+#
+#     texto_subtitulo = ft.Text(
+#         'Disfruta de nuestra amplia variedad de pasteles o si lo prefieres\nármalo y personalízalo a tu gusto.',
+#         color=ft.Colors.WHITE, # Corregido
+#         size=22,
+#         font_family="Bebas Neue",
+#         text_align=ft.TextAlign.CENTER,
+#         opacity=0.80,
+#     )
+#
+#     boton_comenzar = ft.Container(
+#         bgcolor="#DC6262",
+#         border_radius=ft.border_radius.all(20),
+#         padding=ft.padding.symmetric(vertical=15, horizontal=40),
+#         content=ft.Text(
+#             'comenzar',
+#             color=ft.Colors.WHITE, # Corregido
+#             size=36,
+#             font_family="Bebas Neue",
+#         ),
+#         on_click=lambda _: page.go("/seleccion")
+#     )
+#
+#     # --- 2. Construcción del Layout Final ---
+#
+#     # Columna principal que organiza todo el contenido visible
+#     contenido_superpuesto = ft.Column(
+#         expand=True,
 #         controls=[
-#             ft.Container(
-#                 col={"sm": 12, "md": 5},
-#                 alignment=ft.alignment.center,
-#                 content=crear_tarjeta_mejorada(
-#                     titulo="CONOCE NUESTRO CATÁLOGO Y PROMOCIONES",
-#                     imagen_src="seleccion/promos.png",
-#                     texto_boton="VER PROMOCIONES",
-#                     icono_boton=ft.Icons.SEARCH,
-#                     on_click_handler=lambda _: print("Navegar a promociones")
-#                 )
+#             banner_superior,
+#             ft.Container(expand=True), # Espaciador para centrar verticalmente
+#             ft.ResponsiveRow(
+#                 alignment=ft.MainAxisAlignment.CENTER,
+#                 controls=[
+#                     ft.Column(
+#                         col={"sm": 11, "md": 8, "lg": 6},
+#                         controls=[
+#                             imagen_pastel,
+#                             texto_bienvenida,
+#                             texto_subtitulo,
+#                             ft.Container(height=20),
+#                             boton_comenzar,
+#                         ],
+#                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+#                         spacing=15
+#                     )
+#                 ]
 #             ),
-#             ft.Container(
-#                 col={"sm": 12, "md": 5},
-#                 alignment=ft.alignment.center,
-#                 content=crear_tarjeta_mejorada(
-#                     titulo="ARMA Y PERSONALIZA TU PASTEL",
-#                     imagen_src="seleccion/arma.png",
-#                     texto_boton="ARMA TU PASTEL",
-#                     icono_boton=ft.Icons.CAKE_OUTLINED,
-#                     on_click_handler=lambda _: page.go("/fecha")
-#                 )
-#             ),
+#             ft.Container(expand=True), # Espaciador
 #         ]
 #     )
 #
-#     # --- 3. Construcción del Layout Final (CON EL LOGO) ---
+#     # El Stack ahora es el control raíz de la vista
 #     layout_final = ft.Stack(
 #         controls=[
-#             # Capa 1: Imagen de Fondo
-#             ft.Image(src="929f8d1fff68e3deddd0d09b79812005b5683447.png", fit=ft.ImageFit.COVER, expand=True),
-#
-#             # Capa 2: Banner Superior y Contenido Central
-#             ft.Column(
+#             # Capa 1 (Abajo): Imagen de fondo
+#             ft.Image(
+#                 src="fondo.png", # Corregido a ruta de assets
+#                 fit=ft.ImageFit.COVER, # COVER es mejor para fondos
 #                 expand=True,
-#                 controls=[
-#                     ft.Container(  # Banner superior
-#                         bgcolor="#89C5B0",
-#                         padding=ft.padding.symmetric(horizontal=20, vertical=10),
-#                         content=ft.Row(
-#                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-#                             controls=[
-#                                 ft.IconButton(ft.Icons.MENU, icon_color=ft.Colors.WHITE),
-#                                 ft.Text('PARA ENVÍO GRATUITO EN COMPRAS DE $500 O MÁS', color=ft.Colors.WHITE,
-#                                         font_family="Bebas Neue", size=24),
-#                                 ft.IconButton(ft.Icons.HOME_OUTLINED, icon_color=ft.Colors.WHITE,
-#                                               on_click=lambda _: page.go("/")),
-#                             ]
-#                         )
-#                     ),
-#                     ft.Container(expand=True),
-#                     imagen_pastel,
-#                     ft.Container(expand=True),
-#                     ft.Container(  # Contenedor para las tarjetas y espaciado
-#                         alignment=ft.alignment.center,
-#                         expand=True,
-#                         padding=ft.padding.only(top=120),  # Ajusta este padding para bajar las tarjetas
-#                         content=contenido_principal
-#                     )
-#                 ]
 #             ),
-#
-#             Capa 3: El Logo de la Pastelería flotando sobre todo
+#             # Capa 2: Filtro oscuro
 #             ft.Container(
-#                 # Posicionamiento absoluto: centro horizontal, y a cierta distancia del top
-#                 alignment=ft.alignment.center,
-#                 top=50,  # Ajusta este valor para mover el logo verticalmente
-#                 content=ft.Row(
-#                     alignment=ft.MainAxisAlignment.CENTER,
-#                     controls=[
-#                        ft.Image(src="Logo Pepe.png", width=424, height=254),
-#                     ],
-#                 ),
-#                 # Asegúrate de que esta sea la ruta correcta a tu logo
+#                 bgcolor=ft.Colors.with_opacity(0.50, ft.Colors.BLACK), # Corregido
+#                 expand=True,
 #             ),
+#             # Capa 3 (Arriba): Todo el contenido interactivo
+#             contenido_superpuesto,
 #         ]
 #     )
 #
 #     return ft.View(
-#         route="/seleccion",
-#         controls=[layout_final],
-#         padding=0
+#         route="/",
+#         controls=[
+#             layout_final
+#         ],
+#         padding=0,
 #     )
+
+# def vista_bienvenida(page: ft.Page):
+#
+#     banner_superior = ft.Container(
+#         bgcolor="#89C5B0",
+#         padding=15,
+#         alignment=ft.alignment.center,
+#         content=ft.Text(
+#             'Para envío gratuito en compras de $500 o más',
+#             color=ft.Colors.WHITE,
+#             size=24,
+#             font_family="Bebas Neue",
+#         )
+#     )
+#
+#     imagen_pastel = ft.Image(
+#         src="Logo Pepe.png",
+#         fit=ft.ImageFit.CONTAIN,
+#         height=250,
+#     )
+#
+#
+#     texto_bienvenida = ft.Text(
+#         '¡ Bienvenido a nuestra pastelería !',
+#         color=ft.Colors.WHITE,
+#         size=50,
+#         font_family="Bebas Neue",
+#         text_align=ft.TextAlign.CENTER,
+#         opacity=0.90,
+#     )
+#
+#     texto_subtitulo = ft.Text(
+#         'Disfruta de nuestra amplia variedad de pasteles o si lo prefieres\nármalo y personalízalo a tu gusto.',
+#         color=ft.Colors.WHITE,
+#         size=22,
+#         font_family="Bebas Neue",
+#         text_align=ft.TextAlign.CENTER,
+#         opacity=0.80,
+#     )
+#
+#     boton_comenzar = ft.Container(
+#         bgcolor="#DC6262",
+#         border_radius=ft.border_radius.all(20),
+#         padding=ft.padding.symmetric(vertical=15, horizontal=40),
+#         content=ft.Text(
+#             'comenzar',
+#             color=ft.Colors.WHITE,
+#             size=36,
+#             font_family="Bebas Neue",
+#         ),
+#         on_click=lambda _: page.go("/seleccion")
+#     )
+#
+#     contenido_superpuesto = ft.Column(
+#         expand=True,
+#         controls=[
+#             banner_superior,
+#             ft.Container(expand=True),
+#             ft.ResponsiveRow(
+#                 alignment=ft.MainAxisAlignment.CENTER,
+#                 controls=[
+#                     ft.Column(
+#                         col={"sm": 11, "md": 8, "lg": 6},
+#                         controls=[
+#                             imagen_pastel,
+#                             texto_bienvenida,
+#                             texto_subtitulo,
+#                             ft.Container(height=20),
+#                             boton_comenzar,
+#                         ],
+#                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+#                         spacing=15
+#                     )
+#                 ]
+#             ),
+#             ft.Container(expand=True),
+#         ]
+#     )
+#
+#     layout_final = ft.Stack(
+#         controls=[
+#             ft.Image(
+#                 src="fondo1.png",
+#                 fit=ft.ImageFit.FILL,
+#                 expand=True,
+#             ),
+#             ft.Container(
+#                 bgcolor=ft.Colors.with_opacity(0.50, ft.Colors.BLACK),
+#                 expand=True,
+#             ),
+#             contenido_superpuesto,
+#         ]
+#     )
+#
+#     return ft.View(
+#         route="/",
+#         controls=[
+#             layout_final
+#         ],
+#         padding=0,
+#     )
+
 
 def vista_seleccion(page: ft.Page):
 
@@ -524,13 +598,13 @@ def vista_seleccion(page: ft.Page):
         alignment=ft.MainAxisAlignment.CENTER,
         spacing=40,
         controls=[
+            # crear_tarjeta_opcion(
+            #     titulo="Conoce nuestro catálogo\ny promociones",
+            #     imagen_src="seleccion/promos.png",
+            #     on_click_handler=lambda _: print("Navegando a promociones...")
+            # ),
             crear_tarjeta_opcion(
-                titulo="Conoce nuestro catálogo\ny promociones",
-                imagen_src="seleccion/promos.png",
-                on_click_handler=lambda _: print("Navegando a promociones...")
-            ),
-            crear_tarjeta_opcion(
-                titulo="Arma y personaliza\ntu pastel",
+                titulo="Arma y Personaliza\ntu Pastel",
                 imagen_src="seleccion/arma.png",
                 on_click_handler=lambda _: page.go("/fecha")
             ),
@@ -550,12 +624,12 @@ def vista_seleccion(page: ft.Page):
         width=424, height=254,  # Altura máxima para la imagen
     )
 
-    # Botón para volver
-    # boton_volver = crear_boton_navegacion(
-    #                         texto="Volver",
-    #                         on_click_handler=lambda _: page.go("/"),
-    #                         es_primario=False
-    #                     )
+
+    boton_volver = crear_boton_navegacion(
+                            texto="Volver",
+                            on_click_handler=lambda _: page.go("/"),
+                            es_primario=False
+                        )
     #ft.ElevatedButton("Volver", on_click=lambda _: page.go("/"))
 
     contenido_superpuesto = ft.Column(
@@ -567,7 +641,7 @@ def vista_seleccion(page: ft.Page):
             ft.Container(expand=True),
             contenido_principal,  # El ResponsiveRow con las tarjetas
             ft.Container(height=40),  # Espacio fijo
-            #boton_volver,  # Botón de volver
+            boton_volver,  # Botón de volver
             ft.Container(height=40),  # Espacio fijo
         ],
         horizontal_alignment=ft.CrossAxisAlignment.CENTER
@@ -576,7 +650,7 @@ def vista_seleccion(page: ft.Page):
     # El Stack final para el fondo y el contenido
     layout_final = ft.Stack(
         controls=[
-            ft.Image(src="929f8d1fff68e3deddd0d09b79812005b5683447.png", fit=ft.ImageFit.COVER, expand=True),
+            ft.Image(src="fondo_hd.png", fit=ft.ImageFit.COVER, expand=True),
             ft.Container(bgcolor=ft.Colors.with_opacity(0.5, ft.Colors.BLACK), expand=True),
             contenido_superpuesto,
         ]
@@ -590,22 +664,48 @@ def vista_seleccion(page: ft.Page):
 
 
 def vista_fecha(page: ft.Page, use_cases: PedidoUseCases):
+    # --- 1. Lógica y Manejadores de Eventos ---
 
     texto_fecha_seleccionada = ft.Text(
         value=use_cases.obtener_pedido_actual().fecha_entrega.strftime(
-            '%d/%m/%Y') if use_cases.obtener_pedido_actual().fecha_entrega else "No seleccionada",
-        size=20, font_family="Poppins", weight=ft.FontWeight.W_600
+            '%d/%m/%Y') if use_cases.obtener_pedido_actual().fecha_entrega else "Toca para seleccionar",
+        size=18, color=ft.Colors.BLACK54
     )
+
+    dropdown_hora = ft.Dropdown(
+        hint_text="Elige un rango de hora", options=[], disabled=True,
+        border_color="#DBCACA", width=300
+    )
+
+    texto_error = ft.Text(value="", color=ft.Colors.RED, visible=False, size=20, weight=ft.FontWeight.BOLD)
 
     def on_date_change(e):
         fecha = e.control.value.date()
         use_cases.seleccionar_fecha(fecha)
         texto_fecha_seleccionada.value = fecha.strftime('%d/%m/%Y')
+
+        dropdown_hora.value = None
+        dropdown_hora.options.clear()
+        use_cases.seleccionar_hora(None)
+
+        nuevos_rangos = use_cases.obtener_rangos_de_hora(fecha)
+
+        if nuevos_rangos:
+            dropdown_hora.options = [ft.dropdown.Option(r) for r in nuevos_rangos]
+            dropdown_hora.disabled = False
+        else:
+            dropdown_hora.hint_text = "No hay horarios"
+            dropdown_hora.disabled = True
+
+        texto_error.visible = False
         page.update()
 
     def on_time_change(e):
         use_cases.seleccionar_hora(e.control.value)
+        texto_error.visible = False
         page.update()
+
+    dropdown_hora.on_change = on_time_change
 
     fecha_hoy = datetime.date.today()
     fecha_inicial_valida = fecha_hoy + datetime.timedelta(days=4)
@@ -614,23 +714,32 @@ def vista_fecha(page: ft.Page, use_cases: PedidoUseCases):
     def open_date_picker(e):
         page.open(
             ft.DatePicker(
-                first_date=fecha_inicial_valida,
-                last_date=fecha_final_valida,
+                first_date=fecha_inicial_valida, last_date=fecha_final_valida,
                 on_change=on_date_change,
                 value=use_cases.obtener_pedido_actual().fecha_entrega or fecha_inicial_valida
             )
         )
 
+    boton_volver = crear_boton_navegacion(
+                            texto="Volver",
+                            on_click_handler=lambda _: page.go("/seleccion"),
+                            es_primario=False
+                        )
+
     def continuar(e):
         pedido = use_cases.obtener_pedido_actual()
         if not pedido.fecha_entrega or not pedido.hora_entrega:
-            page.snack_bar = ft.SnackBar(ft.Text("Debes seleccionar fecha y hora para continuar."),
-                                         bgcolor=ft.Colors.RED_ACCENT_700)
-            page.snack_bar.open = True
+            texto_error.value = "Debes seleccionar fecha y hora."
+            texto_error.visible = True
             page.update()
         else:
             page.go("/tamano")
 
+    boton_continuar = crear_boton_navegacion(
+                            texto="Continuar",
+                            on_click_handler=continuar,
+                            es_primario=True
+                        )
 
     banner_superior = ft.Container(
         height=67, bgcolor="#89C5B0", alignment=ft.alignment.center,
@@ -638,81 +747,69 @@ def vista_fecha(page: ft.Page, use_cases: PedidoUseCases):
                         font_family="Bebas Neue")
     )
 
+    contenido_formulario = ft.Column(
+        spacing=20,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        controls=[
+            ft.Text("Paso 1: Elige Fecha y Hora", size=30, weight=ft.FontWeight.BOLD, color=ft.Colors.BLACK87),
+            ft.Container(
+                on_click=open_date_picker,
+                padding=15, border=ft.border.all(2, ft.Colors.with_opacity(0.5, "#DBCACA")),
+                border_radius=10, bgcolor=ft.Colors.WHITE,
+                width=350,
+                content=ft.Row([
+                    ft.Icon(ft.Icons.CALENDAR_MONTH, color="#673C1C"),
+                    ft.Text("Fecha:", color=ft.Colors.WHITE, size=40, font_family="Bebas Neue", weight=ft.FontWeight.W_400),
+                    texto_fecha_seleccionada
+                ])
+            ),
+            dropdown_hora,
+            texto_error,
+        ]
+    )
+
     panel_principal = ft.Container(
-        width=524,
-        bgcolor=ft.Colors.with_opacity(0.9, ft.Colors.WHITE),
-        border_radius=ft.border_radius.all(50),
-        shadow=ft.BoxShadow(spread_radius=8, blur_radius=8, color=ft.Colors.with_opacity(0.25, ft.Colors.BLACK),
-                            offset=ft.Offset(4, 4)),
-        padding=40,
-        content=ft.Column(
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            alignment=ft.MainAxisAlignment.SPACE_AROUND,
-            controls=[
-                ft.Text("¿Para cuándo necesitas el pastel?", size=35, font_family="Bebas Neue", weight=ft.FontWeight.W_700,
-                        text_align=ft.TextAlign.CENTER),
+        width=500,
+        padding=30,
+        border_radius=ft.border_radius.all(35),
+        bgcolor=ft.Colors.with_opacity(0.85, ft.Colors.WHITE),
+        shadow=ft.BoxShadow(spread_radius=2, blur_radius=20, color=ft.Colors.BLACK26),
+        content=contenido_formulario
+    )
 
-                ft.Container(
-                    on_click=open_date_picker,
-                    padding=15,
-                    border=ft.border.all(2, ft.Colors.with_opacity(0.5, "#DBCACA")),
-                    border_radius=10,
-                    content=ft.Row([
-                        ft.Icon(ft.Icons.CALENDAR_MONTH, color="#780041"),
-                        ft.Text("Fecha:", weight=ft.FontWeight.BOLD, font_family="Bebas Neue"),
-                        texto_fecha_seleccionada
-                    ])
-                ),
-
-                ft.Column([
-                    ft.Text("SELECCIONA LA HORA", size=28, font_family="Poppins", color="#623F19",
-                            weight=ft.FontWeight.W_600),
-                    ft.Dropdown(
-                        hint_text="Elige un rango de hora",
-                        options=[
-                            ft.dropdown.Option("10:00 AM - 12:00 PM"),
-                            ft.dropdown.Option("12:00 PM - 02:00 PM"),
-                            ft.dropdown.Option("02:00 PM - 04:00 PM"),
-                            ft.dropdown.Option("04:00 PM - 06:00 PM"),
-                        ],
-                        value=use_cases.obtener_pedido_actual().hora_entrega,
-                        on_change=on_time_change,
-                        border_color="#DBCACA"
-                    )
-                ]),
-
-                ft.Row(
-                    [
-                        #ft.ElevatedButton("Volver", on_click=lambda _: page.go("/seleccion")),
-                        ft.Container(
-                            width=175, height=58, bgcolor="#DC6262", border_radius=15,
-                            content=ft.Text("Continuar", color=ft.Colors.WHITE, size=30, font_family="Poppins"),
-                            alignment=ft.alignment.center,
-                            on_click=continuar
-                        )
-                    ],
-                    alignment=ft.MainAxisAlignment.CENTER, spacing=20
+    contenido_superpuesto = ft.Column(
+        expand=True,
+        controls=[
+            banner_superior,
+            ft.Container(
+                expand=True,
+                alignment=ft.alignment.center,
+                content=ft.Column(
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=20,
+                    controls=[
+                        ft.Image(src="Logo Pepe.png", width=250),
+                        panel_principal
+                    ]
                 )
-            ]
-        )
+            ),
+            ft.Row(
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=20,
+                controls=[
+                    boton_volver,
+                    boton_continuar,
+                ]
+            ),
+            ft.Container(height=30)
+        ]
     )
 
     layout_final = ft.Stack(
         controls=[
-            ft.Image(src="929f8d1fff68e3deddd0d09b79812005b5683447.png", fit=ft.ImageFit.COVER, expand=True),
-            ft.Container(
-                alignment=ft.alignment.center,
-                expand=True,
-                content=ft.Column(
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    controls=[
-                        ft.Image(src="Logo Pepe.png", width=424, height=254),
-                        ft.Container(height=30),
-                        panel_principal,
-                    ]
-                )
-            ),
-            banner_superior,
+            ft.Image(src="fondo_hd.png", fit=ft.ImageFit.COVER, expand=True),
+            ft.Container(bgcolor=ft.Colors.with_opacity(0.5, ft.Colors.BLACK), expand=True),
+            contenido_superpuesto,
         ]
     )
 
@@ -722,10 +819,361 @@ def vista_fecha(page: ft.Page, use_cases: PedidoUseCases):
         padding=0
     )
 
+# def vista_fecha(page: ft.Page, use_cases: PedidoUseCases):
+#     # --- 1. Controles de la Vista ---
+#     texto_fecha_seleccionada = ft.Text(
+#         value=use_cases.obtener_pedido_actual().fecha_entrega.strftime(
+#             '%d/%m/%Y') if use_cases.obtener_pedido_actual().fecha_entrega else "No seleccionada",
+#         size=20, font_family="Poppins", weight=ft.FontWeight.W_600, color=ft.Colors.BLACK54
+#     )
+#
+#     dropdown_hora = ft.Dropdown(
+#         hint_text="Elige un rango de hora",
+#         options=[],
+#         disabled=True,
+#         border_color="#DBCACA",
+#         width=300
+#     )
+#
+#     # --- CAMBIO: Texto de error en lugar de SnackBar ---
+#     texto_error = ft.Text(value="", color=ft.Colors.RED, size=25, weight=ft.FontWeight.BOLD, visible=False)
+#
+#     # --- 2. Lógica y Manejadores de Eventos ---
+#     def on_date_change(e):
+#         fecha = e.control.value.date()
+#         use_cases.seleccionar_fecha(fecha)
+#         texto_fecha_seleccionada.value = fecha.strftime('%d/%m/%Y')
+#
+#         dropdown_hora.value = None
+#         dropdown_hora.options.clear()
+#         use_cases.seleccionar_hora(None)
+#
+#         nuevos_rangos = use_cases.obtener_rangos_de_hora(fecha)
+#
+#         if nuevos_rangos:
+#             dropdown_hora.options = [ft.dropdown.Option(r) for r in nuevos_rangos]
+#             dropdown_hora.disabled = False
+#         else:
+#             dropdown_hora.hint_text = "No hay horarios disponibles"
+#             dropdown_hora.disabled = True
+#
+#         texto_error.visible = False  # Oculta el error si se hace un cambio
+#         page.update()
+#
+#     def on_time_change(e):
+#         use_cases.seleccionar_hora(e.control.value)
+#         texto_error.visible = False  # Oculta el error si se hace un cambio
+#         page.update()
+#
+#     dropdown_hora.on_change = on_time_change
+#
+#     fecha_hoy = datetime.date.today()
+#     fecha_inicial_valida = fecha_hoy + datetime.timedelta(days=4)
+#     fecha_final_valida = fecha_hoy + relativedelta(months=+6)
+#
+#     def open_date_picker(e):
+#         page.open(
+#             ft.DatePicker(
+#                 first_date=fecha_inicial_valida,
+#                 last_date=fecha_final_valida,
+#                 on_change=on_date_change,
+#                 value=use_cases.obtener_pedido_actual().fecha_entrega or fecha_inicial_valida
+#             )
+#         )
+#
+#     def continuar(e):
+#         pedido = use_cases.obtener_pedido_actual()
+#         if not pedido.fecha_entrega or not pedido.hora_entrega:
+#             # --- CAMBIO: Muestra el texto de error ---
+#             texto_error.value = "Debes seleccionar fecha y hora para continuar."
+#             texto_error.visible = True
+#             page.update()
+#         else:
+#             page.go("/tamano")
+#
+#     # --- 3. Construcción del Contenido ---
+#     contenido_de_la_vista = [
+#         ft.Container(
+#             on_click=open_date_picker,
+#             padding=15,
+#             border=ft.border.all(2, ft.Colors.with_opacity(0.5, "#DBCACA")),
+#             border_radius=10,
+#             bgcolor=ft.Colors.WHITE,
+#             width=300,
+#             content=ft.Row([
+#                 ft.Icon(ft.Icons.CALENDAR_MONTH, color="#780041"),
+#                 ft.Text("Fecha:", weight=ft.FontWeight.BOLD, color=ft.Colors.BLACK54),
+#                 texto_fecha_seleccionada
+#             ])
+#         ),
+#         dropdown_hora,
+#         texto_error,  # Añadimos el control de texto para el error
+#     ]
+#
+#     # --- 4. Llamada a la Plantilla ---
+#     return crear_vista_con_fondo(
+#         ruta="/fecha",
+#         titulo="Paso 1: Elige Fecha y Hora",
+#         contenido=contenido_de_la_vista,
+#         page=page,
+#         boton_volver_ruta="/seleccion",
+#         boton_continuar=ft.ElevatedButton("Continuar", on_click=continuar),
+#         boton_restablecer=ft.ElevatedButton("Restablecer")
+#     )
+
+# def vista_fecha(page: ft.Page, use_cases: PedidoUseCases):
+#     # --- 1. Controles de la Vista ---
+#     texto_fecha_seleccionada = ft.Text(
+#         value=use_cases.obtener_pedido_actual().fecha_entrega.strftime(
+#             '%d/%m/%Y') if use_cases.obtener_pedido_actual().fecha_entrega else "No seleccionada",
+#         size=20, font_family="Poppins", weight=ft.FontWeight.W_600
+#     )
+#
+#     dropdown_hora = ft.Dropdown(
+#         hint_text="Elige un rango de hora",
+#         options=[],
+#         disabled=True,
+#         border_color="#DBCACA"
+#     )
+#
+#     # --- 2. Lógica y Manejadores de Eventos ---
+#     def on_date_change(e):
+#         fecha = e.control.value.date()
+#         use_cases.seleccionar_fecha(fecha)
+#         texto_fecha_seleccionada.value = fecha.strftime('%d/%m/%Y')
+#
+#         # Lógica para llenar el Dropdown
+#         dropdown_hora.value = None
+#         dropdown_hora.options.clear()
+#         use_cases.seleccionar_hora(None)
+#
+#         nuevos_rangos = use_cases.obtener_rangos_de_hora(fecha)
+#
+#         if nuevos_rangos:
+#             dropdown_hora.options = [ft.dropdown.Option(r) for r in nuevos_rangos]
+#             dropdown_hora.disabled = False
+#         else:
+#             dropdown_hora.hint_text = "No hay horarios disponibles"
+#             dropdown_hora.disabled = True
+#
+#         page.update()
+#
+#     def on_time_change(e):
+#         use_cases.seleccionar_hora(e.control.value)
+#         page.update()
+#
+#     dropdown_hora.on_change = on_time_change
+#
+#     fecha_hoy = datetime.date.today()
+#     fecha_inicial_valida = fecha_hoy + datetime.timedelta(days=4)
+#     fecha_final_valida = fecha_hoy + relativedelta(months=+6)
+#
+#     def open_date_picker(e):
+#         page.open(
+#             ft.DatePicker(
+#                 first_date=fecha_inicial_valida,
+#                 last_date=fecha_final_valida,
+#                 on_change=on_date_change,
+#                 value=use_cases.obtener_pedido_actual().fecha_entrega or fecha_inicial_valida
+#             )
+#         )
+#
+#     def continuar(e):
+#         pedido = use_cases.obtener_pedido_actual()
+#         if not pedido.fecha_entrega or not pedido.hora_entrega:
+#             page.snack_bar = ft.SnackBar(ft.Text("Debes seleccionar fecha y hora para continuar."),
+#                                          bgcolor=ft.Colors.RED_ACCENT_700)
+#             page.snack_bar.open = True
+#             page.update()
+#         else:
+#             page.go("/tamano")
+#
+#     # --- 3. Construcción del Contenido ---
+#
+#     # El contenido único que se pasará a la plantilla
+#     contenido_de_la_vista = [
+#         ft.Container(
+#             on_click=open_date_picker,
+#             padding=15,
+#             border=ft.border.all(2, ft.Colors.with_opacity(0.5, "#DBCACA")),
+#             border_radius=10,
+#             content=ft.Row([
+#                 ft.Icon(ft.Icons.CALENDAR_MONTH, color="#780041"),
+#                 ft.Text("Fecha:", weight=ft.FontWeight.BOLD),
+#                 texto_fecha_seleccionada
+#             ])
+#         ),
+#         dropdown_hora,
+#     ]
+#
+#     # --- 4. Llamada a la Plantilla ---
+#     return crear_vista_con_fondo(
+#         ruta="/fecha",
+#         titulo="Paso 1: Elige Fecha y Hora",
+#         contenido=contenido_de_la_vista,
+#         page=page,
+#         boton_volver_ruta="/seleccion",
+#         boton_continuar=ft.ElevatedButton("Continuar", on_click=continuar),
+#         boton_restablecer=ft.ElevatedButton("Restablecer")  # Puedes añadirle un on_click si lo necesitas
+#     )
+
+# def vista_fecha(page: ft.Page, use_cases: PedidoUseCases):
+#
+#     texto_fecha_seleccionada = ft.Text(
+#         value=use_cases.obtener_pedido_actual().fecha_entrega.strftime(
+#             '%d/%m/%Y') if use_cases.obtener_pedido_actual().fecha_entrega else "No seleccionada",
+#         size=20, font_family="Poppins", weight=ft.FontWeight.W_600
+#     )
+#
+#     dropdown_hora = ft.Dropdown(
+#         hint_text="Elige un rango de hora",
+#         options=[], # Las opciones se llenarán dinámicamente
+#         disabled=True, # Empieza deshabilitado hasta que se elija fecha
+#         border_color="#DBCACA"
+#     )
+#
+#     def on_date_change(e):
+#         fecha = e.control.value.date()
+#         use_cases.seleccionar_fecha(fecha)
+#         texto_fecha_seleccionada.value = fecha.strftime('%d/%m/%Y')
+#         # --- LÓGICA PARA LLENAR EL DROPDOWN ---
+#         # 1. Limpiamos cualquier selección y opción anterior
+#         dropdown_hora.value = None
+#         dropdown_hora.options.clear()
+#         use_cases.seleccionar_hora(None)
+#
+#         # 2. Obtenemos los nuevos rangos de hora para la fecha seleccionada
+#         nuevos_rangos = use_cases.obtener_rangos_de_hora(fecha)
+#
+#         # 3. Llenamos el Dropdown con las nuevas opciones
+#         if nuevos_rangos:
+#             for rango in nuevos_rangos:
+#                 dropdown_hora.options.append(ft.dropdown.Option(rango))
+#             dropdown_hora.disabled = False
+#         else:
+#             # Si no hay rangos, lo indicamos y lo dejamos deshabilitado
+#             dropdown_hora.hint_text = "No hay horarios disponibles"
+#             dropdown_hora.disabled = True
+#
+#         # 4. Actualizamos la página para que se vean los cambios
+#         page.update()
+#
+#     def on_time_change(e):
+#         use_cases.seleccionar_hora(e.control.value)
+#         page.update()
+#
+#     dropdown_hora.on_change = on_time_change
+#
+#     fecha_hoy = datetime.date.today()
+#     fecha_inicial_valida = fecha_hoy + datetime.timedelta(days=4)
+#     fecha_final_valida = fecha_hoy + relativedelta(months=+6)
+#
+#     def open_date_picker(e):
+#         page.open(
+#             ft.DatePicker(
+#                 first_date=fecha_inicial_valida,
+#                 last_date=fecha_final_valida,
+#                 on_change=on_date_change,
+#                 value=use_cases.obtener_pedido_actual().fecha_entrega or fecha_inicial_valida
+#             )
+#         )
+#
+#     def continuar(e):
+#         pedido = use_cases.obtener_pedido_actual()
+#         if not pedido.fecha_entrega or not pedido.hora_entrega:
+#             page.snack_bar = ft.SnackBar(ft.Text("Debes seleccionar fecha y hora para continuar."),
+#                                          bgcolor=ft.Colors.RED_ACCENT_700)
+#             page.snack_bar.open = True
+#             page.update()
+#         else:
+#             page.go("/tamano")
+#
+#
+#     banner_superior = ft.Container(
+#         height=67, bgcolor="#89C5B0", alignment=ft.alignment.center,
+#         content=ft.Text('Para envío gratuito en compras de $500 o más', color=ft.Colors.WHITE, size=28,
+#                         font_family="Bebas Neue")
+#     )
+#
+#     panel_principal = ft.Container(
+#         width=524,
+#         bgcolor=ft.Colors.with_opacity(0.9, ft.Colors.WHITE),
+#         border_radius=ft.border_radius.all(50),
+#         shadow=ft.BoxShadow(spread_radius=8, blur_radius=8, color=ft.Colors.with_opacity(0.25, ft.Colors.BLACK),
+#                             offset=ft.Offset(4, 4)),
+#         padding=40,
+#         content=ft.Column(
+#             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+#             alignment=ft.MainAxisAlignment.SPACE_AROUND,
+#             controls=[
+#                 ft.Text("¿Para cuándo necesitas el pastel?", size=35, font_family="Bebas Neue", weight=ft.FontWeight.W_700,
+#                         text_align=ft.TextAlign.CENTER),
+#
+#                 ft.Container(
+#                     on_click=open_date_picker,
+#                     padding=15,
+#                     border=ft.border.all(2, ft.Colors.with_opacity(0.5, "#DBCACA")),
+#                     border_radius=10,
+#                     content=ft.Row([
+#                         ft.Icon(ft.Icons.CALENDAR_MONTH, color="#780041"),
+#                         ft.Text("Fecha:", weight=ft.FontWeight.BOLD, font_family="Bebas Neue"),
+#                         texto_fecha_seleccionada
+#                     ])
+#                 ),
+#
+#                 ft.Column([
+#                     ft.Text("SELECCIONA LA HORA", size=28, font_family="Poppins", color="#623F19",
+#                             weight=ft.FontWeight.W_600),
+#                     dropdown_hora,
+#                 ]),
+#
+#                 ft.Row(
+#                     [
+#                         #ft.ElevatedButton("Volver", on_click=lambda _: page.go("/seleccion")),
+#                         ft.Container(
+#                             width=175, height=58, bgcolor="#DC6262", border_radius=15,
+#                             content=ft.Text("Continuar", color=ft.Colors.WHITE, size=30, font_family="Poppins"),
+#                             alignment=ft.alignment.center,
+#                             on_click=continuar
+#                         )
+#                     ],
+#                     alignment=ft.MainAxisAlignment.CENTER, spacing=20
+#                 )
+#             ]
+#         )
+#     )
+#
+#     layout_final = ft.Stack(
+#         controls=[
+#             ft.Image(src="929f8d1fff68e3deddd0d09b79812005b5683447.png", fit=ft.ImageFit.COVER, expand=True),
+#             ft.Container(
+#                 alignment=ft.alignment.center,
+#                 expand=True,
+#                 content=ft.Column(
+#                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+#                     controls=[
+#                         ft.Image(src="Logo Pepe.png", width=424, height=254),
+#                         ft.Container(height=30),
+#                         panel_principal,
+#                     ]
+#                 )
+#             ),
+#             banner_superior,
+#         ]
+#     )
+#
+#     return ft.View(
+#         route="/fecha",
+#         controls=[layout_final],
+#         padding=0
+#     )
+
 
 def vista_tamano(page: ft.Page, use_cases: PedidoUseCases):
     use_cases.obtener_tamanos()
     pedido_actual = use_cases.obtener_pedido_actual()
+
+
     texto_tamano = ft.Text(
         value=pedido_actual.tamano_pastel or "N/A",
         size=48, font_family="Bebas Neue", color="#623F19", text_align=ft.TextAlign.CENTER
@@ -741,11 +1189,16 @@ def vista_tamano(page: ft.Page, use_cases: PedidoUseCases):
         texto_tamano.value = use_cases.obtener_pedido_actual().tamano_pastel
         page.update()
 
+    def restablecer_pedido_completo(e):
+        use_cases.iniciar_nuevo_pedido()
+        page.go("/")
+
     banner_superior = ft.Container(
         height=67, bgcolor="#89C5B0", alignment=ft.alignment.center,
         content=ft.Text('Para envío gratuito en compras de $500 o más', color=ft.Colors.WHITE, size=28,
                         font_family="Bebas Neue")
     )
+
     panel_interactivo = ft.Container(
         width=524, height=369,
         bgcolor=ft.Colors.with_opacity(0.9, ft.Colors.WHITE),
@@ -754,7 +1207,7 @@ def vista_tamano(page: ft.Page, use_cases: PedidoUseCases):
             spread_radius=8, blur_radius=8,
             color=ft.Colors.with_opacity(0.25, ft.Colors.BLACK), offset=ft.Offset(4, 4),
         ),
-        padding=30,
+        padding=20,
         content=ft.Column(
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
@@ -765,21 +1218,25 @@ def vista_tamano(page: ft.Page, use_cases: PedidoUseCases):
                 ),
                 ft.Container(height=20),
                 ft.Container(
-                    width=263, height=75,
+                    width=400, height=75,
                     border=ft.border.all(5, color=ft.Colors.with_opacity(0.77, "#623F19")),
                     border_radius=ft.border_radius.all(20),
                     content=ft.Row(
                         alignment=ft.MainAxisAlignment.CENTER,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
                         controls=[
                             ft.IconButton(ft.Icons.KEYBOARD_ARROW_LEFT, icon_size=30, on_click=anterior),
                             ft.Container(content=texto_tamano, expand=True, alignment=ft.alignment.center),
                             ft.IconButton(ft.Icons.KEYBOARD_ARROW_RIGHT, icon_size=30, on_click=siguiente),
+                            ft.Text("Personas", size=21, font_family="Bebas Neue", weight=ft.FontWeight.BOLD,
+                                    color="#815E43")
                         ]
                     )
                 ),
                 ft.Container(height=15),
                 ft.Row([
-                    #ft.ElevatedButton("Volver", on_click=lambda _: page.go("/fecha")),
+                    ft.ElevatedButton("Volver", on_click=lambda _: page.go("/fecha")),
+                    ft.ElevatedButton("Restablecer", on_click=restablecer_pedido_completo, bgcolor=ft.Colors.AMBER_200),
                     ft.Container(
                         width=108, height=35, bgcolor="#E5ADAD",
                         border_radius=ft.border_radius.all(10),
@@ -812,7 +1269,7 @@ def vista_tamano(page: ft.Page, use_cases: PedidoUseCases):
 
     layout_final = ft.Stack(
         controls=[
-            ft.Image(src="929f8d1fff68e3deddd0d09b79812005b5683447.png", fit=ft.ImageFit.COVER, expand=True),
+            ft.Image(src="fondo_hd.png", fit=ft.ImageFit.COVER, expand=True),
             contenido_superpuesto,
         ]
     )
@@ -1668,7 +2125,7 @@ def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases, pedido
         page.update()
 
     def nuevo_pedido(e):
-        use_cases.iniciar_nuevo_pedido()
+        pedido_use_cases.iniciar_nuevo_pedido()
         page.go("/")
 
     def abrir_detalle_pedido(e):

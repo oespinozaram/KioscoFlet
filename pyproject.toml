@@ -8,8 +8,7 @@ authors = [
     { name = "Omar Espinoza", email = "omar.espinoza@outlook.com" }
 ]
 dependencies = [
-  "flet==0.28.3",
-    "python-dateutil"
+  "flet", "python-dateutil", "python-barcode", "pillow", "requests", "reportlab", "pywin32"
 ]
 
 [tool.flet]

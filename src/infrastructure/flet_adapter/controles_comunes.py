@@ -21,3 +21,24 @@ def crear_boton_navegacion(texto: str, on_click_handler, es_primario: bool = Tru
         on_click=on_click_handler,
         **kwargs  # <-- Se pasan los argumentos extra aquí
     )
+
+def crear_layout_con_fondo(contenido: ft.Control, imagen_fondo_path: str = "fondo_test.png", opacidad_filtro: float = 0.5):
+    """
+    Crea un Stack con una imagen de fondo y un filtro oscuro,
+    colocando el contenido principal encima.
+    """
+    return ft.Stack(
+        expand=True,
+        controls=[
+            ft.Image(
+                src=imagen_fondo_path,
+                fit=ft.ImageFit.COVER,
+                expand=True,
+            ),
+            ft.Container(
+                bgcolor=ft.Colors.with_opacity(opacidad_filtro, ft.Colors.BLACK),
+                expand=True,
+            ),
+            contenido, # El contenido principal de la vista va aquí
+        ]
+    )

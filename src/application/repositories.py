@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from typing import NamedTuple
 from src.domain.pedido import Pedido
 from src.domain.imagen_galeria import ImagenGaleria
+import datetime
 
 
 class Categoria(NamedTuple):
@@ -91,6 +92,20 @@ class ImagenGaleriaRepository(ABC):
 class TipoColorRepository(ABC):
     @abstractmethod
     def obtener_por_categoria_y_cobertura(self, id_categoria: int, nombre_cobertura: str) -> list[str]:
+        pass
+
+class Horario(NamedTuple):
+    hora_inicio: datetime.time
+    hora_fin: datetime.time
+
+class HorarioEntregaRepository(ABC):
+    @abstractmethod
+    def obtener_horario(self) -> Horario | None:
+        pass
+
+class DiaFestivoRepository(ABC):
+    @abstractmethod
+    def es_festivo(self, fecha: datetime.date) -> bool:
         pass
 
 
