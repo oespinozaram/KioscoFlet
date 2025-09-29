@@ -19,6 +19,7 @@ class TipoPan(NamedTuple):
 
 
 class FormaPastel(NamedTuple):
+    id: int
     nombre: str
     imagen_url: str
 
@@ -31,6 +32,23 @@ class TipoRelleno(NamedTuple):
 class TipoCobertura(NamedTuple):
     nombre: str
     imagen_url: str
+
+
+class TamanoPastel(NamedTuple):
+    id: int
+    nombre: str
+    descripcion: str
+
+
+class Extra(NamedTuple):
+    id: int
+    descripcion: str
+    costo: float
+
+class ExtraRepository(ABC):
+    @abstractmethod
+    def obtener_por_descripcion(self, descripcion: str) -> Extra | None:
+        pass
 
 
 class CategoriaRepository(ABC):
@@ -49,21 +67,9 @@ class PedidoRepository(ABC):
         pass
 
 
-class TamanoRepository(ABC):
-    @abstractmethod
-    def obtener_todos(self) -> list[str]:
-        pass
-
-
 class TipoPanRepository(ABC):
     @abstractmethod
     def obtener_por_categoria(self, id_categoria: int) -> list[TipoPan]:
-        pass
-
-
-class TipoFormaRepository(ABC):
-    @abstractmethod
-    def obtener_por_categoria(self, id_categoria: int) -> list[FormaPastel]:
         pass
 
 
@@ -113,6 +119,7 @@ class Ticket(NamedTuple):
     id_pedido: int
     id_categoria: int
     fecha_creacion: str
+    nombre_categoria: str
     tipo_pan: str
     tipo_forma: str
     tipo_relleno: str
@@ -142,6 +149,10 @@ class Ticket(NamedTuple):
     decorado_tematica_detalle: str
     decorado_imagen_id: int
     extra_seleccionado: str
+    extra_costo: float
+    precio_pastel: float
+    monto_deposito: float
+    total: float
 
 
 class FinalizarPedidoRepository(ABC):
@@ -151,4 +162,27 @@ class FinalizarPedidoRepository(ABC):
 
     @abstractmethod
     def obtener_por_id(self, id_pedido: int) -> Ticket | None:
+        pass
+
+
+class TipoFormaRepository(ABC):
+    @abstractmethod
+    def obtener_por_categoria(self, id_categoria: int) -> list[FormaPastel]: # <-- Devuelve objeto
+        pass
+
+
+class TamanoRepository(ABC):
+    @abstractmethod
+    def obtener_todos(self) -> list[TamanoPastel]: # <-- Devuelve objeto
+        pass
+
+
+class PastelConfigurado(NamedTuple):
+    precio_final: float
+    monto_deposito: float
+
+
+class PastelConfiguradoRepository(ABC):
+    @abstractmethod
+    def obtener_configuracion(self, id_cat: int, id_pan: int, id_forma: int, id_tam: int) -> PastelConfigurado | None:
         pass

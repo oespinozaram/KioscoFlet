@@ -8,7 +8,8 @@ from src.infrastructure.persistence.sqlite_repository import (
     TipoPanRepositorySQLite, TipoFormaRepositorySQLite,
     TipoRellenoRepositorySQLite, TipoCoberturaRepositorySQLite,
     FinalizarPedidoRepositorySQLite, ImagenGaleriaRepositorySQLite,
-    TipoColorRepositorySQLite, HorarioEntregaRepositorySQLite, DiaFestivoRepositorySQLite
+    TipoColorRepositorySQLite, HorarioEntregaRepositorySQLite, DiaFestivoRepositorySQLite,
+    PastelConfiguradoRepositorySQLite, ExtraRepositorySQLite,
 )
 from src.infrastructure.flet_adapter import views
 from src.infrastructure.persistence.api_repository import FinalizarPedidoRepositoryAPI
@@ -22,7 +23,7 @@ def main(page: ft.Page):
     page.window.width = 1920
     page.window.height = 1080
     page.window.resizable = True
-    #page.window.full_screen = True
+    page.window.full_screen = True
 
     page.padding = 0
 
@@ -44,6 +45,8 @@ def main(page: ft.Page):
     tipo_color_repo = TipoColorRepositorySQLite(db_path)
     horario_repo = HorarioEntregaRepositorySQLite(db_path)
     dia_festivo_repo = DiaFestivoRepositorySQLite(db_path)
+    pastel_config_repo = PastelConfiguradoRepositorySQLite(db_path)
+    extra_repo = ExtraRepositorySQLite(db_path)
 
     API_URL_PEDIDOS = "https://pepesquioscodev-dze4d8gwgfcpgwaw.mexicocentral-01.azurewebsites.net/pedidos"  # <-- CAMBIA ESTO
 
@@ -55,7 +58,8 @@ def main(page: ft.Page):
         pedido_repo, tamano_repo, categoria_repo,
         tipo_pan_repo, tipo_forma_repo, tipo_relleno_repo,
         tipo_cobertura_repo, finalizar_pedido_repo, imagen_galeria_repo,
-        tipo_color_repo, horario_repo, dia_festivo_repo
+        tipo_color_repo, horario_repo, dia_festivo_repo, pastel_config_repo,
+        extra_repo
     )
 
     finalizar_repo_compuesto = FinalizarPedidoRepositoryComposite(
@@ -67,6 +71,8 @@ def main(page: ft.Page):
         pedido_repo=pedido_repo,
         finalizar_repo=finalizar_repo_compuesto,
         categoria_repo=categoria_repo,
+        extra_repo=extra_repo,
+        pastel_config_repo=pastel_config_repo,
     )
 
     def cerrar_resumen(e):

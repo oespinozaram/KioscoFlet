@@ -55,7 +55,9 @@ class FinalizarPedidoRepositoryAPI(FinalizarPedidoRepository):
             "decorado_liso_detalle": pedido.decorado_liso_detalle or "",
             "decorado_tematica_detalle": pedido.decorado_tematica_detalle or "",
             "decorado_imagen_id": pedido.decorado_imagen_id or 0,
-            "extra_seleccionado": pedido.extra_seleccionado or ""
+            "extra_seleccionado": pedido.extra_seleccionado or "",
+            "extra_costo": pedido.extra_costo or 0,
+            "total": pedido.total or 0,
         }
 
         try:

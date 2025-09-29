@@ -25,6 +25,14 @@ class Pedido:
         self.decorado_liso_color1: str | None = None
         self.decorado_liso_color2: str | None = None
         self.extra_flor_cantidad: int | None = None
+        self.descrip_tamano: str | None = None
+        self.id_tamano: int | None = None
+        self.id_forma: int | None = None
+        self.id_pan: int | None = None
+        self.extra_precio: float | None = None
+        self.precio_pastel: float | None = None
+        self.total: float | None = None
+        self.monto_deposito: float | None = None
 
     def reiniciar(self):
         self.id_pedido: int | None = None
@@ -57,6 +65,14 @@ class Pedido:
         self.municipio_cliente: str | None = None
         self.estado_cliente: str | None = None
         self.referencias_cliente: str | None = None
+        self.id_tamano: int | None = None
+        self.id_forma: int | None = None
+        self.id_pan: int | None = None
+        self.descrip_tamano: str | None = None
+        self.extra_precio: float | None = None
+        self.precio_pastel: float | None = None
+        self.total: float | None = None
+        self.monto_deposito: float | None = None
 
     def __str__(self):
         return f"Pedido(Categoria: {self.id_categoria}, Decorado: '{self.tipo_decorado}', Mensaje: '{self.mensaje_pastel}')"

@@ -7,7 +7,8 @@ from src.application.repositories import (
     TipoFormaRepository, TipoRellenoRepository, TipoCoberturaRepository,
     FinalizarPedidoRepository, FormaPastel, TipoRelleno, TipoCobertura,
     Categoria, TipoPan, ImagenGaleriaRepository, ImagenGaleria, TipoColorRepository,
-    Ticket, HorarioEntregaRepository, Horario, DiaFestivoRepository
+    Ticket, HorarioEntregaRepository, Horario, DiaFestivoRepository, TamanoPastel,
+    PastelConfiguradoRepository, ExtraRepository, Extra, PastelConfigurado
 )
 
 
@@ -54,7 +55,7 @@ class TipoFormaRepositorySQLite(TipoFormaRepository):
 
     def obtener_por_categoria(self, id_categoria: int) -> list[FormaPastel]:
         query = """
-            SELECT tf.nombre_tipo_forma, ctfd.imagen_quiosco  
+            SELECT tf.id_tipo_forma, tf.nombre_tipo_forma, ctfd.imagen_quiosco  
             FROM categoria_tipos_forma_disponibles ctfd, tipos_forma tf 
             WHERE ctfd.id_tipo_forma = tf.id_tipo_forma AND ctfd.id_categoria = ?
             ORDER BY tf.nombre_tipo_forma
@@ -63,7 +64,7 @@ class TipoFormaRepositorySQLite(TipoFormaRepository):
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute(query, (id_categoria,))
-                return [FormaPastel(nombre=row[0], imagen_url=row[1]) for row in cursor.fetchall()]
+                return [FormaPastel(id=row[0], nombre=row[1], imagen_url=row[2]) for row in cursor.fetchall()]
         except sqlite3.Error as e:
             print(f"Error al leer los tipos de forma por categoría: {e}")
             return []
@@ -72,12 +73,12 @@ class TamanoRepositorySQLite(TamanoRepository):
     def __init__(self, db_path: str):
         self.db_path = db_path
 
-    def obtener_todos(self) -> list[str]:
+    def obtener_todos(self) -> list[TamanoPastel]:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT nombre_tamano FROM tipos_tamano ORDER BY id_tipo_tamano")
-                return [row[0] for row in cursor.fetchall()]
+                cursor.execute("SELECT id_tipo_tamano, nombre_tamano, descripcion FROM tipos_tamano ORDER BY id_tipo_tamano")
+                return [TamanoPastel(id=row[0], nombre=row[1], descripcion=row[2]) for row in cursor.fetchall()]
         except sqlite3.Error as e:
             print(f"Error al leer la base de datos: {e}")
             return []
@@ -139,8 +140,9 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
                                      decorado_liso_color1, decorado_liso_color2, extra_seleccionado, \
                                      extra_flor_cantidad, nombre_completo, telefono, direccion, \
                                      numero_exterior, entre_calles, codigo_postal, colonia, ciudad, municipio, estado, \
-                                     referencias, decorado_liso_color) \
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) \
+                                     referencias, decorado_liso_color, 
+                                     extra_costo, precio_pastel, monto_deposito, total) \
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) \
                 """
 
         datos = (
@@ -174,6 +176,10 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
             pedido.estado_cliente,
             pedido.referencias_cliente,
             pedido.decorado_liso_color,
+            pedido.extra_precio,
+            pedido.precio_pastel,
+            pedido.monto_deposito,
+            pedido.total,
         )
 
         try:
@@ -187,13 +193,16 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
             return 0
 
     def obtener_por_id(self, id_pedido: int) -> Ticket | None:
-        query = """SELECT id_pedido, id_categoria, tipo_pan, tipo_forma, tipo_relleno, tipo_cobertura, 
-                          tamano_pastel, fecha_entrega, hora_entrega, nombre_completo, telefono, direccion, 
-                          numero_exterior, codigo_postal, colonia, ciudad, estado, fecha_creacion, entre_calles, 
-                          municipio, referencias, decorado_liso_color1, decorado_liso_color2, mensaje_pastel, 
-                          extra_flor_cantidad, tipo_decorado, decorado_liso_detalle, decorado_liso_color, 
-                          decorado_tematica_detalle, decorado_imagen_id, extra_seleccionado
-                   FROM pedidos WHERE id_pedido = ?"""
+        query = """SELECT p.id_pedido, p.id_categoria, p.tipo_pan, p.tipo_forma, p.tipo_relleno, p.tipo_cobertura, 
+                          p.tamano_pastel, p.fecha_entrega, p.hora_entrega, p.nombre_completo, p.telefono, p.direccion, 
+                          p.numero_exterior, p.codigo_postal, p.colonia, p.ciudad, p.estado, p.fecha_creacion, p.entre_calles, 
+                          p.municipio, p.referencias, p.decorado_liso_color1, p.decorado_liso_color2, p.mensaje_pastel, 
+                          p.extra_flor_cantidad, p.tipo_decorado, p.decorado_liso_detalle, p.decorado_liso_color, 
+                          p.decorado_tematica_detalle, p.decorado_imagen_id, p.extra_seleccionado, p.extra_costo, 
+                          p.precio_pastel, p.monto_deposito, p.total, c.nombre_categoria
+                   FROM pedidos p
+                   JOIN categorias c ON p.id_categoria = c.id_categoria
+                   WHERE p.id_pedido = ?"""
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -230,7 +239,13 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
                                   decorado_liso_detalle=row[26],
                                   decorado_tematica_detalle=row[28],
                                   decorado_imagen_id=row[29],
-                                  extra_seleccionado=row[30],)
+                                  extra_seleccionado=row[30],
+                                  extra_costo=row[31],
+                                  precio_pastel=row[32],
+                                  monto_deposito=row[33],
+                                  total=row[34],
+                                  nombre_categoria=row[35]
+                                  )
         except sqlite3.Error as e:
             print(f"Error al obtener el pedido por ID: {e}")
         return None
@@ -358,3 +373,44 @@ class DiaFestivoRepositorySQLite(DiaFestivoRepository):
         except sqlite3.Error as e:
             print(f"Error al verificar día festivo: {e}")
         return False
+
+
+class PastelConfiguradoRepositorySQLite(PastelConfiguradoRepository):
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+
+    def obtener_configuracion(self, id_cat: int, id_pan: int, id_forma: int, id_tam: int) -> PastelConfigurado | None:
+        query = """
+            SELECT precio_final, monto_deposito FROM pasteles_configurados
+            WHERE id_categoria = ? AND id_tipo_pan_seleccionado = ?
+            AND id_tipo_forma_seleccionada = ? AND id_tipo_tamano_seleccionado = ?
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (id_cat, id_pan, id_forma, id_tam))
+                result = cursor.fetchone()
+                return PastelConfigurado(precio_final=float(result[0]), monto_deposito=float(result[1])) if result else None
+        except sqlite3.Error as e:
+            print(f"Error al obtener precio: {e}")
+        return None
+
+
+class ExtraRepositorySQLite(ExtraRepository):
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+
+    def obtener_por_descripcion(self, descripcion: str) -> Extra | None:
+        query = "SELECT id, descripcion, costo FROM extras WHERE descripcion = ?"
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (descripcion,))
+                row = cursor.fetchone()
+                if row:
+                    return Extra(id=row[0], descripcion=row[1], costo=float(row[2]))
+        except sqlite3.Error as e:
+            print(f"Error al obtener extra por descripción: {e}")
+        return None
+
+

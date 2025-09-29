@@ -1,11 +1,15 @@
 # src/application/use_cases.py
 import datetime
+import os.path
+import time
+
 from .repositories import (
     PedidoRepository, TamanoRepository, CategoriaRepository, TipoCobertura,
     TipoPanRepository, TipoFormaRepository, TipoRellenoRepository,
     TipoCoberturaRepository, FinalizarPedidoRepository, Categoria, TipoPan,
     ImagenGaleriaRepository, TipoColorRepository, FormaPastel, TipoRelleno, Ticket,
-    HorarioEntregaRepository, DiaFestivoRepository
+    HorarioEntregaRepository, DiaFestivoRepository, PastelConfiguradoRepository,
+    TamanoPastel, ExtraRepository, PastelConfigurado
 )
 from src.domain.datos_entrega import DatosEntrega
 from src.domain.pedido import Pedido
@@ -31,7 +35,8 @@ class PedidoUseCases:
                  tipo_forma_repo: TipoFormaRepository, tipo_relleno_repo: TipoRellenoRepository,
                  tipo_cobertura_repo: TipoCoberturaRepository, finalizar_repo: FinalizarPedidoRepository,
                  imagen_galeria_repo: ImagenGaleriaRepository, tipo_color_repo: TipoColorRepository,
-                 horario_repo: HorarioEntregaRepository, dia_festivo_repo: DiaFestivoRepository):
+                 horario_repo: HorarioEntregaRepository, dia_festivo_repo: DiaFestivoRepository,
+                 pastel_config_repo: PastelConfiguradoRepository, extra_repo: ExtraRepository,):
         self.pedido_repo = pedido_repo
         self.tamano_repo = tamano_repo
         self.categoria_repo = categoria_repo
@@ -45,6 +50,8 @@ class PedidoUseCases:
         self.tipo_color_repo = tipo_color_repo
         self.horario_repo = horario_repo
         self.dia_festivo_repo = dia_festivo_repo
+        self.pastel_config_repo = pastel_config_repo
+        self.extra_repo = extra_repo
 
     def guardar_datos_cliente(
             self, nombre, telefono, direccion, num_ext,
@@ -85,11 +92,27 @@ class PedidoUseCases:
         pedido.decorado_imagen_id = id_imagen
         self.pedido_repo.guardar(pedido)
 
-    def seleccionar_extra(self, extra: str | None):
+    def seleccionar_extra(self, extra_descripcion: str | None):
         pedido = self.pedido_repo.obtener()
-        pedido.extra_seleccionado = extra
-        if extra != "Flor Artificial":
+
+        if not extra_descripcion:
+            pedido.extra_seleccionado = None
+            pedido.extra_precio = None
             pedido.extra_flor_cantidad = None
+        else:
+            extra_obj = self.extra_repo.obtener_por_descripcion(extra_descripcion)
+            if extra_obj:
+                pedido.extra_seleccionado = extra_obj.descripcion
+                pedido.extra_precio = extra_obj.costo
+            else:
+                # Si no se encuentra en la BD, se limpia (medida de seguridad)
+                pedido.extra_seleccionado = None
+                pedido.extra_precio = None
+
+        # Si el extra no es 'Flor Artificial', reseteamos la cantidad
+        if extra_descripcion != "Flor Artificial":
+            pedido.extra_flor_cantidad = None
+
         self.pedido_repo.guardar(pedido)
 
     def guardar_cantidad_flor(self, cantidad: int | None):
@@ -140,26 +163,18 @@ class PedidoUseCases:
                 pass
         return formas_disponibles
 
-    def seleccionar_tipo_forma(self, nombre_forma: str):
-        pedido = self.pedido_repo.obtener()
-        pedido.tipo_forma = nombre_forma
-        self.pedido_repo.guardar(pedido)
-        print(f"INFO: Forma '{nombre_forma}' seleccionada. Estado del pedido: {pedido}")
 
     def obtener_panes_por_categoria(self, id_categoria: int) -> list[TipoPan]:
         return self.tipo_pan_repo.obtener_por_categoria(id_categoria)
 
-    def seleccionar_tipo_pan(self, nombre_pan: str):
+
+    def seleccionar_tipo_pan(self, id_pan: int,  nombre_pan: str):
         pedido = self.pedido_repo.obtener()
         if pedido.tipo_pan != nombre_pan:
             pedido.tipo_relleno = None
             pedido.tipo_cobertura = None
+        pedido.id_pan = id_pan
         pedido.tipo_pan = nombre_pan
-        self.pedido_repo.guardar(pedido)
-        print(f"INFO: Pan '{nombre_pan}' seleccionado. Estado del pedido: {pedido}")
-
-        pedido.tipo_pan = nombre_pan
-
         self.pedido_repo.guardar(pedido)
         print(f"INFO: Pan '{nombre_pan}' seleccionado. Estado del pedido: {pedido}")
 
@@ -189,46 +204,106 @@ class PedidoUseCases:
     def obtener_pedido_actual(self):
         return self.pedido_repo.obtener()
 
-    def obtener_tamanos(self) -> list[str]:
+    def obtener_tamanos(self) -> list[TamanoPastel]:
         if not self.tamanos_disponibles:
+            # El repositorio ahora devuelve una lista de objetos TamanoPastel
             self.tamanos_disponibles = self.tamano_repo.obtener_todos()
 
         pedido = self.pedido_repo.obtener()
+
+        # Si no hay un tamaño seleccionado Y la lista no está vacía
         if not pedido.tamano_pastel and self.tamanos_disponibles:
-            pedido.tamano_pastel = self.tamanos_disponibles[0]
+            # Asignamos el ID y el nombre del primer tamaño de la lista
+            pedido.id_tamano = self.tamanos_disponibles[0].id
+            pedido.tamano_pastel = self.tamanos_disponibles[0].nombre
             self.pedido_repo.guardar(pedido)
 
         return self.tamanos_disponibles
 
     def seleccionar_siguiente_tamano(self):
+        """Busca el tamaño actual en la lista y selecciona el siguiente."""
         pedido = self.pedido_repo.obtener()
         tamanos = self.obtener_tamanos()
-        if not tamanos or not pedido.tamano_pastel:
+        if not tamanos:
             return
 
         try:
-            idx = tamanos.index(pedido.tamano_pastel)
-            nuevo_idx = (idx + 1) % len(tamanos)
-            pedido.tamano_pastel = tamanos[nuevo_idx]
+            # Buscamos el índice del tamaño actual por su nombre
+            nombres_tamanos = [t.nombre for t in tamanos]
+            idx_actual = nombres_tamanos.index(pedido.tamano_pastel)
+
+            # Calculamos el nuevo índice
+            nuevo_idx = (idx_actual + 1) % len(tamanos)
+
+            # Guardamos el ID y el nombre del nuevo tamaño
+            pedido.id_tamano = tamanos[nuevo_idx].id
+            pedido.tamano_pastel = tamanos[nuevo_idx].nombre
             self.pedido_repo.guardar(pedido)
         except ValueError:
-            pedido.tamano_pastel = tamanos[0]
+            # Si algo falla, asigna el primero por defecto
+            pedido.id_tamano = tamanos[0].id
+            pedido.tamano_pastel = tamanos[0].nombre
             self.pedido_repo.guardar(pedido)
 
     def seleccionar_anterior_tamano(self):
+        """Busca el tamaño actual en la lista y selecciona el anterior."""
         pedido = self.pedido_repo.obtener()
         tamanos = self.obtener_tamanos()
-        if not tamanos or not pedido.tamano_pastel:
+        if not tamanos:
             return
 
         try:
-            idx = tamanos.index(pedido.tamano_pastel)
-            nuevo_idx = (idx - 1 + len(tamanos)) % len(tamanos)
-            pedido.tamano_pastel = tamanos[nuevo_idx]
+            nombres_tamanos = [t.nombre for t in tamanos]
+            idx_actual = nombres_tamanos.index(pedido.tamano_pastel)
+
+            # Calculamos el nuevo índice
+            nuevo_idx = (idx_actual - 1 + len(tamanos)) % len(tamanos)
+
+            # Guardamos el ID y el nombre del nuevo tamaño
+            pedido.id_tamano = tamanos[nuevo_idx].id
+            pedido.tamano_pastel = tamanos[nuevo_idx].nombre
             self.pedido_repo.guardar(pedido)
         except ValueError:
-            pedido.tamano_pastel = tamanos[0]
+            # Si algo falla, asigna el primero por defecto
+            pedido.id_tamano = tamanos[0].id
+            pedido.tamano_pastel = tamanos[0].nombre
             self.pedido_repo.guardar(pedido)
+
+    def calcular_y_guardar_precios_finales(self):
+        """
+        Calcula el precio total del pedido y guarda los montos en el objeto Pedido.
+        """
+        pedido = self.pedido_repo.obtener()
+
+        # Validar que tenemos todos los IDs necesarios
+        if not all([pedido.id_categoria, pedido.id_pan, pedido.id_forma, pedido.id_tamano]):
+            print("ADVERTENCIA: Faltan IDs para calcular el precio.")
+            return
+
+        # 1. Obtener precio del pastel y depósito desde la BD
+        config = self.pastel_config_repo.obtener_configuracion(
+            id_cat=pedido.id_categoria,
+            id_pan=pedido.id_pan,
+            id_forma=pedido.id_forma,
+            id_tam=pedido.id_tamano
+        )
+
+        precio_pastel = config.precio_final if config else 0.0
+        monto_deposito = config.monto_deposito if config else 0.0
+
+        # 2. Obtener costo del extra (ya guardado en el pedido)
+        extra_costo = pedido.extra_precio or 0.0
+
+        # 3. Calcular el total
+        total = precio_pastel + extra_costo  # El depósito puede o no sumarse al total final
+
+        # 4. Guardar todos los precios en el pedido en memoria
+        pedido.precio_pastel = precio_pastel
+        pedido.monto_deposito = monto_deposito
+        pedido.extra_costo = extra_costo
+        pedido.total = total
+        self.pedido_repo.guardar(pedido)
+
 
     def reiniciar_tamano(self):
         pedido = self.pedido_repo.obtener()
@@ -371,35 +446,133 @@ class PedidoUseCases:
         print(f"[DEBUG] === Cálculo finalizado. Se generaron {len(rangos)} rangos. ===\n")
         return rangos
 
+    def seleccionar_tamano(self, id_tamano: int, nombre_tamano: str, descripcion_tamano: str):
+        pedido = self.pedido_repo.obtener()
+        pedido.id_tamano = id_tamano
+        pedido.tamano_pastel = nombre_tamano
+        pedido.descripcion_pastel = descripcion_tamano
+        self.pedido_repo.guardar(pedido)
+
+    def seleccionar_tipo_forma(self, id_forma: int, nombre_forma: str):
+        pedido = self.pedido_repo.obtener()
+        pedido.id_forma = id_forma
+        pedido.tipo_forma = nombre_forma
+        self.pedido_repo.guardar(pedido)
+        print(f"INFO: Forma '{nombre_forma}' seleccionada. Estado del pedido: {pedido}")
+
+    def obtener_precio_pastel_configurado(self) -> PastelConfigurado:
+        pedido = self.pedido_repo.obtener()
+
+        print("\n[DEBUG] === Consultando Precio de Pastel Configurado ===")
+        print(f"[DEBUG] ID Categoría: {pedido.id_categoria}")
+        print(f"[DEBUG] ID Pan: {pedido.id_pan}")
+        print(f"[DEBUG] ID Forma: {pedido.id_forma}")
+        print(f"[DEBUG] ID Tamaño: {pedido.id_tamano}")
+
+        if not all([pedido.id_categoria, pedido.id_pan, pedido.id_forma, pedido.id_tamano]):
+            print("[DEBUG] Faltan IDs para calcular el precio. Devolviendo 0.0")
+            print("[DEBUG] =============================================\n")
+            return 0.0
+
+        # Llama al repositorio para obtener la configuración
+        config = self.pastel_config_repo.obtener_configuracion(
+            id_cat=pedido.id_categoria,
+            id_pan=pedido.id_pan,
+            id_forma=pedido.id_forma,
+            id_tam=pedido.id_tamano
+        )
+
+        # --- DEBUG PRINT: Muestra lo que devolvió la base de datos ---
+        if config:
+            print(f"[DEBUG] Configuración encontrada: Precio=${config.precio_final}, Depósito=${config.monto_deposito}")
+        else:
+            print("[DEBUG] No se encontró una configuración de pastel para esos IDs.")
+        print("[DEBUG] =============================================\n")
+
+        precio_pastel = config.precio_final if config else 0.0
+        monto_deposito = config.monto_deposito if config else 0.0
+
+        extra_costo = pedido.extra_precio or 0.0
+        total = precio_pastel + extra_costo
+
+        # Guarda los precios en el pedido
+        pedido.precio_pastel = precio_pastel
+        pedido.monto_deposito = monto_deposito
+        pedido.extra_costo = extra_costo
+        pedido.total = total
+        self.pedido_repo.guardar(pedido)
+
+        return config
+
 
 class FinalizarPedidoUseCases:
-    def __init__(self, pedido_repo: PedidoRepository, finalizar_repo: FinalizarPedidoRepository, categoria_repo: CategoriaRepository):
+    def __init__(self, pedido_repo: PedidoRepository, finalizar_repo: FinalizarPedidoRepository,
+                 pastel_config_repo: PastelConfiguradoRepository, extra_repo: ExtraRepository, categoria_repo: CategoriaRepository):
         self.pedido_repo = pedido_repo
         self.finalizar_repo = finalizar_repo
+        self.pastel_config_repo = pastel_config_repo
+        self.extra_repo = extra_repo
         self.categoria_repo = categoria_repo
         self.printing_service = PrintingService()
 
+    def finalizar_y_calcular_total(self):
+        pedido = self.pedido_repo.obtener()
+        ruta_impresion = None
 
-    def finalizar_e_imprimir_ticket(self):
-        pedido_actual = self.pedido_repo.obtener()
-        id_nuevo_pedido = self.finalizar_repo.guardar(pedido_actual)
+        config = self.pastel_config_repo.obtener_configuracion(
+            id_cat=pedido.id_categoria,
+            id_pan=pedido.id_pan,
+            id_forma=pedido.id_forma,
+            id_tam=pedido.id_tamano
+        )
+
+        precio_pastel = config.precio_final if config else 0.0
+        monto_deposito = config.monto_deposito if config else 0.0
+
+        extra_costo = pedido.extra_precio or 0.0
+        if pedido.extra_seleccionado == "Flor Artificial" and pedido.extra_flor_cantidad:
+            extra_costo *= pedido.extra_flor_cantidad
+
+        total = precio_pastel + extra_costo
+
+        pedido.precio_pastel = precio_pastel
+        pedido.monto_deposito = monto_deposito
+        pedido.extra_costo = extra_costo
+        pedido.total = total
+
+        id_nuevo_pedido = self.finalizar_repo.guardar(pedido)
+
         if id_nuevo_pedido:
-            return self.finalizar_repo.obtener_por_id(id_nuevo_pedido)
-        return None
+            ticket = self.finalizar_repo.obtener_por_id(id_nuevo_pedido)
+            if ticket:
+                try:
+                    ruta_impresion = self.printing_service.generar_ticket_pdf(ticket)
+                    self.printing_service.enviar_a_impresora(ruta_impresion)
+                    return True
+                except Exception as e:
+                    print(f"ERROR: Falló el proceso de impresión: {e}")
+                # finally:
+                #     if ruta_impresion and os.path.exists(ruta_impresion):
+                #         time.sleep(2)
+                #         os.remove(ruta_impresion)
+                #         print(f"INFO: Archivo temporal '{ruta_impresion}' eliminado.")
+        return False
 
-    def imprimir_ticket_por_folio(self, id_pedido: int):
-        ticket = self.finalizar_repo.obtener_por_id(id_pedido)
-        if ticket:
-            try:
-                ruta_pdf = self.printing_service.generar_ticket_pdf(ticket)
 
-                self.printing_service.enviar_a_impresora(ruta_pdf)
-                return True
-            except Exception as e:
-                print(f"ERROR: Falló el proceso de impresión: {e}")
+    # def imprimir_ticket_por_folio(self, id_pedido: int):
+    #     ticket = self.finalizar_repo.obtener_por_id(id_pedido)
+    #     if ticket:
+    #         try:
+    #             #ruta_pdf = self.printing_service.generar_ticket_pdf(ticket)
+    #
+    #             #self.printing_service.enviar_a_impresora(ruta_pdf)
+    #             self.printing_service.print_ticket(ticket)
+    #             return True
+    #         except Exception as e:
+    #             print(f"ERROR: Falló el proceso de impresión: {e}")
 
 
-    def obtener_nombre_categoria(self, id_categoria: int) -> str:  # <-- NUEVO MÉTODO
+    def obtener_nombre_categoria(self, id_categoria: int) -> str:
         categoria = self.categoria_repo.obtener_por_id(id_categoria)
         return categoria.nombre if categoria else "Desconocida"
 
