@@ -23,7 +23,7 @@ def main(page: ft.Page):
     page.window.width = 1920
     page.window.height = 1080
     page.window.resizable = True
-    page.window.full_screen = True
+    #page.window.full_screen = True
 
     page.padding = 0
 
@@ -203,7 +203,28 @@ def main(page: ft.Page):
             top_view = page.views[-1]
             page.go(top_view.route)
         else:
-            page.window.destroy()
+            # Confirm before exiting to prevent accidental app closure
+            def confirmar_salida(e):
+                dlg.open = False
+                page.update()
+                page.window.destroy()
+
+            def cancelar_salida(e):
+                dlg.open = False
+                page.update()
+
+            dlg = ft.AlertDialog(
+                modal=True,
+                title=ft.Text("¿Salir de la aplicación?"),
+                content=ft.Text("Estás en la primera pantalla. ¿Deseas cerrar la aplicación?"),
+                actions=[
+                    ft.TextButton("Cancelar", on_click=cancelar_salida),
+                    ft.TextButton("Salir", on_click=confirmar_salida),
+                ],
+            )
+            page.dialog = dlg
+            dlg.open = True
+            page.update()
 
     page.on_route_change = route_change
     page.on_view_pop = view_pop

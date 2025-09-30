@@ -38,6 +38,7 @@ class TamanoPastel(NamedTuple):
     id: int
     nombre: str
     descripcion: str
+    peso: str
 
 
 class Extra(NamedTuple):
@@ -54,6 +55,10 @@ class ExtraRepository(ABC):
 class CategoriaRepository(ABC):
     @abstractmethod
     def obtener_todas(self) -> list[Categoria]:
+        pass
+
+    @abstractmethod
+    def obtener_por_id(self, id_categoria: int) -> Categoria | None:
         pass
 
 

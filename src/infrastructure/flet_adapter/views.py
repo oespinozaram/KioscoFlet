@@ -142,7 +142,7 @@ def vista_login(page: ft.Page, auth_use_cases: AuthUseCases):
         bgcolor=ft.Colors.WHITE,
         border_radius=25,
         prefix_icon=ft.Icons.PERSON_OUTLINE,
-        on_focus=on_textfield_focus
+        #on_focus=on_textfield_focus
     )
 
     campo_password = ft.TextField(
@@ -154,7 +154,7 @@ def vista_login(page: ft.Page, auth_use_cases: AuthUseCases):
         bgcolor=ft.Colors.WHITE,
         border_radius=25,
         prefix_icon=ft.Icons.LOCK_OUTLINE,
-        on_focus=on_textfield_focus
+        #on_focus=on_textfield_focus
     )
 
     boton_entrar = ft.Container(
@@ -1543,7 +1543,7 @@ def vista_galeria(page: ft.Page, use_cases: PedidoUseCases):
                     content=ft.Stack(
                         [
                             ft.Image(
-                                src=img.url,  # Asumo que es 'ruta' y no 'url'
+                                src=img.ruta,  # Asumo que es 'ruta' y no 'url'
                                 fit=ft.ImageFit.COVER,
                             ),
                             ft.Container(
@@ -1574,7 +1574,7 @@ def vista_galeria(page: ft.Page, use_cases: PedidoUseCases):
     campo_busqueda = ft.TextField(
         label="Buscar...",
         on_change=actualizar_galeria,
-        on_focus=on_textfield_focus,
+        #on_focus=on_textfield_focus,
         expand=True
     )
 
@@ -1604,7 +1604,6 @@ def vista_galeria(page: ft.Page, use_cases: PedidoUseCases):
                                           tooltip="Volver", icon_color=ft.Colors.WHITE),
                             ft.Text("Galería de Imágenes", size=30, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE)
                         ]),
-                        #ft.Row([filtro_categoria, campo_busqueda]),
                         panel_filtros,
                         grid
                     ]
@@ -1631,7 +1630,7 @@ def vista_galeria(page: ft.Page, use_cases: PedidoUseCases):
 
 
 def vista_extras(page: ft.Page, use_cases: PedidoUseCases):
-    texto_precio = ft.Text(value="$0.00", size=24, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE)
+    texto_precio = ft.Text(value="$0.00", size=24, weight=ft.FontWeight.BOLD, color=ft.Colors.BLACK54)
 
 
 
@@ -1824,6 +1823,7 @@ def vista_extras(page: ft.Page, use_cases: PedidoUseCases):
 
 def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_cases: FinalizarPedidoUseCases):
     campo_enfocado = ft.Ref[ft.TextField]()
+    ref_boton_finalizar = ft.Ref[ft.Container]()
     logo_ref = ft.Ref[ft.Image]()
     titulo_ref = ft.Ref[ft.Text]()
 
@@ -1854,6 +1854,12 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_
 
     def finalizar_pedido(e):
         ocultar_teclado(e)
+        if ref_boton_finalizar.current:
+            ref_boton_finalizar.current.disabled = True
+            # Opcional: Cambiamos el texto para dar feedback
+            ref_boton_finalizar.current.content.value = "Procesando..."
+        page.update()
+
         use_cases.guardar_datos_cliente(
             nombre=nombre.value,
             telefono=telefono.value,
@@ -1880,7 +1886,7 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_
 
     def crear_campo_texto(label: str, expand=False, multiline=False, min_lines=1):
         return ft.TextField(
-            label=label, on_focus=on_textfield_focus,
+            label=label, #on_focus=on_textfield_focus,
             border=ft.InputBorder.NONE, bgcolor=ft.Colors.WHITE,
             border_radius=14, expand=expand, content_padding=15,
             multiline=multiline, min_lines=min_lines
@@ -1986,6 +1992,7 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_
                 expand=True,
                 controls=[
                     ft.Container(content=layout_final, expand=True),
+                    # El teclado se coloca justo debajo
                     teclado_virtual.build()
                 ]
             )

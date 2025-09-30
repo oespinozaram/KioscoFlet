@@ -27,6 +27,19 @@ class CategoriaRepositorySQLite(CategoriaRepository):
             print(f"Error al leer la tabla de categorías: {e}")
             return []
 
+    def obtener_por_id(self, id_categoria: int) -> Categoria | None:
+        query = "SELECT id_categoria, nombre_categoria, imagen_quiosco FROM categorias WHERE id_categoria = ?"
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (id_categoria,))
+                row = cursor.fetchone()
+                if row:
+                    return Categoria(id=row[0], nombre=row[1], imagen_url=row[2])
+        except sqlite3.Error as e:
+            print(f"Error al obtener categoría por ID: {e}")
+        return None
+
 
 class TipoPanRepositorySQLite(TipoPanRepository):
     def __init__(self, db_path: str):
@@ -77,8 +90,8 @@ class TamanoRepositorySQLite(TamanoRepository):
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT id_tipo_tamano, nombre_tamano, descripcion FROM tipos_tamano ORDER BY id_tipo_tamano")
-                return [TamanoPastel(id=row[0], nombre=row[1], descripcion=row[2]) for row in cursor.fetchall()]
+                cursor.execute("SELECT id_tipo_tamano, nombre_tamano, descripcion, peso FROM tipos_tamano ORDER BY nombre_tamano")
+                return [TamanoPastel(id=row[0], nombre=row[1], descripcion=row[2], peso=row[3]) for row in cursor.fetchall()]
         except sqlite3.Error as e:
             print(f"Error al leer la base de datos: {e}")
             return []
@@ -141,8 +154,9 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
                                      extra_flor_cantidad, nombre_completo, telefono, direccion, \
                                      numero_exterior, entre_calles, codigo_postal, colonia, ciudad, municipio, estado, \
                                      referencias, decorado_liso_color, 
-                                     extra_costo, precio_pastel, monto_deposito, total) \
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) \
+                                     extra_costo, precio_pastel, monto_deposito, total, nombre_categoria, 
+                                     tamano_peso, tamano_descripcion, imagen_pastel) \
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) \
                 """
 
         datos = (
@@ -180,6 +194,10 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
             pedido.precio_pastel,
             pedido.monto_deposito,
             pedido.total,
+            pedido.nombre_categoria,
+            pedido.tamano_peso,
+            pedido.tamano_descripcion,
+            pedido.imagen_pastel
         )
 
         try:
@@ -277,7 +295,7 @@ class ImagenGaleriaRepositorySQLite(ImagenGaleriaRepository):
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute(query, params)
-                return [ImagenGaleria(id=row[0], url=row[1], descripcion=row[2], categoria=row[3], tags=row[4]) for row
+                return [ImagenGaleria(id=row[0], ruta=row[1], descripcion=row[2], categoria=row[3], tags=row[4]) for row
                         in cursor.fetchall()]
         except sqlite3.Error as e:
             print(f"Error al buscar en la galería de imágenes: {e}")
@@ -291,7 +309,7 @@ class ImagenGaleriaRepositorySQLite(ImagenGaleriaRepository):
                 cursor.execute(query, (id_imagen,))
                 row = cursor.fetchone()
                 if row:
-                    return ImagenGaleria(id=row[0], url=row[1], descripcion=row[2], categoria=row[3], tags=row[4])
+                    return ImagenGaleria(id=row[0], ruta=row[1], descripcion=row[2], categoria=row[3], tags=row[4])
                 return None
         except sqlite3.Error as e:
             print(f"Error al obtener imagen por ID: {e}")

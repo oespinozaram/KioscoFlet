@@ -33,6 +33,10 @@ class Pedido:
         self.precio_pastel: float | None = None
         self.total: float | None = None
         self.monto_deposito: float | None = None
+        self.nombre_categoria: str | None = None
+        self.tamano_peso: str | None = None
+        self.tamano_descripcion: str | None = None
+        self.imagen_pastel: str | None = None
 
     def reiniciar(self):
         self.id_pedido: int | None = None
@@ -73,6 +77,10 @@ class Pedido:
         self.precio_pastel: float | None = None
         self.total: float | None = None
         self.monto_deposito: float | None = None
+        self.nombre_categoria: str | None = None
+        self.tamano_peso: str | None = None
+        self.tamano_descripcion: str | None = None
+        self.imagen_pastel: str | None = None
 
     def __str__(self):
         return f"Pedido(Categoria: {self.id_categoria}, Decorado: '{self.tipo_decorado}', Mensaje: '{self.mensaje_pastel}')"

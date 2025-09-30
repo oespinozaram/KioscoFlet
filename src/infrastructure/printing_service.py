@@ -14,7 +14,7 @@ class PrintingService:
 
         ancho_mm = 80
         # Reducimos la altura para un ticket más compacto
-        alto_mm = 160
+        alto_mm = 297
 
         c = canvas.Canvas(file_path, pagesize=(ancho_mm * mm, alto_mm * mm))
         width, height = (ancho_mm * mm, alto_mm * mm)

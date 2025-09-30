@@ -78,8 +78,8 @@ class PedidoUseCases:
         print(f"DIAGNÓSTICO: Buscando imagen con ID: {id_imagen}")
         imagen = self.imagen_galeria_repo.obtener_por_id(id_imagen)
         if imagen:
-            print(f"DIAGNÓSTICO: Imagen encontrada. URL: {imagen.url}")
-            return imagen.url
+            print(f"DIAGNÓSTICO: Imagen encontrada. URL: {imagen.ruta}")
+            return imagen.ruta
         else:
             print(f"DIAGNÓSTICO: No se encontró ninguna imagen con el ID {id_imagen}.")
             return None
@@ -188,6 +188,10 @@ class PedidoUseCases:
         pedido.tipo_forma = None
         pedido.tipo_relleno = None
         pedido.tipo_cobertura = None
+        categoria_obj = self.categoria_repo.obtener_por_id(id_categoria) # (Necesitarás este método en el repo)
+        if categoria_obj:
+            pedido.nombre_categoria = categoria_obj.nombre
+
         self.pedido_repo.guardar(pedido)
         print(f"INFO: Categoría {id_categoria} seleccionada. Estado del pedido: {pedido}")
 
@@ -238,6 +242,8 @@ class PedidoUseCases:
             # Guardamos el ID y el nombre del nuevo tamaño
             pedido.id_tamano = tamanos[nuevo_idx].id
             pedido.tamano_pastel = tamanos[nuevo_idx].nombre
+            pedido.tamano_descripcion = tamanos[nuevo_idx].descripcion
+            pedido.tamano_peso = tamanos[nuevo_idx].peso
             self.pedido_repo.guardar(pedido)
         except ValueError:
             # Si algo falla, asigna el primero por defecto
@@ -268,6 +274,8 @@ class PedidoUseCases:
             pedido.id_tamano = tamanos[0].id
             pedido.tamano_pastel = tamanos[0].nombre
             self.pedido_repo.guardar(pedido)
+
+
 
     def calcular_y_guardar_precios_finales(self):
         """
@@ -515,6 +523,18 @@ class FinalizarPedidoUseCases:
         self.categoria_repo = categoria_repo
         self.printing_service = PrintingService()
 
+
+    def generar_y_guardar_codigo_imagen(self):
+        """
+        Crea un código único con los IDs de la configuración del pastel y lo guarda.
+        """
+        pedido = self.pedido_repo.obtener()
+        if all([pedido.id_categoria, pedido.id_pan, pedido.id_forma, pedido.id_tamano]):
+            # Combinamos los IDs para formar el nombre del archivo de imagen
+            codigo = f"{pedido.id_categoria}-{pedido.id_pan}-{pedido.id_forma}-{pedido.id_tamano}"
+            pedido.imagen_pastel = codigo
+            self.pedido_repo.guardar(pedido)
+
     def finalizar_y_calcular_total(self):
         pedido = self.pedido_repo.obtener()
         ruta_impresion = None
@@ -539,6 +559,8 @@ class FinalizarPedidoUseCases:
         pedido.monto_deposito = monto_deposito
         pedido.extra_costo = extra_costo
         pedido.total = total
+
+        self.generar_y_guardar_codigo_imagen()
 
         id_nuevo_pedido = self.finalizar_repo.guardar(pedido)
 
