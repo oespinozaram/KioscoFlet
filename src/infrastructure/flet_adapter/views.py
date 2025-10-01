@@ -1225,7 +1225,7 @@ def vista_cobertura(page: ft.Page, use_cases: PedidoUseCases):
                     ),
                     crear_boton_navegacion(
                         texto="Continuar",
-                        on_click_handler=lambda _: page.go("/decorado"),
+                        on_click_handler=lambda _: page.go("/decorado1"),
                         ref=ref_boton_continuar,
                         disabled=True
                     )
@@ -1250,46 +1250,127 @@ def vista_cobertura(page: ft.Page, use_cases: PedidoUseCases):
     )
 
 
-def vista_decorado(page: ft.Page, use_cases: PedidoUseCases):
+def vista_decorado1(page: ft.Page, use_cases: PedidoUseCases):
     # --- 1. Lógica y Manejadores ---
     ref_boton_continuar = ft.Ref[ft.Container]()
 
-    # Manejador para el campo de texto de la temática (definido una sola vez)
+    def on_decorado_principal_click(e):
+        tipo_decorado = e.control.data
+        use_cases.seleccionar_tipo_decorado(tipo_decorado)
+
+        for card in carrusel_decorado.controls:
+            card.border = ft.border.all(3, ft.Colors.GREEN_500) if card == e.control else None
+
+        # Si el usuario elige "Imágenes", lo mandamos directo a la galería.
+        # El flujo continuará desde allá.
+        if tipo_decorado == "Imágenes Prediseñadas":
+            page.go("/galeria")
+            return
+
+        # Si elige "Liso", simplemente habilitamos el botón para continuar a la siguiente pantalla.
+        if ref_boton_continuar.current:
+            ref_boton_continuar.current.disabled = False
+        page.update()
+
+    def restablecer(e):
+        # Reinicia la selección de esta pantalla
+        use_cases.reiniciar_decorado()
+        for card in carrusel_decorado.controls:
+            card.border = None
+        if ref_boton_continuar.current:
+            ref_boton_continuar.current.disabled = True
+        page.update()
+
+    # --- 2. Construcción de Componentes ---
+    carrusel_decorado = ft.Row(
+        scroll=ft.ScrollMode.ALWAYS,
+        spacing=30,
+        controls=[
+            crear_tarjeta_seleccion("Liso c/s Conchas de Betún", "/assets/decorado/liso.png",
+                                    on_decorado_principal_click),
+            crear_tarjeta_seleccion("Imágenes Prediseñadas", "/assets/decorado/imagenes.png",
+                                    on_decorado_principal_click, ),
+        ]
+    )
+
+    # --- 3. Construcción del Layout Final ---
+    contenido_superpuesto = ft.Column(
+        expand=True,
+        controls=[
+            ft.Container(  # Banner
+                height=67, bgcolor="#89C5B0", alignment=ft.alignment.center,
+                content=ft.Text('Para envío gratuito en compras de $500 o más', color=ft.Colors.WHITE, size=36,
+                                font_family="Bebas Neue")
+            ),
+            ft.Container(
+                expand=True,
+                alignment=ft.alignment.center,
+                content=ft.Column(
+                    spacing=30,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[
+                        ft.Image(src="/assets/Logo Pepe.png", width=250),
+                        ft.Text("Paso 8: Elige el Estilo", size=40, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE,
+                                text_align=ft.TextAlign.CENTER),
+                        carrusel_decorado
+                    ]
+                )
+            ),
+            # --- CORRECCIÓN: Se añade la fila de botones ---
+            ft.Row(
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=20,
+                controls=[
+                    crear_boton_navegacion(
+                        texto="Volver",
+                        on_click_handler=lambda _: page.go("/cobertura"),
+                        es_primario=False
+                    ),
+                    crear_boton_navegacion(
+                        texto="Restablecer",
+                        on_click_handler=restablecer,
+                        es_primario=False,
+                        bgcolor=ft.Colors.AMBER_300
+                    ),
+                    crear_boton_navegacion(
+                        texto="Continuar",
+                        on_click_handler=lambda _: page.go("/decorado2"),
+                        ref=ref_boton_continuar,
+                        disabled=True
+                    )
+                ]
+            ),
+            ft.Container(height=30)
+        ]
+    )
+
+    layout_final = ft.Stack(
+        controls=[
+            ft.Image(src="fondo_hd.png", fit=ft.ImageFit.COVER, expand=True),
+            ft.Container(bgcolor=ft.Colors.with_opacity(0.4, ft.Colors.BLACK), expand=True),
+            contenido_superpuesto,
+        ]
+    )
+
+    return ft.View(
+        route="/decorado1",
+        controls=[layout_final],
+        padding=0
+    )
+
+
+def vista_decorado2(page: ft.Page, use_cases: PedidoUseCases):
+    # --- 1. Referencias y Manejadores ---
+    ref_boton_continuar = ft.Ref[ft.Container]()
+
+    # --- Manejadores de Eventos ---
     def on_text_tematica_change(e):
         use_cases.guardar_detalle_decorado("Liso c/s Conchas de Betún", "Diseño o Temática", e.control.value)
         check_continuar()
 
-    # Controles dinámicos que irán DENTRO del panel blanco
-    campo_mensaje = ft.TextField(label="Mensaje en el pastel (opcional)")
-    tematica_container = ft.Column(
-        visible=False,
-        controls=[
-            ft.TextField(label="Escribe la temática o personaje", on_change=on_text_tematica_change),
-            ft.Text("El material será acetato no comestible.", italic=True, size=12, color=ft.Colors.BLACK54)
-        ]
-    )
-    dd_color1 = ft.Dropdown(label="Color Principal", expand=True)
-    dd_color2 = ft.Dropdown(label="Color Secundario (opcional)", expand=True)
-    contenedor_colores = ft.Row(controls=[dd_color1, dd_color2], visible=False)
-
-    # Carrusel para las sub-opciones
-    carrusel_sub_opciones = ft.Row(scroll=ft.ScrollMode.ALWAYS, spacing=15, visible=False)
-
-    # El panel blanco AHORA SOLO CONTIENE los campos de captura
-    panel_principal = ft.Container(
-        padding=20,
-        border_radius=20,
-        bgcolor=ft.Colors.with_opacity(0.8, ft.Colors.WHITE),
-        visible=False,  # Empieza oculto
-        content=ft.Column(
-            spacing=15,
-            controls=[
-                tematica_container,
-                contenedor_colores,
-                campo_mensaje,
-            ]
-        )
-    )
+    def on_color_change(e):
+        use_cases.seleccionar_colores_decorado(dd_color1.value, dd_color2.value)
+        check_continuar()
 
     def check_continuar():
         pedido = use_cases.obtener_pedido_actual()
@@ -1304,13 +1385,6 @@ def vista_decorado(page: ft.Page, use_cases: PedidoUseCases):
         if ref_boton_continuar.current:
             ref_boton_continuar.current.disabled = not listo
         page.update()
-
-    def on_color_change(e):
-        use_cases.seleccionar_colores_decorado(dd_color1.value, dd_color2.value)
-        check_continuar()
-
-    dd_color1.on_change = on_color_change
-    dd_color2.on_change = on_color_change
 
     def on_sub_opcion_liso_click(e):
         detalle = e.control.data
@@ -1340,95 +1414,63 @@ def vista_decorado(page: ft.Page, use_cases: PedidoUseCases):
         check_continuar()
         page.update()
 
-    def crear_tarjeta_decorado(texto: str, imagen_src: str, on_click_handler, data=None):
-        return ft.Container(
-                    width=226,
-                    height=200,
-                    bgcolor=ft.Colors.WHITE,
-                    border_radius=ft.border_radius.all(20),
-                    shadow=ft.BoxShadow(
-                        spread_radius=1, blur_radius=8,
-                        color=ft.Colors.with_opacity(0.2, ft.Colors.BLACK),
-                        offset=ft.Offset(4, 4)
-                    ),
-                    content=ft.Column(
-                        spacing=10,
-                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                        controls=[
-                            ft.Container(
-                                width=226, height=110,
-                                clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
-                                border_radius=ft.border_radius.only(top_left=20, top_right=20),
-                                content=ft.Image(src=imagen_src, fit=ft.ImageFit.COVER)
-                            ),
-                            ft.Container(
-                                expand=True,
-                                alignment=ft.alignment.center,
-                                content=ft.Text(texto, size=18, font_family="Bebas Neue", text_align=ft.TextAlign.CENTER)
-                            )
-                        ]
-                    ),
-                    on_click=on_click_handler,
-                    data=data or texto
-                )
+    def restablecer(e):
+        # Reinicia solo las selecciones de esta pantalla
+        use_cases.guardar_detalle_decorado("Liso c/s Conchas de Betún", None)
+        use_cases.seleccionar_colores_decorado(None, None)
 
-    def on_decorado_principal_click(e):
-        tipo_decorado = e.control.data
-        use_cases.seleccionar_tipo_decorado(tipo_decorado)
+        for card in carrusel_sub_opciones.controls:
+            card.border = None
 
-        for card in carrusel_decorado.controls:
-            card.border = ft.border.all(3, ft.Colors.GREEN_500) if card == e.control else None
-
-        if tipo_decorado == "Imágenes Prediseñadas":
-            page.go("/galeria")
-            return
-
-        carrusel_sub_opciones.visible = True
-        panel_principal.visible = False  # Oculta el panel hasta que se elija sub-opción
-
-        carrusel_sub_opciones.controls.clear()
-        #detalles_liso = ["Chantilli", "Chorreado", "Diseño o Temática"]
-        detalles_liso = [
-            {"nombre": "Chantilli", "imagen": "decorado/chantilli.png"},
-            {"nombre": "Chorreado", "imagen": "decorado/chorreado.png"},
-            {"nombre": "Diseño o Temática", "imagen": "decorado/tematica.png"},
-        ]
-        for opcion in detalles_liso:
-            carrusel_sub_opciones.controls.append(
-                crear_tarjeta_decorado(opcion["nombre"], opcion["imagen"], on_sub_opcion_liso_click)
-            )
-        page.update()
-
-    def restablecer_decorado(e):
-        # use_cases.reiniciar_decorado()
-        # for card in carrusel_decorado.controls:
-        #     card.border = None
-        use_cases.iniciar_nuevo_pedido()
-        page.go("/")
-
-        carrusel_sub_opciones.visible = False
         panel_principal.visible = False
         if ref_boton_continuar.current:
             ref_boton_continuar.current.disabled = True
         page.update()
 
-    # --- 2. Construcción de Componentes Visuales ---
-    carrusel_decorado = ft.Row(
-        scroll=ft.ScrollMode.ALWAYS,
-        spacing=30,
+    # --- 2. Construcción de Componentes ---
+    campo_mensaje = ft.TextField(label="Mensaje en el pastel (opcional)")
+    tematica_container = ft.Column(
+        visible=False,
         controls=[
-            crear_tarjeta_seleccion("Liso c/s Conchas de Betún", "decorado/liso2.png",
-                                    on_decorado_principal_click),
-            crear_tarjeta_seleccion("Imágenes Prediseñadas", "decorado/imagenes.png",
-                                    on_decorado_principal_click),
+            ft.TextField(label="Escribe la temática o personaje", on_change=on_text_tematica_change),
+            ft.Text("El material será acetato no comestible.", italic=True, size=12, color=ft.Colors.BLACK54)
         ]
+    )
+    dd_color1 = ft.Dropdown(label="Color Principal", expand=True, on_change=on_color_change)
+    dd_color2 = ft.Dropdown(label="Color Secundario (opcional)", expand=True, on_change=on_color_change)
+    contenedor_colores = ft.Row(controls=[dd_color1, dd_color2], visible=False)
+
+    carrusel_sub_opciones = ft.Row(scroll=ft.ScrollMode.ALWAYS, spacing=15)
+    detalles_liso = [
+        {"nombre": "Chantilli", "imagen": "decorado/chantilli.png"},
+        {"nombre": "Chorreado", "imagen": "decorado/chorreado.png"},
+        {"nombre": "Diseño o Temática", "imagen": "decorado/tematica.png"},
+    ]
+    for opcion in detalles_liso:
+        carrusel_sub_opciones.controls.append(
+            crear_tarjeta_seleccion(opcion["nombre"], opcion["imagen"], on_sub_opcion_liso_click)
+        )
+
+    panel_principal = ft.Container(
+        padding=20,
+        border_radius=20,
+        bgcolor=ft.Colors.with_opacity(0.8, ft.Colors.WHITE),
+        visible=False,
+        content=ft.Column(
+            spacing=15,
+            controls=[
+                tematica_container,
+                contenedor_colores,
+                campo_mensaje,
+            ]
+        )
     )
 
     # --- 3. Construcción del Layout Final ---
     contenido_superpuesto = ft.Column(
         expand=True,
         controls=[
-            ft.Container(  # Banner
+            ft.Container(
                 height=67, bgcolor="#89C5B0", alignment=ft.alignment.center,
                 content=ft.Text('Para envío gratuito en compras de $500 o más', color=ft.Colors.WHITE, size=36,
                                 font_family="Bebas Neue")
@@ -1441,11 +1483,10 @@ def vista_decorado(page: ft.Page, use_cases: PedidoUseCases):
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     scroll=ft.ScrollMode.ADAPTIVE,
                     controls=[
-                        #ft.Image(src="Logo Pepe.png", width=250),
-                        ft.Text("Paso 8: Elige el Decorado", size=40, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE,
-                                text_align=ft.TextAlign.CENTER),
-                        carrusel_decorado,
-                        ft.Text("Elige un detalle:", color=ft.Colors.WHITE, visible=carrusel_sub_opciones.visible),
+                        ft.Image(src="Logo Pepe.png", width=250),
+                        ft.Text("Paso 8.1: Detalla tu Decorado", size=40, weight=ft.FontWeight.BOLD,
+                                color=ft.Colors.WHITE, text_align=ft.TextAlign.CENTER),
+                        ft.Text("Elige un detalle:", color=ft.Colors.WHITE),
                         carrusel_sub_opciones,
                         panel_principal,
                     ]
@@ -1455,9 +1496,8 @@ def vista_decorado(page: ft.Page, use_cases: PedidoUseCases):
                 alignment=ft.MainAxisAlignment.CENTER,
                 spacing=20,
                 controls=[
-                    crear_boton_navegacion("Volver", lambda _: page.go("/cobertura"), es_primario=False),
-                    crear_boton_navegacion("Restablecer", restablecer_decorado, es_primario=False,
-                                           bgcolor=ft.Colors.AMBER_300),
+                    crear_boton_navegacion("Volver", lambda _: page.go("/decorado1"), es_primario=False),
+                    crear_boton_navegacion("Restablecer", restablecer, es_primario=False, bgcolor=ft.Colors.AMBER_300),
                     crear_boton_navegacion("Continuar", lambda _: page.go("/extras"), ref=ref_boton_continuar,
                                            disabled=True)
                 ]
@@ -1475,10 +1515,241 @@ def vista_decorado(page: ft.Page, use_cases: PedidoUseCases):
     )
 
     return ft.View(
-        route="/decorado",
+        route="/decorado2",
         controls=[layout_final],
         padding=0
     )
+
+
+# def vista_decorado(page: ft.Page, use_cases: PedidoUseCases):
+#     # --- 1. Lógica y Manejadores ---
+#     ref_boton_continuar = ft.Ref[ft.Container]()
+#
+#     # Manejador para el campo de texto de la temática (definido una sola vez)
+#     def on_text_tematica_change(e):
+#         use_cases.guardar_detalle_decorado("Liso c/s Conchas de Betún", "Diseño o Temática", e.control.value)
+#         check_continuar()
+#
+#     # Controles dinámicos que irán DENTRO del panel blanco
+#     campo_mensaje = ft.TextField(label="Mensaje en el pastel (opcional)")
+#     tematica_container = ft.Column(
+#         visible=False,
+#         controls=[
+#             ft.TextField(label="Escribe la temática o personaje", on_change=on_text_tematica_change),
+#             ft.Text("El material será acetato no comestible.", italic=True, size=12, color=ft.Colors.BLACK54)
+#         ]
+#     )
+#     dd_color1 = ft.Dropdown(label="Color Principal", expand=True)
+#     dd_color2 = ft.Dropdown(label="Color Secundario (opcional)", expand=True)
+#     contenedor_colores = ft.Row(controls=[dd_color1, dd_color2], visible=False)
+#
+#     # Carrusel para las sub-opciones
+#     carrusel_sub_opciones = ft.Row(scroll=ft.ScrollMode.ALWAYS, spacing=15, visible=False)
+#
+#     # El panel blanco AHORA SOLO CONTIENE los campos de captura
+#     panel_principal = ft.Container(
+#         padding=20,
+#         border_radius=20,
+#         bgcolor=ft.Colors.with_opacity(0.8, ft.Colors.WHITE),
+#         visible=False,  # Empieza oculto
+#         content=ft.Column(
+#             spacing=15,
+#             controls=[
+#                 tematica_container,
+#                 contenedor_colores,
+#                 campo_mensaje,
+#             ]
+#         )
+#     )
+#
+#     def check_continuar():
+#         pedido = use_cases.obtener_pedido_actual()
+#         listo = False
+#         if pedido.tipo_decorado == "Liso c/s Conchas de Betún":
+#             if pedido.decorado_liso_detalle and pedido.decorado_liso_color1:
+#                 if pedido.decorado_liso_detalle == "Diseño o Temática":
+#                     if pedido.decorado_tematica_detalle:
+#                         listo = True
+#                 else:
+#                     listo = True
+#         if ref_boton_continuar.current:
+#             ref_boton_continuar.current.disabled = not listo
+#         page.update()
+#
+#     def on_color_change(e):
+#         use_cases.seleccionar_colores_decorado(dd_color1.value, dd_color2.value)
+#         check_continuar()
+#
+#     dd_color1.on_change = on_color_change
+#     dd_color2.on_change = on_color_change
+#
+#     def on_sub_opcion_liso_click(e):
+#         detalle = e.control.data
+#         use_cases.guardar_detalle_decorado("Liso c/s Conchas de Betún", detalle)
+#
+#         for btn in carrusel_sub_opciones.controls:
+#             btn.border = ft.border.all(3, ft.Colors.GREEN_500) if btn == e.control else None
+#
+#         colores_disponibles = use_cases.obtener_colores_disponibles()
+#         opciones_color = [ft.dropdown.Option(color) for color in colores_disponibles] or [
+#             ft.dropdown.Option(key="no-color", text="No hay opciones", disabled=True)]
+#
+#         dd_color1.options = opciones_color
+#         dd_color2.options = opciones_color
+#         dd_color1.value = None
+#         dd_color2.value = None
+#
+#         panel_principal.visible = True
+#         contenedor_colores.visible = True
+#         campo_mensaje.visible = True
+#
+#         if detalle == "Diseño o Temática":
+#             tematica_container.visible = True
+#         else:
+#             tematica_container.visible = False
+#
+#         check_continuar()
+#         page.update()
+#
+#     def crear_tarjeta_decorado(texto: str, imagen_src: str, on_click_handler, data=None):
+#         return ft.Container(
+#                     width=226,
+#                     height=200,
+#                     bgcolor=ft.Colors.WHITE,
+#                     border_radius=ft.border_radius.all(20),
+#                     shadow=ft.BoxShadow(
+#                         spread_radius=1, blur_radius=8,
+#                         color=ft.Colors.with_opacity(0.2, ft.Colors.BLACK),
+#                         offset=ft.Offset(4, 4)
+#                     ),
+#                     content=ft.Column(
+#                         spacing=10,
+#                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+#                         controls=[
+#                             ft.Container(
+#                                 width=226, height=110,
+#                                 clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
+#                                 border_radius=ft.border_radius.only(top_left=20, top_right=20),
+#                                 content=ft.Image(src=imagen_src, fit=ft.ImageFit.COVER)
+#                             ),
+#                             ft.Container(
+#                                 expand=True,
+#                                 alignment=ft.alignment.center,
+#                                 content=ft.Text(texto, size=18, font_family="Bebas Neue", text_align=ft.TextAlign.CENTER)
+#                             )
+#                         ]
+#                     ),
+#                     on_click=on_click_handler,
+#                     data=data or texto
+#                 )
+#
+#     def on_decorado_principal_click(e):
+#         tipo_decorado = e.control.data
+#         use_cases.seleccionar_tipo_decorado(tipo_decorado)
+#
+#         for card in carrusel_decorado.controls:
+#             card.border = ft.border.all(3, ft.Colors.GREEN_500) if card == e.control else None
+#
+#         if tipo_decorado == "Imágenes Prediseñadas":
+#             page.go("/galeria")
+#             return
+#
+#         carrusel_sub_opciones.visible = True
+#         panel_principal.visible = False  # Oculta el panel hasta que se elija sub-opción
+#
+#         carrusel_sub_opciones.controls.clear()
+#         #detalles_liso = ["Chantilli", "Chorreado", "Diseño o Temática"]
+#         detalles_liso = [
+#             {"nombre": "Chantilli", "imagen": "decorado/chantilli.png"},
+#             {"nombre": "Chorreado", "imagen": "decorado/chorreado.png"},
+#             {"nombre": "Diseño o Temática", "imagen": "decorado/tematica.png"},
+#         ]
+#         for opcion in detalles_liso:
+#             carrusel_sub_opciones.controls.append(
+#                 crear_tarjeta_decorado(opcion["nombre"], opcion["imagen"], on_sub_opcion_liso_click)
+#             )
+#         page.update()
+#
+#     def restablecer_decorado(e):
+#         # use_cases.reiniciar_decorado()
+#         # for card in carrusel_decorado.controls:
+#         #     card.border = None
+#         use_cases.iniciar_nuevo_pedido()
+#         page.go("/")
+#
+#         carrusel_sub_opciones.visible = False
+#         panel_principal.visible = False
+#         if ref_boton_continuar.current:
+#             ref_boton_continuar.current.disabled = True
+#         page.update()
+#
+#     # --- 2. Construcción de Componentes Visuales ---
+#     carrusel_decorado = ft.Row(
+#         scroll=ft.ScrollMode.ALWAYS,
+#         spacing=30,
+#         controls=[
+#             crear_tarjeta_seleccion("Liso c/s Conchas de Betún", "decorado/liso2.png",
+#                                     on_decorado_principal_click),
+#             crear_tarjeta_seleccion("Imágenes Prediseñadas", "decorado/imagenes.png",
+#                                     on_decorado_principal_click),
+#         ]
+#     )
+#
+#     # --- 3. Construcción del Layout Final ---
+#     contenido_superpuesto = ft.Column(
+#         expand=True,
+#         controls=[
+#             ft.Container(  # Banner
+#                 height=67, bgcolor="#89C5B0", alignment=ft.alignment.center,
+#                 content=ft.Text('Para envío gratuito en compras de $500 o más', color=ft.Colors.WHITE, size=36,
+#                                 font_family="Bebas Neue")
+#             ),
+#             ft.Container(
+#                 expand=True,
+#                 alignment=ft.alignment.center,
+#                 content=ft.Column(
+#                     spacing=20,
+#                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+#                     scroll=ft.ScrollMode.ADAPTIVE,
+#                     controls=[
+#                         ft.Image(src="Logo Pepe.png", width=250),
+#                         ft.Text("Paso 8: Elige el Decorado", size=40, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE,
+#                                 text_align=ft.TextAlign.CENTER),
+#                         carrusel_decorado,
+#                         ft.Text("Elige un detalle:", color=ft.Colors.WHITE, visible=carrusel_sub_opciones.visible),
+#                         carrusel_sub_opciones,
+#                         panel_principal,
+#                     ]
+#                 )
+#             ),
+#             ft.Row(
+#                 alignment=ft.MainAxisAlignment.CENTER,
+#                 spacing=20,
+#                 controls=[
+#                     crear_boton_navegacion("Volver", lambda _: page.go("/cobertura"), es_primario=False),
+#                     crear_boton_navegacion("Restablecer", restablecer_decorado, es_primario=False,
+#                                            bgcolor=ft.Colors.AMBER_300),
+#                     crear_boton_navegacion("Continuar", lambda _: page.go("/extras"), ref=ref_boton_continuar,
+#                                            disabled=True)
+#                 ]
+#             ),
+#             ft.Container(height=30)
+#         ]
+#     )
+#
+#     layout_final = ft.Stack(
+#         controls=[
+#             ft.Image(src="fondo_hd.png", fit=ft.ImageFit.COVER, expand=True),
+#             ft.Container(bgcolor=ft.Colors.with_opacity(0.4, ft.Colors.BLACK), expand=True),
+#             contenido_superpuesto,
+#         ]
+#     )
+#
+#     return ft.View(
+#         route="/decorado",
+#         controls=[layout_final],
+#         padding=0
+#     )
 
 
 def vista_galeria(page: ft.Page, use_cases: PedidoUseCases):
@@ -1543,7 +1814,7 @@ def vista_galeria(page: ft.Page, use_cases: PedidoUseCases):
                     content=ft.Stack(
                         [
                             ft.Image(
-                                src=img.ruta,  # Asumo que es 'ruta' y no 'url'
+                                src=img.ruta,
                                 fit=ft.ImageFit.COVER,
                             ),
                             ft.Container(
@@ -1600,7 +1871,7 @@ def vista_galeria(page: ft.Page, use_cases: PedidoUseCases):
                     expand=True,
                     controls=[
                         ft.Row([
-                            ft.IconButton(ft.Icons.ARROW_BACK, on_click=lambda _: page.go("/decorado"),
+                            ft.IconButton(ft.Icons.ARROW_BACK, on_click=lambda _: page.go("/decorado1"),
                                           tooltip="Volver", icon_color=ft.Colors.WHITE),
                             ft.Text("Galería de Imágenes", size=30, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE)
                         ]),
@@ -1631,8 +1902,6 @@ def vista_galeria(page: ft.Page, use_cases: PedidoUseCases):
 
 def vista_extras(page: ft.Page, use_cases: PedidoUseCases):
     texto_precio = ft.Text(value="$0.00", size=24, weight=ft.FontWeight.BOLD, color=ft.Colors.BLACK54)
-
-
 
     def on_cantidad_change(e):
         cantidad_valida = 0
@@ -1768,7 +2037,7 @@ def vista_extras(page: ft.Page, use_cases: PedidoUseCases):
                 ft.Row(
                     [
                         ft.Text("Costo Adicional:", size=20),
-                        texto_precio  # <-- Mostramos el precio aquí
+                        texto_precio
                     ],
                     alignment=ft.MainAxisAlignment.CENTER
                 )
@@ -2002,10 +2271,8 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_
 
 def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases, pedido_use_cases: PedidoUseCases):
     ticket_finalizado = use_cases.finalizar_y_obtener_ticket()
-
-    if ticket_finalizado:
-        use_cases.finalizar_y_calcular_total()
-        #use_cases.imprimir_ticket_por_folio(ticket_finalizado.id_pedido)
+    # Ya no llamar a finalizar_y_calcular_total para evitar doble guardado/POST
+    # use_cases.imprimir_ticket_por_folio(ticket_finalizado.id_pedido)
 
     def animar_entrada():
         import time
@@ -2043,9 +2310,33 @@ def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases, pedido
                 ]
             )
 
+        # Formateador de moneda
+        def mxn(v):
+            try:
+                return f"${v:,.2f}"
+            except Exception:
+                return f"${v}"
+
+        # Detalle del extra (por si es Flor Artificial multiplicada)
+        extra_detalle = ""
+        if ticket_finalizado.extra_seleccionado:
+            if ticket_finalizado.extra_seleccionado == "Flor Artificial" and (ticket_finalizado.extra_flor_cantidad or 0) > 0:
+                unit = (ticket_finalizado.extra_costo or 0.0) / (ticket_finalizado.extra_flor_cantidad or 1)
+                extra_detalle = f"{ticket_finalizado.extra_seleccionado} ({ticket_finalizado.extra_flor_cantidad} x {mxn(unit)})"
+            else:
+                extra_detalle = ticket_finalizado.extra_seleccionado
+
+        # Obtener 'incluye' de la configuración del pastel (si está disponible)
+        config = pedido_use_cases.obtener_precio_pastel_configurado()
+        incluye_texto = getattr(config, 'incluye', "") if config else ""
+
         bs_detalle = ft.BottomSheet(
             content=ft.Container(
+                height=int(page.height * 0.90),
+                padding=20,
                 content=ft.Column(
+                    expand=True,
+                    scroll=ft.ScrollMode.ADAPTIVE,
                     controls=[
                         ft.Row(
                             alignment=ft.MainAxisAlignment.END,
@@ -2074,10 +2365,45 @@ def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases, pedido
                         ft.Text(f"Cliente: {ticket_finalizado.nombre_cliente} ({ticket_finalizado.telefono_cliente})"),
                         ft.Text(
                             f"Dirección: {ticket_finalizado.direccion_cliente} #{ticket_finalizado.num_ext_cliente}, {ticket_finalizado.colonia_cliente}, {ticket_finalizado.ciudad_cliente}, {ticket_finalizado.estado_cliente}, CP: {ticket_finalizado.cp_cliente}"),
+                        ft.Divider(height=15),
+                        ft.Text("Resumen de montos", size=16, weight=ft.FontWeight.BOLD),
+                        ft.Container(
+                            padding=10,
+                            bgcolor=ft.Colors.with_opacity(0.05, ft.Colors.BLACK),
+                            border_radius=10,
+                            content=ft.Column(
+                                spacing=6,
+                                controls=[
+                                    ft.Row(
+                                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                        controls=[ft.Text("Precio del pastel"), ft.Text(mxn(ticket_finalizado.precio_pastel or 0))]
+                                    ),
+                                    ft.Row(
+                                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                        controls=[
+                                            ft.Text("Extra" + (f" – {extra_detalle}" if extra_detalle else "")),
+                                            ft.Text(mxn(ticket_finalizado.extra_costo or 0))
+                                        ]
+                                    ),
+                                    ft.Divider(height=10),
+                                    ft.Row(
+                                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                        controls=[ft.Text("Total", weight=ft.FontWeight.W_700), ft.Text(mxn(ticket_finalizado.total or 0), weight=ft.FontWeight.W_700)]
+                                    ),
+                                ]
+                            )
+                        ),
+                        ft.Container(height=10),
+                        ft.Text("Incluye", size=16, weight=ft.FontWeight.BOLD),
+                        ft.Container(
+                            padding=10,
+                            bgcolor=ft.Colors.with_opacity(0.05, ft.Colors.BLACK),
+                            border_radius=10,
+                            content=ft.Text(incluye_texto)
+                        ),
 
                     ]
                 ),
-                padding=20
             ),
             open=True,  # Lo abrimos inmediatamente
             on_dismiss=lambda _: page.update()  # Para que la página se actualice al cerrar

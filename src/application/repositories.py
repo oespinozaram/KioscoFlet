@@ -158,6 +158,9 @@ class Ticket(NamedTuple):
     precio_pastel: float
     monto_deposito: float
     total: float
+    tamano_peso: str
+    tamano_descripcion: str
+    imagen_pastel: str
 
 
 class FinalizarPedidoRepository(ABC):
@@ -185,6 +188,7 @@ class TamanoRepository(ABC):
 class PastelConfigurado(NamedTuple):
     precio_final: float
     monto_deposito: float
+    incluye: str
 
 
 class PastelConfiguradoRepository(ABC):

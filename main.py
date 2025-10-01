@@ -1,5 +1,114 @@
 # main.py
 import flet as ft
+import os
+import sys
+import threading
+import time
+from datetime import datetime
+import msvcrt
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+# === Watchdog integration flags (optional, defensive) ===
+ENABLE_HEARTBEAT = os.getenv("ENABLE_HEARTBEAT", "1") == "1"
+ENABLE_HEALTH_HTTP = os.getenv("ENABLE_HEALTH_HTTP", "1") == "1"
+ENABLE_FS_WATCH = os.getenv("ENABLE_FS_WATCH", "0") == "1"  # off by default
+
+HEARTBEAT_PATH = r"C:\\KioscoPP\\heartbeat.txt"
+HEARTBEAT_INTERVAL_SEC = 10
+_HEARTBEAT_STOP = threading.Event()
+
+# Lockfile for single-instance
+LOCKFILE_PATH = r"C:\\KioscoPP\\app.lock"
+_lockfile_handle = None
+
+def acquire_lock_or_exit():
+    global _lockfile_handle
+    try:
+        os.makedirs(os.path.dirname(LOCKFILE_PATH), exist_ok=True)
+        _lockfile_handle = open(LOCKFILE_PATH, "a+")
+        msvcrt.locking(_lockfile_handle.fileno(), msvcrt.LK_NBLCK, 1)
+    except OSError:
+        print("Otra instancia ya está corriendo. Saliendo sin error.")
+        raise SystemExit(0)
+
+
+def start_heartbeat():
+    if not ENABLE_HEARTBEAT:
+        return
+    os.makedirs(os.path.dirname(HEARTBEAT_PATH), exist_ok=True)
+
+    def _beat():
+        while not _HEARTBEAT_STOP.is_set():
+            try:
+                with open(HEARTBEAT_PATH, "w", encoding="utf-8") as f:
+                    f.write(datetime.now().isoformat())
+            except Exception as e:
+                print(f"[HB] Error escribiendo heartbeat: {e}")
+            for _ in range(HEARTBEAT_INTERVAL_SEC):
+                if _HEARTBEAT_STOP.is_set():
+                    break
+                time.sleep(1)
+
+    threading.Thread(target=_beat, daemon=True).start()
+
+
+def start_health_server(port: int = 35791):
+    if not ENABLE_HEALTH_HTTP:
+        return None
+
+    class HealthHandler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path == "/health":
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(b'{"status":"ok"}')
+            else:
+                self.send_response(404)
+                self.end_headers()
+
+        def log_message(self, format, *args):
+            return  # silenciar logs por consola
+
+    try:
+        server = HTTPServer(("127.0.0.1", port), HealthHandler)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        print(f"[HEALTH] Servidor de healthcheck en http://127.0.0.1:{port}/health")
+        return server
+    except OSError as e:
+        print(f"[HEALTH] No se pudo iniciar en puerto {port}: {e}. Desactivado.")
+        return None
+
+
+def start_fs_watch(path: str, on_change):
+    if not ENABLE_FS_WATCH:
+        print("[FS] Watch de archivos desactivado por configuración.")
+        return None
+    try:
+        from watchdog.observers import Observer
+        from watchdog.events import FileSystemEventHandler
+    except Exception:
+        print("[FS] Librería 'watchdog' no instalada; watch desactivado.")
+        return None
+
+    class _Handler(FileSystemEventHandler):
+        def __init__(self, cb):
+            self.cb = cb
+        def on_modified(self, event):
+            try:
+                self.cb(event.src_path)
+            except Exception as e:
+                print(f"[FS] Error en callback de cambio: {e}")
+
+    try:
+        observer = Observer()
+        observer.schedule(_Handler(on_change), path, recursive=False)
+        observer.start()
+        print(f"[FS] Observando cambios en: {path}")
+        return observer
+    except Exception as e:
+        print(f"[FS] No se pudo iniciar file watch: {e}")
+        return None
 
 from src.application.use_cases import PedidoUseCases, AuthUseCases, FinalizarPedidoUseCases
 from src.infrastructure.persistence.memory_repository import PedidoRepositoryEnMemoria
@@ -26,6 +135,26 @@ def main(page: ft.Page):
     #page.window.full_screen = True
 
     page.padding = 0
+
+    # --- Watchdog integrations (optional, defensivas) ---
+    # 1) Heartbeat a archivo para supervisores externos
+    start_heartbeat()
+
+    # 2) Servidor local de healthcheck HTTP
+    health_server = start_health_server(35791)
+
+    # 3) Observador de archivos opcional (desactivado por defecto)
+    fs_observer = None
+    def _on_fs_change(path_changed):
+        try:
+            page.snack_bar = ft.SnackBar(ft.Text(f"Actualizado: {os.path.basename(path_changed)}"))
+            page.snack_bar.open = True
+            page.update()
+        except Exception as e:
+            print(f"[FS] Error notificando cambio: {e}")
+
+    if ENABLE_FS_WATCH:
+        fs_observer = start_fs_watch(r"C:\\KioscoPP", _on_fs_change)
 
     page.fonts = {
         "Bebas Neue": "fuentes/BebasNeue-Regular.ttf",
@@ -107,16 +236,52 @@ def main(page: ft.Page):
     boton_restablecer_estilizado.width = page.width
 
     bs = ft.BottomSheet(
-        content=ft.Container(padding=20),
+        content=ft.Container(
+            height=int(page.height * 0.90),
+            padding=20,
+            content=ft.Column(expand=True, scroll=ft.ScrollMode.ADAPTIVE),
+        ),
         on_dismiss=cerrar_resumen,
+        show_drag_handle=True
     )
 
     def abrir_resumen(e):
+        # 1) Obtener pedido actual
         pedido = pedido_use_cases.obtener_pedido_actual()
 
+        # 2) Calcular/actualizar precios del pastel y obtener configuración (incluye)
+        config = pedido_use_cases.obtener_precio_pastel_configurado()
+
+        # Formateador de moneda
+        def mxn(v):
+            try:
+                return f"${v:,.2f}"
+            except Exception:
+                return f"${v}"
+
+        # 3) Determinar montos a mostrar
+        precio_pastel = (config.precio_final if config else (pedido.precio_pastel or 0.0))
+        # monto_deposito actualmente no se muestra; disponible si se requiere
+
+        # Extra: si es Flor Artificial con cantidad, multiplicar
+        extra_monto = pedido.extra_precio or 0.0
+        extra_detalle = ""
+        if pedido.extra_seleccionado:
+            if pedido.extra_seleccionado == "Flor Artificial" and (pedido.extra_flor_cantidad or 0) > 0:
+                unit = pedido.extra_precio or 0.0
+                qty = pedido.extra_flor_cantidad or 0
+                extra_monto = unit * qty
+                extra_detalle = f"{pedido.extra_seleccionado} ({qty} x {mxn(unit)})"
+            else:
+                extra_detalle = pedido.extra_seleccionado
+
+        total_mostrar = (precio_pastel or 0.0) + (extra_monto or 0.0)
+
+        # 4) Nombre de la categoría
         categorias = {c.id: c.nombre for c in pedido_use_cases.obtener_categorias()}
         nombre_categoria = categorias.get(pedido.id_categoria, "N/A")
 
+        # 5) Construir contenido del BottomSheet con montos e 'Incluye'
         bs.content.content = ft.Column(
             controls=[
                 ft.Row(
@@ -137,12 +302,52 @@ def main(page: ft.Page):
                         ], expand=1),
                     ]
                 ),
-                ft.Divider(height=20),
+                ft.Divider(height=15),
+
+                # === Sección de montos ===
+                ft.Text("Resumen de montos", size=16, weight=ft.FontWeight.BOLD),
+                ft.Container(
+                    padding=10,
+                    bgcolor=ft.Colors.with_opacity(0.05, ft.Colors.BLACK),
+                    border_radius=10,
+                    content=ft.Column(
+                        spacing=6,
+                        controls=[
+                            ft.Row(
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                controls=[ft.Text("Precio del pastel"), ft.Text(mxn(precio_pastel))]
+                            ),
+                            ft.Row(
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                controls=[
+                                    ft.Text("Extra" + (f" – {extra_detalle}" if extra_detalle else "")),
+                                    ft.Text(mxn(extra_monto))
+                                ]
+                            ),
+                            ft.Divider(height=10),
+                            ft.Row(
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                controls=[ft.Text("Total", weight=ft.FontWeight.W_700), ft.Text(mxn(total_mostrar), weight=ft.FontWeight.W_700)]
+                            ),
+                        ]
+                    )
+                ),
+
+                # === Sección "Incluye" ===
+                ft.Container(height=10),
+                ft.Text("Incluye", size=16, weight=ft.FontWeight.BOLD),
+                ft.Container(
+                    padding=10,
+                    bgcolor=ft.Colors.with_opacity(0.05, ft.Colors.BLACK),
+                    border_radius=10,
+                    content=ft.Text((config.incluye if config else ""))
+                ),
+
+                ft.Divider(height=15),
                 ft.Row(
                     alignment=ft.MainAxisAlignment.SPACE_AROUND,
                     controls=[
-                        crear_fila_resumen("fecha.png", "Fecha de Entrega", pedido.fecha_entrega.strftime(
-                            '%d/%m/%Y') if pedido.fecha_entrega else "N/A"),
+                        crear_fila_resumen("fecha.png", "Fecha de Entrega", pedido.fecha_entrega.strftime('%d/%m/%Y') if pedido.fecha_entrega else "N/A"),
                         crear_fila_resumen("hora.png", "Hora de Entrega", pedido.hora_entrega),
                     ]
                 ),
@@ -181,8 +386,10 @@ def main(page: ft.Page):
             page.views.append(views.vista_relleno(page, pedido_use_cases))
         elif page.route == "/cobertura":
             page.views.append(views.vista_cobertura(page, pedido_use_cases))
-        elif page.route == "/decorado":
-            page.views.append(views.vista_decorado(page, pedido_use_cases))
+        elif page.route == "/decorado1":
+            page.views.append(views.vista_decorado1(page, pedido_use_cases))
+        elif page.route == "/decorado2":
+            page.views.append(views.vista_decorado2(page, pedido_use_cases))
         elif page.route == "/galeria":
             page.views.append(views.vista_galeria(page, pedido_use_cases))
         elif page.route == "/extras":
@@ -205,6 +412,23 @@ def main(page: ft.Page):
         else:
             # Confirm before exiting to prevent accidental app closure
             def confirmar_salida(e):
+                # Apagar integraciones de watchdog de forma limpia
+                try:
+                    _HEARTBEAT_STOP.set()
+                except Exception:
+                    pass
+                try:
+                    if health_server:
+                        health_server.shutdown()
+                except Exception:
+                    pass
+                try:
+                    if fs_observer:
+                        fs_observer.stop()
+                        fs_observer.join(timeout=3)
+                except Exception:
+                    pass
+
                 dlg.open = False
                 page.update()
                 page.window.destroy()
@@ -233,7 +457,18 @@ def main(page: ft.Page):
 
 
 if __name__ == "__main__":
-    ft.app(target=main, assets_dir="assets")
+    try:
+        acquire_lock_or_exit()
+    except SystemExit:
+        raise
+    try:
+        ft.app(target=main, assets_dir="assets")
+        sys.exit(0)
+    except KeyboardInterrupt:
+        sys.exit(0)
+    except Exception as e:
+        print(f"[FATAL] Error inesperado: {e}")
+        sys.exit(1)
 
 
 

@@ -217,7 +217,7 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
                           p.municipio, p.referencias, p.decorado_liso_color1, p.decorado_liso_color2, p.mensaje_pastel, 
                           p.extra_flor_cantidad, p.tipo_decorado, p.decorado_liso_detalle, p.decorado_liso_color, 
                           p.decorado_tematica_detalle, p.decorado_imagen_id, p.extra_seleccionado, p.extra_costo, 
-                          p.precio_pastel, p.monto_deposito, p.total, c.nombre_categoria
+                          p.precio_pastel, p.monto_deposito, p.total, c.nombre_categoria, tamano_peso, tamano_descripcion, imagen_pastel
                    FROM pedidos p
                    JOIN categorias c ON p.id_categoria = c.id_categoria
                    WHERE p.id_pedido = ?"""
@@ -262,7 +262,10 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
                                   precio_pastel=row[32],
                                   monto_deposito=row[33],
                                   total=row[34],
-                                  nombre_categoria=row[35]
+                                  nombre_categoria=row[35],
+                                  tamano_peso=row[36],
+                                  tamano_descripcion=row[37],
+                                  imagen_pastel=row[38],
                                   )
         except sqlite3.Error as e:
             print(f"Error al obtener el pedido por ID: {e}")
@@ -398,7 +401,12 @@ class PastelConfiguradoRepositorySQLite(PastelConfiguradoRepository):
         self.db_path = db_path
 
     def obtener_configuracion(self, id_cat: int, id_pan: int, id_forma: int, id_tam: int) -> PastelConfigurado | None:
-        query = """
+        query_con_incluye = """
+            SELECT precio_final, monto_deposito, incluye FROM pasteles_configurados
+            WHERE id_categoria = ? AND id_tipo_pan_seleccionado = ?
+            AND id_tipo_forma_seleccionada = ? AND id_tipo_tamano_seleccionado = ?
+        """
+        query_sin_incluye = """
             SELECT precio_final, monto_deposito FROM pasteles_configurados
             WHERE id_categoria = ? AND id_tipo_pan_seleccionado = ?
             AND id_tipo_forma_seleccionada = ? AND id_tipo_tamano_seleccionado = ?
@@ -406,9 +414,22 @@ class PastelConfiguradoRepositorySQLite(PastelConfiguradoRepository):
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute(query, (id_cat, id_pan, id_forma, id_tam))
-                result = cursor.fetchone()
-                return PastelConfigurado(precio_final=float(result[0]), monto_deposito=float(result[1])) if result else None
+                try:
+                    cursor.execute(query_con_incluye, (id_cat, id_pan, id_forma, id_tam))
+                    result = cursor.fetchone()
+                    if result:
+                        precio_final = float(result[0]) if result[0] is not None else 0.0
+                        monto_deposito = float(result[1]) if result[1] is not None else 0.0
+                        incluye = result[2] or ""
+                        return PastelConfigurado(precio_final=precio_final, monto_deposito=monto_deposito, incluye=incluye)
+                except sqlite3.Error:
+                    # Fallback si la columna 'incluye' no existe aún
+                    cursor.execute(query_sin_incluye, (id_cat, id_pan, id_forma, id_tam))
+                    result = cursor.fetchone()
+                    if result:
+                        precio_final = float(result[0]) if result[0] is not None else 0.0
+                        monto_deposito = float(result[1]) if result[1] is not None else 0.0
+                        return PastelConfigurado(precio_final=precio_final, monto_deposito=monto_deposito, incluye="")
         except sqlite3.Error as e:
             print(f"Error al obtener precio: {e}")
         return None

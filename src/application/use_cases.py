@@ -560,7 +560,7 @@ class FinalizarPedidoUseCases:
         pedido.extra_costo = extra_costo
         pedido.total = total
 
-        self.generar_y_guardar_codigo_imagen()
+        #self.generar_y_guardar_codigo_imagen()
 
         id_nuevo_pedido = self.finalizar_repo.guardar(pedido)
 
@@ -573,25 +573,7 @@ class FinalizarPedidoUseCases:
                     return True
                 except Exception as e:
                     print(f"ERROR: Falló el proceso de impresión: {e}")
-                # finally:
-                #     if ruta_impresion and os.path.exists(ruta_impresion):
-                #         time.sleep(2)
-                #         os.remove(ruta_impresion)
-                #         print(f"INFO: Archivo temporal '{ruta_impresion}' eliminado.")
         return False
-
-
-    # def imprimir_ticket_por_folio(self, id_pedido: int):
-    #     ticket = self.finalizar_repo.obtener_por_id(id_pedido)
-    #     if ticket:
-    #         try:
-    #             #ruta_pdf = self.printing_service.generar_ticket_pdf(ticket)
-    #
-    #             #self.printing_service.enviar_a_impresora(ruta_pdf)
-    #             self.printing_service.print_ticket(ticket)
-    #             return True
-    #         except Exception as e:
-    #             print(f"ERROR: Falló el proceso de impresión: {e}")
 
 
     def obtener_nombre_categoria(self, id_categoria: int) -> str:
@@ -599,8 +581,32 @@ class FinalizarPedidoUseCases:
         return categoria.nombre if categoria else "Desconocida"
 
     def finalizar_y_obtener_ticket(self) -> Ticket | None:
-        pedido_actual = self.pedido_repo.obtener()
-        id_nuevo_pedido = self.finalizar_repo.guardar(pedido_actual)
+        pedido = self.pedido_repo.obtener()
+
+        # Calcular precios y totales ANTES de guardar para que la API reciba los valores correctos
+        config = self.pastel_config_repo.obtener_configuracion(
+            id_cat=pedido.id_categoria,
+            id_pan=pedido.id_pan,
+            id_forma=pedido.id_forma,
+            id_tam=pedido.id_tamano
+        )
+
+        precio_pastel = config.precio_final if config else 0.0
+        monto_deposito = config.monto_deposito if config else 0.0
+
+        extra_costo = pedido.extra_precio or 0.0
+        if pedido.extra_seleccionado == "Flor Artificial" and pedido.extra_flor_cantidad:
+            extra_costo *= pedido.extra_flor_cantidad
+
+        total = precio_pastel + extra_costo
+
+        pedido.precio_pastel = precio_pastel
+        pedido.monto_deposito = monto_deposito
+        pedido.extra_costo = extra_costo
+        pedido.total = total
+
+        # Guardar una sola vez (local + API vía repositorio compuesto)
+        id_nuevo_pedido = self.finalizar_repo.guardar(pedido)
         if id_nuevo_pedido:
             return self.finalizar_repo.obtener_por_id(id_nuevo_pedido)
         return None
