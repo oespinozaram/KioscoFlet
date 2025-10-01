@@ -415,7 +415,10 @@ class PastelConfiguradoRepositorySQLite(PastelConfiguradoRepository):
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 try:
-                    cursor.execute(query_con_incluye, (id_cat, id_pan, id_forma, id_tam))
+                    if id_cat == 1:
+                        cursor.execute(query_con_incluye, (id_cat, id_pan, id_forma, id_tam))
+                    else:
+                        cursor.execute(query_con_incluye, (id_cat, 1, id_forma, id_tam))
                     result = cursor.fetchone()
                     if result:
                         precio_final = float(result[0]) if result[0] is not None else 0.0

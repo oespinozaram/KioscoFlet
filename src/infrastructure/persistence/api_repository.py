@@ -58,6 +58,10 @@ class FinalizarPedidoRepositoryAPI(FinalizarPedidoRepository):
             "extra_seleccionado": pedido.extra_seleccionado or "",
             "extra_costo": pedido.extra_costo or 0,
             "total": pedido.total or 0,
+            "monto_deposito": pedido.monto_deposito or 0,
+            "nombre_categoria": pedido.nombre_categoria or "",
+            "tamano_descripcion": pedido.tamano_descripcion or "",
+            "tamano_peso": pedido.tamano_peso or "",
         }
 
         try:
