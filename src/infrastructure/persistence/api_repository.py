@@ -13,9 +13,9 @@ class FinalizarPedidoRepositoryAPI(FinalizarPedidoRepository):
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT id_sucursal FROM sucursal LIMIT 1")
+                cursor.execute("SELECT nSucursalPK FROM Sucursales LIMIT 1")
                 result = cursor.fetchone()
-                return result[0] if result else 1
+                return int(result[0]) if result and result[0] is not None else 1
         except sqlite3.Error as e:
             print(f"Error obteniendo ID de sucursal: {e}")
             return 1
@@ -62,17 +62,18 @@ class FinalizarPedidoRepositoryAPI(FinalizarPedidoRepository):
             "nombre_categoria": pedido.nombre_categoria or "",
             "tamano_descripcion": pedido.tamano_descripcion or "",
             "tamano_peso": pedido.tamano_peso or "",
+            "edad_pastel": pedido.edad_pastel or "",
         }
 
         try:
-            response = requests.post(self.api_url, json=payload)
-            response.raise_for_status()
+            #response = requests.post(self.api_url, json=payload)
+            #response.raise_for_status()
 
-            response_data = response.json()
-            nuevo_id = response_data.get("id", 0)
-            print(f"INFO: Pedido enviado al web service. Nuevo ID: {nuevo_id}")
-            return nuevo_id
-
+            #response_data = response.json()
+            #nuevo_id = response_data.get("id", 0)
+            #print(f"INFO: Pedido enviado al web service. Nuevo ID: {nuevo_id}")
+            #return nuevo_id
+            print("hola")
         except requests.exceptions.RequestException as e:
             print(f"ERROR: No se pudo enviar el pedido al web service: {e}")
             return 0

@@ -319,6 +319,12 @@ class PedidoUseCases:
         pedido.tamano_pastel = tamanos[0] if tamanos else None
         self.pedido_repo.guardar(pedido)
 
+    def guardar_edad_pastel(self, edad: int | None):
+        """Guarda la edad para el pastel en el pedido."""
+        pedido = self.pedido_repo.obtener()
+        pedido.edad_pastel = edad
+        self.pedido_repo.guardar(pedido)
+
     def guardar_mensaje_pastel(self, mensaje: str):
         pedido = self.pedido_repo.obtener()
         pedido.mensaje_pastel = mensaje

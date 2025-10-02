@@ -155,8 +155,8 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
                                      numero_exterior, entre_calles, codigo_postal, colonia, ciudad, municipio, estado, \
                                      referencias, decorado_liso_color, 
                                      extra_costo, precio_pastel, monto_deposito, total, nombre_categoria, 
-                                     tamano_peso, tamano_descripcion, imagen_pastel) \
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) \
+                                     tamano_peso, tamano_descripcion, imagen_pastel, edad_pastel) \
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) \
                 """
 
         datos = (
@@ -197,7 +197,8 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
             pedido.nombre_categoria,
             pedido.tamano_peso,
             pedido.tamano_descripcion,
-            pedido.imagen_pastel
+            pedido.imagen_pastel,
+            pedido.edad_pastel,
         )
 
         try:
@@ -217,7 +218,8 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
                           p.municipio, p.referencias, p.decorado_liso_color1, p.decorado_liso_color2, p.mensaje_pastel, 
                           p.extra_flor_cantidad, p.tipo_decorado, p.decorado_liso_detalle, p.decorado_liso_color, 
                           p.decorado_tematica_detalle, p.decorado_imagen_id, p.extra_seleccionado, p.extra_costo, 
-                          p.precio_pastel, p.monto_deposito, p.total, c.nombre_categoria, tamano_peso, tamano_descripcion, imagen_pastel
+                          p.precio_pastel, p.monto_deposito, p.total, c.nombre_categoria, p.tamano_peso, p.tamano_descripcion, 
+                          p.imagen_pastel, p.edad_pastel
                    FROM pedidos p
                    JOIN categorias c ON p.id_categoria = c.id_categoria
                    WHERE p.id_pedido = ?"""
@@ -266,6 +268,7 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
                                   tamano_peso=row[36],
                                   tamano_descripcion=row[37],
                                   imagen_pastel=row[38],
+                                  edad_pastel=row[39],
                                   )
         except sqlite3.Error as e:
             print(f"Error al obtener el pedido por ID: {e}")

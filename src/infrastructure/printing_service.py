@@ -1,5 +1,6 @@
 import os
 import platform
+import sqlite3
 from src.application.repositories import Ticket
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch, mm
@@ -8,6 +9,17 @@ from barcode.writer import ImageWriter
 
 
 class PrintingService:
+
+    def _obtener_n_sucursal_pk(self, db_path: str = r"C:/KioscoPP/config.db") -> int:
+        try:
+            with sqlite3.connect(db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT nSucursalPK FROM Sucursales LIMIT 1")
+                row = cursor.fetchone()
+                return int(row[0]) if row and row[0] is not None else 1
+        except Exception as e:
+            print(f"WARN: No se pudo leer nSucursalPK desde Sucursales: {e}. Usando 1 por defecto.")
+            return 1
 
     def generar_ticket_pdf(self, ticket: Ticket) -> str:
         file_path = f"ticket_{ticket.id_pedido}.pdf"
@@ -21,12 +33,14 @@ class PrintingService:
 
         # --- 1. Generar la imagen del código de barras ---
         CODE128 = barcode.get_barcode_class('code128')
-        writer = ImageWriter(format='PNG')
+        writer = ImageWriter()
         # Usamos zfill para asegurar una longitud mínima, es una buena práctica
         folio_str = str(ticket.id_pedido).zfill(6)
-        codigo_barras = CODE128(folio_str, writer=writer)
-        barcode_path = f"barcode_{ticket.id_pedido}.png"
-        codigo_barras.write(barcode_path)
+        n_sucursal_pk = self._obtener_n_sucursal_pk()
+        c_identificador = f"KIO.- {folio_str} - {n_sucursal_pk}"
+        codigo_barras = CODE128(c_identificador, writer=writer)
+        filename = f"barcode_{ticket.id_pedido}"
+        barcode_path = codigo_barras.save(filename)  # generará PNG con ImageWriter
 
         # --- 2. Dibujar el Ticket en el PDF ---
         y = height - (10 * mm)  # Posición vertical inicial
@@ -46,7 +60,7 @@ class PrintingService:
             width=barcode_width, height=barcode_height
         )
         y -= (15 * mm)
-        c.drawCentredString(width / 2, y, f"Folio: {folio_str}")
+        c.drawCentredString(width / 2, y, f"Folio: {c_identificador}")
         y -= (10 * mm)
 
         # Detalles del Pedido

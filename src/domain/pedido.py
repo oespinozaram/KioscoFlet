@@ -37,6 +37,7 @@ class Pedido:
         self.tamano_peso: str | None = None
         self.tamano_descripcion: str | None = None
         self.imagen_pastel: str | None = None
+        self.edad_pastel: int | None = None
 
     def reiniciar(self):
         self.id_pedido: int | None = None
@@ -81,6 +82,7 @@ class Pedido:
         self.tamano_peso: str | None = None
         self.tamano_descripcion: str | None = None
         self.imagen_pastel: str | None = None
+        self.edad_pastel: int | None = None
 
     def __str__(self):
         return f"Pedido(Categoria: {self.id_categoria}, Decorado: '{self.tipo_decorado}', Mensaje: '{self.mensaje_pastel}')"

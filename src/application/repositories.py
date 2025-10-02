@@ -161,6 +161,7 @@ class Ticket(NamedTuple):
     tamano_peso: str
     tamano_descripcion: str
     imagen_pastel: str
+    edad_pastel: str
 
 
 class FinalizarPedidoRepository(ABC):

@@ -1286,9 +1286,9 @@ def vista_decorado1(page: ft.Page, use_cases: PedidoUseCases):
         scroll=ft.ScrollMode.ALWAYS,
         spacing=30,
         controls=[
-            crear_tarjeta_seleccion("Liso c/s Conchas de Betún", "/assets/decorado/liso.png",
+            crear_tarjeta_seleccion("Liso c/s Conchas de Betún", "decorado/liso.png",
                                     on_decorado_principal_click),
-            crear_tarjeta_seleccion("Imágenes Prediseñadas", "/assets/decorado/imagenes.png",
+            crear_tarjeta_seleccion("Imágenes Prediseñadas", "decorado/imagenes.png",
                                     on_decorado_principal_click, ),
         ]
     )
@@ -1372,6 +1372,13 @@ def vista_decorado2(page: ft.Page, use_cases: PedidoUseCases):
         use_cases.seleccionar_colores_decorado(dd_color1.value, dd_color2.value)
         check_continuar()
 
+    def on_edad_change(e):
+        try:
+            edad = int(e.control.value) if e.control.value else None
+            use_cases.guardar_edad_pastel(edad)
+        except ValueError:
+            use_cases.guardar_edad_pastel(None)
+
     def check_continuar():
         pedido = use_cases.obtener_pedido_actual()
         listo = False
@@ -1451,6 +1458,13 @@ def vista_decorado2(page: ft.Page, use_cases: PedidoUseCases):
             crear_tarjeta_seleccion(opcion["nombre"], opcion["imagen"], on_sub_opcion_liso_click)
         )
 
+    campo_edad = ft.TextField(
+        label="Años a cumplir (si aplica)",
+        keyboard_type=ft.KeyboardType.NUMBER,
+        on_change=on_edad_change,
+        width=200 # Un ancho más pequeño
+    )
+
     panel_principal = ft.Container(
         padding=20,
         border_radius=20,
@@ -1462,9 +1476,12 @@ def vista_decorado2(page: ft.Page, use_cases: PedidoUseCases):
                 tematica_container,
                 contenedor_colores,
                 campo_mensaje,
+                campo_edad
             ]
         )
     )
+
+
 
     # --- 3. Construcción del Layout Final ---
     contenido_superpuesto = ft.Column(
@@ -2066,7 +2083,7 @@ def vista_extras(page: ft.Page, use_cases: PedidoUseCases):
                 alignment=ft.MainAxisAlignment.CENTER,
                 spacing=20,
                 controls=[
-                    crear_boton_navegacion("Volver", lambda _: page.go("/decorado"), es_primario=False),
+                    crear_boton_navegacion("Volver", lambda _: page.go("/decorado1"), es_primario=False),
                     crear_boton_navegacion("Restablecer", restablecer, es_primario=False, bgcolor=ft.Colors.AMBER_300),
                     crear_boton_navegacion("Continuar", lambda _: page.go("/datos_cliente")),
                 ]
@@ -2270,9 +2287,20 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_
 
 
 def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases, pedido_use_cases: PedidoUseCases):
+    from src.infrastructure.printing_service import PrintingService
     ticket_finalizado = use_cases.finalizar_y_obtener_ticket()
-    # Ya no llamar a finalizar_y_calcular_total para evitar doble guardado/POST
-    # use_cases.imprimir_ticket_por_folio(ticket_finalizado.id_pedido)
+    if not ticket_finalizado:
+        page.snack_bar = ft.SnackBar(ft.Text("No se pudo finalizar el pedido."))
+        page.snack_bar.open = True
+        page.go("/")
+        page.update()
+        return
+    try:
+        ps = PrintingService()
+        pdf_path = ps.generar_ticket_pdf(ticket_finalizado)
+        ps.enviar_a_impresora(pdf_path)
+    except Exception as e:
+        print(f"ERROR impresión: {e}")
 
     def animar_entrada():
         import time
