@@ -37,8 +37,6 @@ class TipoCobertura(NamedTuple):
 class TamanoPastel(NamedTuple):
     id: int
     nombre: str
-    descripcion: str
-    peso: str
 
 
 class Extra(NamedTuple):
@@ -190,6 +188,8 @@ class PastelConfigurado(NamedTuple):
     precio_final: float
     monto_deposito: float
     incluye: str
+    peso_pastel: str
+    medidas_pastel: str
 
 
 class PastelConfiguradoRepository(ABC):

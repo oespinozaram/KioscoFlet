@@ -90,8 +90,8 @@ class TamanoRepositorySQLite(TamanoRepository):
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT id_tipo_tamano, nombre_tamano, descripcion, peso FROM tipos_tamano ORDER BY nombre_tamano")
-                return [TamanoPastel(id=row[0], nombre=row[1], descripcion=row[2], peso=row[3]) for row in cursor.fetchall()]
+                cursor.execute("SELECT id_tipo_tamano, nombre_tamano FROM tipos_tamano ORDER BY id_tipo_tamano")
+                return [TamanoPastel(id=row[0], nombre=row[1]) for row in cursor.fetchall()]
         except sqlite3.Error as e:
             print(f"Error al leer la base de datos: {e}")
             return []
@@ -405,7 +405,7 @@ class PastelConfiguradoRepositorySQLite(PastelConfiguradoRepository):
 
     def obtener_configuracion(self, id_cat: int, id_pan: int, id_forma: int, id_tam: int) -> PastelConfigurado | None:
         query_con_incluye = """
-            SELECT precio_final, monto_deposito, incluye FROM pasteles_configurados
+            SELECT precio_final, monto_deposito, incluye, peso_pastel, medidas_pastel FROM pasteles_configurados
             WHERE id_categoria = ? AND id_tipo_pan_seleccionado = ?
             AND id_tipo_forma_seleccionada = ? AND id_tipo_tamano_seleccionado = ?
         """
@@ -418,16 +418,16 @@ class PastelConfiguradoRepositorySQLite(PastelConfiguradoRepository):
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 try:
-                    if id_cat == 1:
-                        cursor.execute(query_con_incluye, (id_cat, id_pan, id_forma, id_tam))
-                    else:
-                        cursor.execute(query_con_incluye, (id_cat, 1, id_forma, id_tam))
+                    cursor.execute(query_con_incluye, (id_cat, id_pan, id_forma, id_tam))
                     result = cursor.fetchone()
                     if result:
                         precio_final = float(result[0]) if result[0] is not None else 0.0
                         monto_deposito = float(result[1]) if result[1] is not None else 0.0
                         incluye = result[2] or ""
-                        return PastelConfigurado(precio_final=precio_final, monto_deposito=monto_deposito, incluye=incluye)
+                        peso_pastel = result[3] or ""
+                        medidas_pastel = result[4] or ""
+                        return PastelConfigurado(precio_final=precio_final, monto_deposito=monto_deposito,
+                                                 incluye=incluye, peso_pastel=peso_pastel,medidas_pastel=medidas_pastel)
                 except sqlite3.Error:
                     # Fallback si la columna 'incluye' no existe aún
                     cursor.execute(query_sin_incluye, (id_cat, id_pan, id_forma, id_tam))
@@ -435,7 +435,8 @@ class PastelConfiguradoRepositorySQLite(PastelConfiguradoRepository):
                     if result:
                         precio_final = float(result[0]) if result[0] is not None else 0.0
                         monto_deposito = float(result[1]) if result[1] is not None else 0.0
-                        return PastelConfigurado(precio_final=precio_final, monto_deposito=monto_deposito, incluye="")
+                        return PastelConfigurado(precio_final=precio_final, monto_deposito=monto_deposito, incluye="",
+                                                 peso_pastel="", medidas_pastel="")
         except sqlite3.Error as e:
             print(f"Error al obtener precio: {e}")
         return None

@@ -242,8 +242,8 @@ class PedidoUseCases:
             # Guardamos el ID y el nombre del nuevo tamaño
             pedido.id_tamano = tamanos[nuevo_idx].id
             pedido.tamano_pastel = tamanos[nuevo_idx].nombre
-            pedido.tamano_descripcion = tamanos[nuevo_idx].descripcion
-            pedido.tamano_peso = tamanos[nuevo_idx].peso
+            #pedido.tamano_descripcion = tamanos[nuevo_idx].descripcion
+            #pedido.tamano_peso = tamanos[nuevo_idx].peso
             self.pedido_repo.guardar(pedido)
         except ValueError:
             # Si algo falla, asigna el primero por defecto
@@ -310,6 +310,13 @@ class PedidoUseCases:
         pedido.monto_deposito = monto_deposito
         pedido.extra_costo = extra_costo
         pedido.total = total
+
+        # 5. Mapear origen de tamano_peso y tamano_descripcion desde la configuración del pastel
+        #    La configuración (PastelConfigurado) provee el peso y las medidas asociadas al tamaño seleccionado.
+        if config:
+            pedido.tamano_peso = getattr(config, 'peso_pastel', None)
+            pedido.tamano_descripcion = getattr(config, 'medidas_pastel', None)
+
         self.pedido_repo.guardar(pedido)
 
 
@@ -514,6 +521,9 @@ class PedidoUseCases:
         pedido.monto_deposito = monto_deposito
         pedido.extra_costo = extra_costo
         pedido.total = total
+        pedido.tamano_peso = config.peso_pastel
+        pedido.tamano_pastel = config.medidas_pastel
+
         self.pedido_repo.guardar(pedido)
 
         return config

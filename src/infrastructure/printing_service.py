@@ -37,7 +37,7 @@ class PrintingService:
         # Usamos zfill para asegurar una longitud mínima, es una buena práctica
         folio_str = str(ticket.id_pedido).zfill(6)
         n_sucursal_pk = self._obtener_n_sucursal_pk()
-        c_identificador = f"KIO.- {folio_str} - {n_sucursal_pk}"
+        c_identificador = f"KIO-{folio_str}-{n_sucursal_pk}"
         codigo_barras = CODE128(c_identificador, writer=writer)
         filename = f"barcode_{ticket.id_pedido}"
         barcode_path = codigo_barras.save(filename)  # generará PNG con ImageWriter

@@ -283,6 +283,8 @@ def main(page: ft.Page):
 
         # 5) Construir contenido del BottomSheet con montos e 'Incluye'
         bs.content.content = ft.Column(
+            expand=True,
+            scroll=ft.ScrollMode.ADAPTIVE,
             controls=[
                 ft.Row(
                     alignment=ft.MainAxisAlignment.END,

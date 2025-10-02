@@ -1854,7 +1854,18 @@ def vista_galeria(page: ft.Page, use_cases: PedidoUseCases):
 
     filtro_categoria = ft.Dropdown(
         label="Filtrar por categoría",
-        options=[ft.dropdown.Option("Todas"), ft.dropdown.Option("Infantil"), ft.dropdown.Option("Floral")],
+        options=[
+            ft.dropdown.Option("Todas"),
+            ft.dropdown.Option("Bodas"),
+            ft.dropdown.Option("Bautizos"),
+            ft.dropdown.Option("Primera Comunión"),
+            ft.dropdown.Option("Niños"),
+            ft.dropdown.Option("XV Años"),
+            ft.dropdown.Option("Niñas"),
+            ft.dropdown.Option("Otros"),
+            ft.dropdown.Option("Flores"),
+            ft.dropdown.Option("Cumpleaños"),
+        ],
         value="Todas",
         on_change=actualizar_galeria,
         expand=True
