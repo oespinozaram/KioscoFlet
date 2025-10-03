@@ -28,7 +28,7 @@ class CategoriaRepositorySQLite(CategoriaRepository):
             return []
 
     def obtener_por_id(self, id_categoria: int) -> Categoria | None:
-        query = "SELECT id_categoria, nombre_categoria, imagen_quiosco FROM categorias WHERE id_categoria = ?"
+        query = "SELECT id_categoria, nombre_categoria, imagen_url FROM categorias WHERE id_categoria = ?"
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -410,15 +410,17 @@ class PastelConfiguradoRepositorySQLite(PastelConfiguradoRepository):
             AND id_tipo_forma_seleccionada = ? AND id_tipo_tamano_seleccionado = ?
         """
         query_sin_incluye = """
-            SELECT precio_final, monto_deposito FROM pasteles_configurados
-            WHERE id_categoria = ? AND id_tipo_pan_seleccionado = ?
-            AND id_tipo_forma_seleccionada = ? AND id_tipo_tamano_seleccionado = ?
+            SELECT precio_final, monto_deposito, incluye, peso_pastel, medidas_pastel FROM pasteles_configurados
+            WHERE id_categoria = ? AND id_tipo_forma_seleccionada = ? AND id_tipo_tamano_seleccionado = ?
         """
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 try:
-                    cursor.execute(query_con_incluye, (id_cat, id_pan, id_forma, id_tam))
+                    if id_cat == 1 and id_pan == 2:
+                        cursor.execute(query_con_incluye, (id_cat, id_pan, id_forma, id_tam))
+                    else:
+                        cursor.execute(query_sin_incluye, (id_cat, id_forma, id_tam))
                     result = cursor.fetchone()
                     if result:
                         precio_final = float(result[0]) if result[0] is not None else 0.0

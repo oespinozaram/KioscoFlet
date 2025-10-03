@@ -63,17 +63,18 @@ class FinalizarPedidoRepositoryAPI(FinalizarPedidoRepository):
             "tamano_descripcion": pedido.tamano_descripcion or "",
             "tamano_peso": pedido.tamano_peso or "",
             "edad_pastel": pedido.edad_pastel or "",
+            "imagen_pastel": pedido.imagen_pastel or "",
         }
 
         try:
-            #response = requests.post(self.api_url, json=payload)
-            #response.raise_for_status()
+            response = requests.post(self.api_url, json=payload)
+            response.raise_for_status()
 
-            #response_data = response.json()
-            #nuevo_id = response_data.get("id", 0)
-            #print(f"INFO: Pedido enviado al web service. Nuevo ID: {nuevo_id}")
-            #return nuevo_id
-            print("hola")
+            response_data = response.json()
+            nuevo_id = response_data.get("id", 0)
+            print(f"INFO: Pedido enviado al web service. Nuevo ID: {nuevo_id}")
+            return nuevo_id
+
         except requests.exceptions.RequestException as e:
             print(f"ERROR: No se pudo enviar el pedido al web service: {e}")
             return 0

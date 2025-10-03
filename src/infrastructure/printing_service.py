@@ -10,13 +10,13 @@ from barcode.writer import ImageWriter
 
 class PrintingService:
 
-    def _obtener_n_sucursal_pk(self, db_path: str = r"C:/KioscoPP/config.db") -> int:
+    def _obtener_n_sucursal_pk(self, db_path: str = r"C:/KioscoPP/config.db") -> str:
         try:
             with sqlite3.connect(db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT nSucursalPK FROM Sucursales LIMIT 1")
+                cursor.execute("SELECT cIdentificador FROM Sucursales LIMIT 1")
                 row = cursor.fetchone()
-                return int(row[0]) if row and row[0] is not None else 1
+                return str(row[0]) if row and row[0] is not None else ""
         except Exception as e:
             print(f"WARN: No se pudo leer nSucursalPK desde Sucursales: {e}. Usando 1 por defecto.")
             return 1
@@ -37,7 +37,7 @@ class PrintingService:
         # Usamos zfill para asegurar una longitud mínima, es una buena práctica
         folio_str = str(ticket.id_pedido).zfill(6)
         n_sucursal_pk = self._obtener_n_sucursal_pk()
-        c_identificador = f"KIO-{folio_str}-{n_sucursal_pk}"
+        c_identificador = f"KIO-{n_sucursal_pk}{folio_str}"
         codigo_barras = CODE128(c_identificador, writer=writer)
         filename = f"barcode_{ticket.id_pedido}"
         barcode_path = codigo_barras.save(filename)  # generará PNG con ImageWriter
@@ -92,6 +92,7 @@ class PrintingService:
         y -= (5 * mm)
         c.drawString(margen_izquierdo, y, f"Costo Extra: ${(ticket.extra_costo or 0.0):.2f}")
         y -= (5 * mm)
+
         c.drawString(margen_izquierdo, y, f"Total: ${(ticket.total or 0.0):.2f}")
         y -= (8 * mm)
 

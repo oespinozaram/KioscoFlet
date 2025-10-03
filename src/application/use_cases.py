@@ -89,7 +89,20 @@ class PedidoUseCases:
 
     def seleccionar_imagen_decorado(self, id_imagen: int):
         pedido = self.pedido_repo.obtener()
+        # Guardar el ID seleccionado
         pedido.decorado_imagen_id = id_imagen
+        # Consultar en la galería para obtener la URL y guardarla en imagen_pastel
+        try:
+            imagen = self.imagen_galeria_repo.obtener_por_id(id_imagen)
+            if imagen and getattr(imagen, "ruta", None):
+                img_file = os.path.basename(imagen.ruta)
+                pedido.imagen_pastel = os.path.splitext(img_file)[0]
+            else:
+                # Si no existe la imagen o no tiene ruta, limpiamos el campo
+                pedido.imagen_pastel = None
+        except Exception as e:
+            print(f"ADVERTENCIA: No se pudo obtener la URL de la imagen con ID {id_imagen}: {e}")
+            pedido.imagen_pastel = None
         self.pedido_repo.guardar(pedido)
 
     def seleccionar_extra(self, extra_descripcion: str | None):
@@ -242,8 +255,6 @@ class PedidoUseCases:
             # Guardamos el ID y el nombre del nuevo tamaño
             pedido.id_tamano = tamanos[nuevo_idx].id
             pedido.tamano_pastel = tamanos[nuevo_idx].nombre
-            #pedido.tamano_descripcion = tamanos[nuevo_idx].descripcion
-            #pedido.tamano_peso = tamanos[nuevo_idx].peso
             self.pedido_repo.guardar(pedido)
         except ValueError:
             # Si algo falla, asigna el primero por defecto
@@ -512,6 +523,8 @@ class PedidoUseCases:
 
         precio_pastel = config.precio_final if config else 0.0
         monto_deposito = config.monto_deposito if config else 0.0
+        peso_pastel = config.peso_pastel if config else ""
+        medidas_pastel = config.medidas_pastel if config else ""
 
         extra_costo = pedido.extra_precio or 0.0
         total = precio_pastel + extra_costo
@@ -521,8 +534,8 @@ class PedidoUseCases:
         pedido.monto_deposito = monto_deposito
         pedido.extra_costo = extra_costo
         pedido.total = total
-        pedido.tamano_peso = config.peso_pastel
-        pedido.tamano_pastel = config.medidas_pastel
+        pedido.tamano_peso = peso_pastel
+        pedido.tamano_descripcion = medidas_pastel
 
         self.pedido_repo.guardar(pedido)
 
@@ -541,9 +554,6 @@ class FinalizarPedidoUseCases:
 
 
     def generar_y_guardar_codigo_imagen(self):
-        """
-        Crea un código único con los IDs de la configuración del pastel y lo guarda.
-        """
         pedido = self.pedido_repo.obtener()
         if all([pedido.id_categoria, pedido.id_pan, pedido.id_forma, pedido.id_tamano]):
             # Combinamos los IDs para formar el nombre del archivo de imagen
@@ -564,6 +574,8 @@ class FinalizarPedidoUseCases:
 
         precio_pastel = config.precio_final if config else 0.0
         monto_deposito = config.monto_deposito if config else 0.0
+        peso_pastel = config.peso_pastel if config else ""
+        medidas_pastel = config.medidas_pastel if config else ""
 
         extra_costo = pedido.extra_precio or 0.0
         if pedido.extra_seleccionado == "Flor Artificial" and pedido.extra_flor_cantidad:
@@ -575,8 +587,11 @@ class FinalizarPedidoUseCases:
         pedido.monto_deposito = monto_deposito
         pedido.extra_costo = extra_costo
         pedido.total = total
+        # Asignar peso y medidas desde la configuración antes de guardar
+        pedido.tamano_peso = peso_pastel
+        pedido.tamano_descripcion = medidas_pastel
 
-        #self.generar_y_guardar_codigo_imagen()
+        self.generar_y_guardar_codigo_imagen()
 
         id_nuevo_pedido = self.finalizar_repo.guardar(pedido)
 
@@ -609,6 +624,8 @@ class FinalizarPedidoUseCases:
 
         precio_pastel = config.precio_final if config else 0.0
         monto_deposito = config.monto_deposito if config else 0.0
+        peso_pastel = config.peso_pastel if config else ""
+        medidas_pastel = config.medidas_pastel if config else ""
 
         extra_costo = pedido.extra_precio or 0.0
         if pedido.extra_seleccionado == "Flor Artificial" and pedido.extra_flor_cantidad:
@@ -620,6 +637,9 @@ class FinalizarPedidoUseCases:
         pedido.monto_deposito = monto_deposito
         pedido.extra_costo = extra_costo
         pedido.total = total
+        # Asignar peso y medidas desde la configuración antes de guardar
+        pedido.tamano_peso = peso_pastel
+        pedido.tamano_descripcion = medidas_pastel
 
         # Guardar una sola vez (local + API vía repositorio compuesto)
         id_nuevo_pedido = self.finalizar_repo.guardar(pedido)
