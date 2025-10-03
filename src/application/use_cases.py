@@ -169,8 +169,17 @@ class PedidoUseCases:
 
                 if tamano_personas > 10:
                     print(f"INFO: Tamaño para {tamano_personas} personas detectado. Ocultando forma de corazón.")
-                    formas_filtradas = [forma for forma in formas_disponibles if "corazón" not in forma.nombre.lower()]
-                    return formas_filtradas
+                    formas_disponibles  = [forma for forma in formas_disponibles if "corazón" not in forma.nombre.lower()]
+                    #return formas_filtradas
+
+                if tamano_personas >= 40:
+                    formas_disponibles  = [
+                        forma for forma in formas_disponibles
+                        if "redonda" not in forma.nombre.lower()
+                    ]
+                    print(f"INFO: Tamaño para {tamano_personas}. Se oculta la forma redonda.")
+
+                return formas_disponibles
             except (ValueError, TypeError):
                 print(f"ADVERTENCIA: El tamaño '{pedido.tamano_pastel}' no es un número válido.")
                 pass
@@ -178,8 +187,16 @@ class PedidoUseCases:
 
 
     def obtener_panes_por_categoria(self, id_categoria: int) -> list[TipoPan]:
-        return self.tipo_pan_repo.obtener_por_categoria(id_categoria)
-
+        panes_disponibles = self.tipo_pan_repo.obtener_por_categoria(id_categoria)
+        pedido = self.pedido_repo.obtener()
+        if pedido.tipo_forma and "pisos" in pedido.tipo_forma.lower():
+            panes_filtrados = [
+                pan for pan in panes_disponibles
+                if "chocolate" not in pan.nombre.lower()
+            ]
+            print(f"INFO: Forma 'Pisos' seleccionada. Se ha ocultado el pan de chocolate.")
+            return panes_filtrados
+        return panes_disponibles
 
     def seleccionar_tipo_pan(self, id_pan: int,  nombre_pan: str):
         pedido = self.pedido_repo.obtener()
@@ -540,6 +557,20 @@ class PedidoUseCases:
         self.pedido_repo.guardar(pedido)
 
         return config
+
+    def guardar_mensaje_y_edad(self, mensaje: str | None, edad: int | None):
+        """Guarda el mensaje y la edad para el pastel."""
+        pedido = self.pedido_repo.obtener()
+        pedido.mensaje_pastel = mensaje
+        pedido.edad_pastel = edad
+        self.pedido_repo.guardar(pedido)
+
+    def reiniciar_mensaje_y_edad(self):
+        """Reinicia el mensaje y la edad del pedido."""
+        pedido = self.pedido_repo.obtener()
+        pedido.mensaje_pastel = None
+        pedido.edad_pastel = None
+        self.pedido_repo.guardar(pedido)
 
 
 class FinalizarPedidoUseCases:

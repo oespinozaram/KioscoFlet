@@ -353,8 +353,8 @@ def main(page: ft.Page):
                         crear_fila_resumen("hora.png", "Hora de Entrega", pedido.hora_entrega),
                     ]
                 ),
-                ft.Container(height=20),
-                boton_restablecer_estilizado
+                #ft.Container(height=20),
+                #boton_restablecer_estilizado
             ]
         )
         bs.open = True
@@ -394,6 +394,8 @@ def main(page: ft.Page):
             page.views.append(views.vista_decorado2(page, pedido_use_cases))
         elif page.route == "/galeria":
             page.views.append(views.vista_galeria(page, pedido_use_cases))
+        elif page.route == "/mensaje":
+            page.views.append(views.vista_mensaje(page, pedido_use_cases))
         elif page.route == "/extras":
             page.views.append(views.vista_extras(page, pedido_use_cases))
         elif page.route == "/datos_cliente":
