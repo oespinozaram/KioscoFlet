@@ -7,6 +7,7 @@ import time
 from datetime import datetime
 import msvcrt
 from http.server import BaseHTTPRequestHandler, HTTPServer
+import json
 
 # === Watchdog integration flags (optional, defensive) ===
 ENABLE_HEARTBEAT = os.getenv("ENABLE_HEARTBEAT", "1") == "1"
@@ -132,7 +133,7 @@ def main(page: ft.Page):
     page.window.width = 1920
     page.window.height = 1080
     page.window.resizable = True
-    #page.window.full_screen = True
+    page.window.full_screen = True
 
     page.padding = 0
 
@@ -177,7 +178,18 @@ def main(page: ft.Page):
     pastel_config_repo = PastelConfiguradoRepositorySQLite(db_path)
     extra_repo = ExtraRepositorySQLite(db_path)
 
-    API_URL_PEDIDOS = "https://pepesquioscodev-dze4d8gwgfcpgwaw.mexicocentral-01.azurewebsites.net/pedidos"  # <-- CAMBIA ESTO
+    config = {}
+    default_api_url = "http://localhost:8000/api/pedidos"
+
+    try:
+        with open("config.json", "r") as f:
+            config = json.load(f)
+        API_URL_PEDIDOS = config.get("api_url_pedidos", default_api_url)
+        print(f"INFO: URL de la API cargada desde config.json: {API_URL_PEDIDOS}")
+    except FileNotFoundError:
+        API_URL_PEDIDOS = default_api_url
+        print(f"ADVERTENCIA: No se encontró config.json. Usando URL por defecto: {API_URL_PEDIDOS}")
+
 
     finalizar_repo_api = FinalizarPedidoRepositoryAPI(api_url=API_URL_PEDIDOS, db_path=db_path)
     finalizar_pedido_repo = FinalizarPedidoRepositorySQLite(db_path)
@@ -217,7 +229,7 @@ def main(page: ft.Page):
         return ft.Row(
             spacing=15,
             controls=[
-                ft.Image(src=f"iconos/{icono}", width=50, height=50),
+                ft.Image(src=f"C:/KioscoPP/img/iconos/{icono}", width=50, height=50),
                 ft.Column(
                     spacing=0,
                     controls=[
@@ -246,24 +258,18 @@ def main(page: ft.Page):
     )
 
     def abrir_resumen(e):
-        # 1) Obtener pedido actual
         pedido = pedido_use_cases.obtener_pedido_actual()
 
-        # 2) Calcular/actualizar precios del pastel y obtener configuración (incluye)
         config = pedido_use_cases.obtener_precio_pastel_configurado()
 
-        # Formateador de moneda
         def mxn(v):
             try:
                 return f"${v:,.2f}"
             except Exception:
                 return f"${v}"
 
-        # 3) Determinar montos a mostrar
-        precio_pastel = (config.precio_final if config else (pedido.precio_pastel or 0.0))
-        # monto_deposito actualmente no se muestra; disponible si se requiere
+        precio_pastel = (config.precio_base if config else (pedido.precio_pastel or 0.0))
 
-        # Extra: si es Flor Artificial con cantidad, multiplicar
         extra_monto = pedido.extra_precio or 0.0
         extra_detalle = ""
         if pedido.extra_seleccionado:

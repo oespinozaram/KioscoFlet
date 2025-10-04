@@ -1,7 +1,6 @@
 # src/application/use_cases.py
 import datetime
 import os.path
-import time
 
 from .repositories import (
     PedidoRepository, TamanoRepository, CategoriaRepository, TipoCobertura,
@@ -118,11 +117,9 @@ class PedidoUseCases:
                 pedido.extra_seleccionado = extra_obj.descripcion
                 pedido.extra_precio = extra_obj.costo
             else:
-                # Si no se encuentra en la BD, se limpia (medida de seguridad)
                 pedido.extra_seleccionado = None
                 pedido.extra_precio = None
 
-        # Si el extra no es 'Flor Artificial', reseteamos la cantidad
         if extra_descripcion != "Flor Artificial":
             pedido.extra_flor_cantidad = None
 
@@ -163,21 +160,37 @@ class PedidoUseCases:
     def obtener_formas_por_categoria(self, id_categoria: int) -> list[FormaPastel]:
         formas_disponibles = self.tipo_forma_repo.obtener_por_categoria(id_categoria)
         pedido = self.pedido_repo.obtener()
+
         if pedido.tamano_pastel:
             try:
-                tamano_personas = int(pedido.tamano_pastel)
+                if pedido.tamano_pastel == "150 a 180":
+                    tamano_personas = 180
+                else:
+                    tamano_personas = int(pedido.tamano_pastel)
 
                 if tamano_personas > 10:
                     print(f"INFO: Tamaño para {tamano_personas} personas detectado. Ocultando forma de corazón.")
                     formas_disponibles  = [forma for forma in formas_disponibles if "corazón" not in forma.nombre.lower()]
-                    #return formas_filtradas
 
-                if tamano_personas >= 40:
-                    formas_disponibles  = [
-                        forma for forma in formas_disponibles
-                        if "redonda" not in forma.nombre.lower()
-                    ]
-                    print(f"INFO: Tamaño para {tamano_personas}. Se oculta la forma redonda.")
+                tamanos_permitidos_redonda = [5, 10, 15, 18, 20]
+                if tamano_personas not in tamanos_permitidos_redonda:
+                    formas_disponibles = [f for f in formas_disponibles if 'redonda' not in f.nombre.lower()]
+                    print(f"INFO: Tamaño para {tamano_personas}. Se ha ocultado la forma 'Redonda'.")
+
+                tamanos_permitidos_rectangular = [20, 40, 60, 80, 120, 150, 180]
+                if tamano_personas not in tamanos_permitidos_rectangular:
+                    formas_disponibles = [f for f in formas_disponibles if "rectangular" not in f.nombre.lower()]
+                    print(f"INFO: Tamaño para {tamano_personas}. Se oculta la forma rectangular.")
+
+                tamanos_permitidos_altos = [15, 30, 35, 40]
+                if tamano_personas not in tamanos_permitidos_altos:
+                    formas_disponibles = [f for f in formas_disponibles if 'alto (3 o 4 capas)' not in f.nombre.lower()]
+                    print(f"INFO: Tamaño para {tamano_personas}. Se oculta la forma Altos.")
+
+                tamanos_permitidos_pisos = [25, 30, 35, 40, 60, 70, 80, 100, 150,160, 200, 250]
+                if tamano_personas not in tamanos_permitidos_pisos:
+                    formas_disponibles = [f for f in formas_disponibles if 'pisos' not in f.nombre.lower()]
+                    print(f"INFO: Tamanño para {tamano_personas}. Se oculta la forma 'Pisos'.")
 
                 return formas_disponibles
             except (ValueError, TypeError):
@@ -218,7 +231,7 @@ class PedidoUseCases:
         pedido.tipo_forma = None
         pedido.tipo_relleno = None
         pedido.tipo_cobertura = None
-        categoria_obj = self.categoria_repo.obtener_por_id(id_categoria) # (Necesitarás este método en el repo)
+        categoria_obj = self.categoria_repo.obtener_por_id(id_categoria)
         if categoria_obj:
             pedido.nombre_categoria = categoria_obj.nombre
 
@@ -240,14 +253,11 @@ class PedidoUseCases:
 
     def obtener_tamanos(self) -> list[TamanoPastel]:
         if not self.tamanos_disponibles:
-            # El repositorio ahora devuelve una lista de objetos TamanoPastel
             self.tamanos_disponibles = self.tamano_repo.obtener_todos()
 
         pedido = self.pedido_repo.obtener()
 
-        # Si no hay un tamaño seleccionado Y la lista no está vacía
         if not pedido.tamano_pastel and self.tamanos_disponibles:
-            # Asignamos el ID y el nombre del primer tamaño de la lista
             pedido.id_tamano = self.tamanos_disponibles[0].id
             pedido.tamano_pastel = self.tamanos_disponibles[0].nombre
             self.pedido_repo.guardar(pedido)
@@ -255,32 +265,26 @@ class PedidoUseCases:
         return self.tamanos_disponibles
 
     def seleccionar_siguiente_tamano(self):
-        """Busca el tamaño actual en la lista y selecciona el siguiente."""
         pedido = self.pedido_repo.obtener()
         tamanos = self.obtener_tamanos()
         if not tamanos:
             return
 
         try:
-            # Buscamos el índice del tamaño actual por su nombre
             nombres_tamanos = [t.nombre for t in tamanos]
             idx_actual = nombres_tamanos.index(pedido.tamano_pastel)
 
-            # Calculamos el nuevo índice
             nuevo_idx = (idx_actual + 1) % len(tamanos)
 
-            # Guardamos el ID y el nombre del nuevo tamaño
             pedido.id_tamano = tamanos[nuevo_idx].id
             pedido.tamano_pastel = tamanos[nuevo_idx].nombre
             self.pedido_repo.guardar(pedido)
         except ValueError:
-            # Si algo falla, asigna el primero por defecto
             pedido.id_tamano = tamanos[0].id
             pedido.tamano_pastel = tamanos[0].nombre
             self.pedido_repo.guardar(pedido)
 
     def seleccionar_anterior_tamano(self):
-        """Busca el tamaño actual en la lista y selecciona el anterior."""
         pedido = self.pedido_repo.obtener()
         tamanos = self.obtener_tamanos()
         if not tamanos:
@@ -290,10 +294,8 @@ class PedidoUseCases:
             nombres_tamanos = [t.nombre for t in tamanos]
             idx_actual = nombres_tamanos.index(pedido.tamano_pastel)
 
-            # Calculamos el nuevo índice
             nuevo_idx = (idx_actual - 1 + len(tamanos)) % len(tamanos)
 
-            # Guardamos el ID y el nombre del nuevo tamaño
             pedido.id_tamano = tamanos[nuevo_idx].id
             pedido.tamano_pastel = tamanos[nuevo_idx].nombre
             self.pedido_repo.guardar(pedido)
@@ -306,17 +308,12 @@ class PedidoUseCases:
 
 
     def calcular_y_guardar_precios_finales(self):
-        """
-        Calcula el precio total del pedido y guarda los montos en el objeto Pedido.
-        """
         pedido = self.pedido_repo.obtener()
 
-        # Validar que tenemos todos los IDs necesarios
         if not all([pedido.id_categoria, pedido.id_pan, pedido.id_forma, pedido.id_tamano]):
             print("ADVERTENCIA: Faltan IDs para calcular el precio.")
             return
 
-        # 1. Obtener precio del pastel y depósito desde la BD
         config = self.pastel_config_repo.obtener_configuracion(
             id_cat=pedido.id_categoria,
             id_pan=pedido.id_pan,
@@ -324,23 +321,26 @@ class PedidoUseCases:
             id_tam=pedido.id_tamano
         )
 
-        precio_pastel = config.precio_final if config else 0.0
+        precio_pastel = config.precio_base if config else 0.0
+        precio_chocolate = config.precio_chocolate if config else 0.0
         monto_deposito = config.monto_deposito if config else 0.0
-
-        # 2. Obtener costo del extra (ya guardado en el pedido)
         extra_costo = pedido.extra_precio or 0.0
 
-        # 3. Calcular el total
-        total = precio_pastel + extra_costo  # El depósito puede o no sumarse al total final
+        if pedido.tipo_cobertura and "fondant" in pedido.tipo_cobertura.lower():
+            print(f"INFO: Cobertura de Fondant detectada. Duplicando precio base de ${precio_pastel}.")
+            precio_pastel *= 2
+            precio_chocolate *= 2
 
-        # 4. Guardar todos los precios en el pedido en memoria
-        pedido.precio_pastel = precio_pastel
+        total = precio_pastel + extra_costo
+
+        if pedido.id_pan == 2:
+            pedido.precio_pastel = precio_chocolate
+        else:
+            pedido.precio_pastel = precio_pastel
         pedido.monto_deposito = monto_deposito
         pedido.extra_costo = extra_costo
         pedido.total = total
 
-        # 5. Mapear origen de tamano_peso y tamano_descripcion desde la configuración del pastel
-        #    La configuración (PastelConfigurado) provee el peso y las medidas asociadas al tamaño seleccionado.
         if config:
             pedido.tamano_peso = getattr(config, 'peso_pastel', None)
             pedido.tamano_descripcion = getattr(config, 'medidas_pastel', None)
@@ -533,21 +533,29 @@ class PedidoUseCases:
 
         # --- DEBUG PRINT: Muestra lo que devolvió la base de datos ---
         if config:
-            print(f"[DEBUG] Configuración encontrada: Precio=${config.precio_final}, Depósito=${config.monto_deposito}")
+            print(f"[DEBUG] Configuración encontrada: Precio=${config.precio_base}, Depósito=${config.monto_deposito}")
         else:
             print("[DEBUG] No se encontró una configuración de pastel para esos IDs.")
         print("[DEBUG] =============================================\n")
 
-        precio_pastel = config.precio_final if config else 0.0
+        precio_pastel = config.precio_base if config else 0.0
+        precio_chocolate = config.precio_base if config else 0.0
         monto_deposito = config.monto_deposito if config else 0.0
         peso_pastel = config.peso_pastel if config else ""
         medidas_pastel = config.medidas_pastel if config else ""
 
+        if pedido.tipo_cobertura and "fondant" in pedido.tipo_cobertura.lower():
+            print(f"INFO: Cobertura de Fondant detectada. Duplicando precio base de ${precio_pastel}.")
+            precio_pastel *= 2
+            precio_chocolate *= 2
+
         extra_costo = pedido.extra_precio or 0.0
         total = precio_pastel + extra_costo
 
-        # Guarda los precios en el pedido
-        pedido.precio_pastel = precio_pastel
+        if pedido.id_pan == 2:
+            pedido.precio_pastel = precio_chocolate
+        else:
+            pedido.precio_pastel = precio_pastel
         pedido.monto_deposito = monto_deposito
         pedido.extra_costo = extra_costo
         pedido.total = total
@@ -559,14 +567,12 @@ class PedidoUseCases:
         return config
 
     def guardar_mensaje_y_edad(self, mensaje: str | None, edad: int | None):
-        """Guarda el mensaje y la edad para el pastel."""
         pedido = self.pedido_repo.obtener()
         pedido.mensaje_pastel = mensaje
         pedido.edad_pastel = edad
         self.pedido_repo.guardar(pedido)
 
     def reiniciar_mensaje_y_edad(self):
-        """Reinicia el mensaje y la edad del pedido."""
         pedido = self.pedido_repo.obtener()
         pedido.mensaje_pastel = None
         pedido.edad_pastel = None
@@ -587,7 +593,6 @@ class FinalizarPedidoUseCases:
     def generar_y_guardar_codigo_imagen(self):
         pedido = self.pedido_repo.obtener()
         if all([pedido.id_categoria, pedido.id_pan, pedido.id_forma, pedido.id_tamano]):
-            # Combinamos los IDs para formar el nombre del archivo de imagen
             codigo = f"{pedido.id_categoria}-{pedido.id_pan}-{pedido.id_forma}-{pedido.id_tamano}"
             pedido.imagen_pastel = codigo
             self.pedido_repo.guardar(pedido)
@@ -603,10 +608,16 @@ class FinalizarPedidoUseCases:
             id_tam=pedido.id_tamano
         )
 
-        precio_pastel = config.precio_final if config else 0.0
+        precio_pastel = config.precio_base if config else 0.0
+        precio_chocolate = config.precio_chocolate if config else 0.0
         monto_deposito = config.monto_deposito if config else 0.0
         peso_pastel = config.peso_pastel if config else ""
         medidas_pastel = config.medidas_pastel if config else ""
+
+        if pedido.tipo_cobertura and "fondant" in pedido.tipo_cobertura.lower():
+            print(f"INFO: Cobertura de Fondant detectada. Duplicando precio base de ${precio_pastel}.")
+            precio_pastel *= 2
+            precio_chocolate *= 2
 
         extra_costo = pedido.extra_precio or 0.0
         if pedido.extra_seleccionado == "Flor Artificial" and pedido.extra_flor_cantidad:
@@ -614,7 +625,10 @@ class FinalizarPedidoUseCases:
 
         total = precio_pastel + extra_costo
 
-        pedido.precio_pastel = precio_pastel
+        if pedido.id_pan == 2:
+            pedido.precio_pastel = precio_chocolate
+        else:
+            pedido.precio_pastel = precio_pastel
         pedido.monto_deposito = monto_deposito
         pedido.extra_costo = extra_costo
         pedido.total = total
@@ -645,7 +659,6 @@ class FinalizarPedidoUseCases:
     def finalizar_y_obtener_ticket(self) -> Ticket | None:
         pedido = self.pedido_repo.obtener()
 
-        # Calcular precios y totales ANTES de guardar para que la API reciba los valores correctos
         config = self.pastel_config_repo.obtener_configuracion(
             id_cat=pedido.id_categoria,
             id_pan=pedido.id_pan,
@@ -653,10 +666,16 @@ class FinalizarPedidoUseCases:
             id_tam=pedido.id_tamano
         )
 
-        precio_pastel = config.precio_final if config else 0.0
+        precio_pastel = config.precio_base if config else 0.0
+        precio_chocolate = config.precio_chocolate if config else 0.0
         monto_deposito = config.monto_deposito if config else 0.0
         peso_pastel = config.peso_pastel if config else ""
         medidas_pastel = config.medidas_pastel if config else ""
+
+        if pedido.tipo_cobertura and "fondant" in pedido.tipo_cobertura.lower():
+            print(f"INFO: Cobertura de Fondant detectada. Duplicando precio base de ${precio_pastel}.")
+            precio_pastel *= 2
+            precio_chocolate *= 2
 
         extra_costo = pedido.extra_precio or 0.0
         if pedido.extra_seleccionado == "Flor Artificial" and pedido.extra_flor_cantidad:
@@ -664,15 +683,17 @@ class FinalizarPedidoUseCases:
 
         total = precio_pastel + extra_costo
 
-        pedido.precio_pastel = precio_pastel
+        if pedido.id_pan == 2:
+            pedido.precio_pastel = precio_chocolate
+        else:
+            pedido.precio_pastel = precio_pastel
         pedido.monto_deposito = monto_deposito
         pedido.extra_costo = extra_costo
         pedido.total = total
-        # Asignar peso y medidas desde la configuración antes de guardar
+
         pedido.tamano_peso = peso_pastel
         pedido.tamano_descripcion = medidas_pastel
 
-        # Guardar una sola vez (local + API vía repositorio compuesto)
         id_nuevo_pedido = self.finalizar_repo.guardar(pedido)
         if id_nuevo_pedido:
             return self.finalizar_repo.obtener_por_id(id_nuevo_pedido)

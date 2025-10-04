@@ -10,6 +10,11 @@ from .controles_comunes import crear_boton_navegacion
 from src.application.use_cases import AuthUseCases
 
 
+fondo_hd = 'C:/KioscoPP/img/fondo_hd.png'
+logo_pepe = 'C:/KioscoPP/img/logo.png'
+chef = 'C:/KioscoPP/img/chef.png'
+
+
 def crear_tarjeta_seleccion(texto, imagen_src, on_click_handler):
     return ft.Container(
         width=226, height=314, bgcolor=ft.Colors.WHITE,
@@ -73,7 +78,7 @@ def crear_vista_con_fondo(ruta, titulo, contenido, page, boton_volver_ruta, boto
 
     layout_final = ft.Stack(
         controls=[
-            ft.Image(src="fondo_hd.png", fit=ft.ImageFit.COVER, expand=True),
+            ft.Image(src=fondo_hd, fit=ft.ImageFit.COVER, expand=True),
             ft.Container(bgcolor=ft.Colors.with_opacity(0.3, ft.Colors.BLACK), expand=True),
             contenido_superpuesto,
         ]
@@ -173,7 +178,7 @@ def vista_login(page: ft.Page, auth_use_cases: AuthUseCases):
 
     imagen_personaje = ft.Image(
         ref=imagen_personaje_ref,
-        src="chef.png",
+        src=chef,
         height=400,
         fit=ft.ImageFit.CONTAIN
     )
@@ -250,7 +255,7 @@ def vista_bienvenida(page: ft.Page):
     )
 
     imagen_pastel = ft.Image(
-        src="Logo Pepe.png",
+        src=logo_pepe,
         fit=ft.ImageFit.CONTAIN,
         height=250,
     )
@@ -313,7 +318,7 @@ def vista_bienvenida(page: ft.Page):
     layout_final = ft.Stack(
         controls=[
             ft.Image(
-                src="fondo_hd.png",
+                src=fondo_hd,
                 fit=ft.ImageFit.FILL,
                 expand=True,
             ),
@@ -394,7 +399,7 @@ def vista_seleccion(page: ft.Page):
             # ),
             crear_tarjeta_opcion(
                 titulo="Arma y Personaliza\ntu Pastel",
-                imagen_src="seleccion/arma.png",
+                imagen_src="C:/KioscoPP/img/seleccion/arma.png",
                 on_click_handler=lambda _: page.go("/fecha")
             ),
         ]
@@ -408,7 +413,7 @@ def vista_seleccion(page: ft.Page):
 
 
     imagen_pastel = ft.Image(
-        src="Logo Pepe.png",
+        src=logo_pepe,
         fit=ft.ImageFit.CONTAIN,
         width=424, height=254,  # Altura máxima para la imagen
     )
@@ -419,27 +424,27 @@ def vista_seleccion(page: ft.Page):
                             on_click_handler=lambda _: page.go("/"),
                             es_primario=False
                         )
-    #ft.ElevatedButton("Volver", on_click=lambda _: page.go("/"))
+
 
     contenido_superpuesto = ft.Column(
         expand=True,
         controls=[
             banner_superior,
-            ft.Container(expand=True),  # Espaciador flexible superior
+            ft.Container(expand=True),
             imagen_pastel,
             ft.Container(expand=True),
-            contenido_principal,  # El ResponsiveRow con las tarjetas
-            ft.Container(height=40),  # Espacio fijo
-            boton_volver,  # Botón de volver
-            ft.Container(height=40),  # Espacio fijo
+            contenido_principal,
+            ft.Container(height=40),
+            boton_volver,
+            ft.Container(height=40),
         ],
         horizontal_alignment=ft.CrossAxisAlignment.CENTER
     )
 
-    # El Stack final para el fondo y el contenido
+
     layout_final = ft.Stack(
         controls=[
-            ft.Image(src="fondo_hd.png", fit=ft.ImageFit.COVER, expand=True),
+            ft.Image(src=fondo_hd, fit=ft.ImageFit.COVER, expand=True),
             ft.Container(bgcolor=ft.Colors.with_opacity(0.5, ft.Colors.BLACK), expand=True),
             contenido_superpuesto,
         ]
@@ -576,7 +581,7 @@ def vista_fecha(page: ft.Page, use_cases: PedidoUseCases):
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     spacing=20,
                     controls=[
-                        ft.Image(src="Logo Pepe.png", width=424, height=254,),
+                        ft.Image(src=logo_pepe, width=424, height=254,),
                         panel_principal
                     ]
                 )
@@ -595,7 +600,7 @@ def vista_fecha(page: ft.Page, use_cases: PedidoUseCases):
 
     layout_final = ft.Stack(
         controls=[
-            ft.Image(src="fondo_hd.png", fit=ft.ImageFit.COVER, expand=True),
+            ft.Image(src=fondo_hd, fit=ft.ImageFit.COVER, expand=True),
             ft.Container(bgcolor=ft.Colors.with_opacity(0.5, ft.Colors.BLACK), expand=True),
             contenido_superpuesto,
         ]
@@ -726,7 +731,7 @@ def vista_tamano(page: ft.Page, use_cases: PedidoUseCases):
                              alignment=ft.MainAxisAlignment.CENTER,
                              horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                              controls=[
-                                 ft.Image(src="Logo Pepe.png", width=424, height=254),
+                                 ft.Image(src=logo_pepe, width=424, height=254),
                                  ft.Container(height=20),
                                  ft.Text("Paso 2: Elige El Tamaño del Pastel", size=40, weight=ft.FontWeight.BOLD,
                                          color=ft.Colors.WHITE),
@@ -740,7 +745,7 @@ def vista_tamano(page: ft.Page, use_cases: PedidoUseCases):
 
     layout_final = ft.Stack(
         controls=[
-            ft.Image(src="fondo_hd.png", fit=ft.ImageFit.COVER, expand=True),
+            ft.Image(src=fondo_hd, fit=ft.ImageFit.COVER, expand=True),
             contenido_superpuesto,
         ]
     )
@@ -760,7 +765,7 @@ def vista_categorias(page: ft.Page, use_cases: PedidoUseCases):
     #     page.go("/forma")
 
     imagen_logo = ft.Image(
-        src="Logo Pepe.png",
+        src=logo_pepe,
         fit=ft.ImageFit.CONTAIN,
         width=424, height=254,
     )
@@ -866,7 +871,7 @@ def vista_categorias(page: ft.Page, use_cases: PedidoUseCases):
 
     layout_final = ft.Stack(
         controls=[
-            ft.Image(src="fondo_hd.png", fit=ft.ImageFit.COVER, expand=True),
+            ft.Image(src=fondo_hd, fit=ft.ImageFit.COVER, expand=True),
             ft.Container(bgcolor=ft.Colors.with_opacity(0.3, ft.Colors.BLACK), expand=True),
             contenido_superpuesto,
         ]
@@ -922,7 +927,7 @@ def vista_forma(page: ft.Page, use_cases: PedidoUseCases):
                     spacing=30,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
-                        ft.Image(src="Logo Pepe.png", width=250),
+                        ft.Image(src=logo_pepe, width=250),
                         ft.Text("Paso 4: Elige la Forma", size=40, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE,
                                 text_align=ft.TextAlign.CENTER),
                         carrusel_formas
@@ -958,7 +963,7 @@ def vista_forma(page: ft.Page, use_cases: PedidoUseCases):
 
     layout_final = ft.Stack(
         controls=[
-            ft.Image(src="fondo_hd.png", fit=ft.ImageFit.COVER, expand=True),
+            ft.Image(src=fondo_hd, fit=ft.ImageFit.COVER, expand=True),
             ft.Container(bgcolor=ft.Colors.with_opacity(0.4, ft.Colors.BLACK), expand=True),
             contenido_superpuesto,
         ]
@@ -1015,7 +1020,7 @@ def vista_pan(page: ft.Page, use_cases: PedidoUseCases):
                     spacing=30,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
-                        ft.Image(src="Logo Pepe.png", width=250),
+                        ft.Image(src=logo_pepe, width=250),
                         ft.Text("Paso 5: Elige el Pan", size=40, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE,
                                 text_align=ft.TextAlign.CENTER),
                         carrusel_panes
@@ -1051,7 +1056,7 @@ def vista_pan(page: ft.Page, use_cases: PedidoUseCases):
 
     layout_final = ft.Stack(
         controls=[
-            ft.Image(src="fondo_hd.png", fit=ft.ImageFit.COVER, expand=True),
+            ft.Image(src=fondo_hd, fit=ft.ImageFit.COVER, expand=True),
             ft.Container(bgcolor=ft.Colors.with_opacity(0.4, ft.Colors.BLACK), expand=True),
             contenido_superpuesto,
         ]
@@ -1108,7 +1113,7 @@ def vista_relleno(page: ft.Page, use_cases: PedidoUseCases):
                     spacing=30,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
-                        ft.Image(src="Logo Pepe.png", width=250),
+                        ft.Image(src=logo_pepe, width=250),
                         ft.Text("Paso 6: Elige el Relleno", size=40, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE,
                                 text_align=ft.TextAlign.CENTER),
                         carrusel_rellenos
@@ -1144,7 +1149,7 @@ def vista_relleno(page: ft.Page, use_cases: PedidoUseCases):
 
     layout_final = ft.Stack(
         controls=[
-            ft.Image(src="fondo_hd.png", fit=ft.ImageFit.COVER, expand=True),
+            ft.Image(src=fondo_hd, fit=ft.ImageFit.COVER, expand=True),
             ft.Container(bgcolor=ft.Colors.with_opacity(0.4, ft.Colors.BLACK), expand=True),
             contenido_superpuesto,
         ]
@@ -1201,7 +1206,7 @@ def vista_cobertura(page: ft.Page, use_cases: PedidoUseCases):
                     spacing=30,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
-                        ft.Image(src="Logo Pepe.png", width=250),
+                        ft.Image(src=logo_pepe, width=250),
                         ft.Text("Paso 7: Elige la Cobertura", size=40, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE,
                                 text_align=ft.TextAlign.CENTER),
                         carrusel_coberturas
@@ -1237,7 +1242,7 @@ def vista_cobertura(page: ft.Page, use_cases: PedidoUseCases):
 
     layout_final = ft.Stack(
         controls=[
-            ft.Image(src="fondo_hd.png", fit=ft.ImageFit.COVER, expand=True),
+            ft.Image(src=fondo_hd, fit=ft.ImageFit.COVER, expand=True),
             ft.Container(bgcolor=ft.Colors.with_opacity(0.4, ft.Colors.BLACK), expand=True),
             contenido_superpuesto,
         ]
@@ -1251,7 +1256,6 @@ def vista_cobertura(page: ft.Page, use_cases: PedidoUseCases):
 
 
 def vista_decorado1(page: ft.Page, use_cases: PedidoUseCases):
-    # --- 1. Lógica y Manejadores ---
     ref_boton_continuar = ft.Ref[ft.Container]()
 
     def on_decorado_principal_click(e):
@@ -1261,19 +1265,16 @@ def vista_decorado1(page: ft.Page, use_cases: PedidoUseCases):
         for card in carrusel_decorado.controls:
             card.border = ft.border.all(3, ft.Colors.GREEN_500) if card == e.control else None
 
-        # Si el usuario elige "Imágenes", lo mandamos directo a la galería.
-        # El flujo continuará desde allá.
         if tipo_decorado == "Imágenes Prediseñadas":
             page.go("/galeria")
             return
 
-        # Si elige "Liso", simplemente habilitamos el botón para continuar a la siguiente pantalla.
+
         if ref_boton_continuar.current:
             ref_boton_continuar.current.disabled = False
         page.update()
 
     def restablecer(e):
-        # Reinicia la selección de esta pantalla
         use_cases.reiniciar_decorado()
         for card in carrusel_decorado.controls:
             card.border = None
@@ -1281,19 +1282,17 @@ def vista_decorado1(page: ft.Page, use_cases: PedidoUseCases):
             ref_boton_continuar.current.disabled = True
         page.update()
 
-    # --- 2. Construcción de Componentes ---
     carrusel_decorado = ft.Row(
         scroll=ft.ScrollMode.ALWAYS,
         spacing=30,
         controls=[
-            crear_tarjeta_seleccion("Liso c/s Conchas de Betún", "decorado/liso.png",
+            crear_tarjeta_seleccion("Liso c/s Conchas de Betún", "C:/KioscoPP/img/decorado/liso2.png",
                                     on_decorado_principal_click),
-            crear_tarjeta_seleccion("Imágenes Prediseñadas", "decorado/imagenes.png",
+            crear_tarjeta_seleccion("Imágenes Prediseñadas", "C:/KioscoPP/img/decorado/imagenes.png",
                                     on_decorado_principal_click, ),
         ]
     )
 
-    # --- 3. Construcción del Layout Final ---
     contenido_superpuesto = ft.Column(
         expand=True,
         controls=[
@@ -1309,14 +1308,13 @@ def vista_decorado1(page: ft.Page, use_cases: PedidoUseCases):
                     spacing=30,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
-                        ft.Image(src="/assets/Logo Pepe.png", width=250),
+                        ft.Image(src=logo_pepe, width=250),
                         ft.Text("Paso 8: Elige el Estilo", size=40, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE,
                                 text_align=ft.TextAlign.CENTER),
                         carrusel_decorado
                     ]
                 )
             ),
-            # --- CORRECCIÓN: Se añade la fila de botones ---
             ft.Row(
                 alignment=ft.MainAxisAlignment.CENTER,
                 spacing=20,
@@ -1346,7 +1344,7 @@ def vista_decorado1(page: ft.Page, use_cases: PedidoUseCases):
 
     layout_final = ft.Stack(
         controls=[
-            ft.Image(src="fondo_hd.png", fit=ft.ImageFit.COVER, expand=True),
+            ft.Image(src=fondo_hd, fit=ft.ImageFit.COVER, expand=True),
             ft.Container(bgcolor=ft.Colors.with_opacity(0.4, ft.Colors.BLACK), expand=True),
             contenido_superpuesto,
         ]
@@ -1372,21 +1370,21 @@ def vista_decorado2(page: ft.Page, use_cases: PedidoUseCases):
         use_cases.seleccionar_colores_decorado(dd_color1.value, dd_color2.value)
         check_continuar()
 
-    def on_edad_change(e):
-        try:
-            edad = int(e.control.value) if e.control.value else None
-            use_cases.guardar_edad_pastel(edad)
-        except ValueError:
-            use_cases.guardar_edad_pastel(None)
-
     def check_continuar():
         pedido = use_cases.obtener_pedido_actual()
         listo = False
+
         if pedido.tipo_decorado == "Liso c/s Conchas de Betún":
-            if pedido.decorado_liso_detalle and pedido.decorado_liso_color1:
+            colores_disponibles = use_cases.obtener_colores_disponibles() or []
+            requiere_color = len(colores_disponibles) > 0
+            tiene_color = bool(pedido.decorado_liso_color1) if requiere_color else True
+
+            #if pedido.decorado_liso_detalle and pedido.decorado_liso_color1:
+            if pedido.decorado_liso_detalle and tiene_color:
                 if pedido.decorado_liso_detalle == "Diseño o Temática":
-                    if pedido.decorado_tematica_detalle:
-                        listo = True
+                    listo = bool(pedido.decorado_tematica_detalle and pedido.decorado_tematica_detalle.strip())
+                    #if pedido.decorado_tematica_detalle:
+                    #    listo = True
                 else:
                     listo = True
         if ref_boton_continuar.current:
@@ -1401,16 +1399,17 @@ def vista_decorado2(page: ft.Page, use_cases: PedidoUseCases):
             btn.border = ft.border.all(3, ft.Colors.GREEN_500) if btn == e.control else None
 
         colores_disponibles = use_cases.obtener_colores_disponibles()
-        opciones_color = [ft.dropdown.Option(color) for color in colores_disponibles] or [
-            ft.dropdown.Option(key="no-color", text="No hay opciones", disabled=True)]
+        opciones_color = [ft.dropdown.Option(color) for color in colores_disponibles]
+        #or [ft.dropdown.Option(key="no-color", text="No hay opciones", disabled=True)]
 
+        hay_colores = len(colores_disponibles) > 0
         dd_color1.options = opciones_color
         dd_color2.options = opciones_color
         dd_color1.value = None
         dd_color2.value = None
 
         panel_principal.visible = True
-        contenedor_colores.visible = True
+        contenedor_colores.visible = hay_colores
         campo_mensaje.visible = True
 
         if detalle == "Diseño o Temática":
@@ -1422,7 +1421,6 @@ def vista_decorado2(page: ft.Page, use_cases: PedidoUseCases):
         page.update()
 
     def restablecer(e):
-        # Reinicia solo las selecciones de esta pantalla
         use_cases.guardar_detalle_decorado("Liso c/s Conchas de Betún", None)
         use_cases.seleccionar_colores_decorado(None, None)
 
@@ -1434,7 +1432,6 @@ def vista_decorado2(page: ft.Page, use_cases: PedidoUseCases):
             ref_boton_continuar.current.disabled = True
         page.update()
 
-    # --- 2. Construcción de Componentes ---
     campo_mensaje = ft.TextField(label="Mensaje en el pastel (opcional)")
     tematica_container = ft.Column(
         visible=False,
@@ -1449,21 +1446,14 @@ def vista_decorado2(page: ft.Page, use_cases: PedidoUseCases):
 
     carrusel_sub_opciones = ft.Row(scroll=ft.ScrollMode.ALWAYS, spacing=15)
     detalles_liso = [
-        {"nombre": "Chantilli", "imagen": "decorado/chantilli.png"},
-        {"nombre": "Chorreado", "imagen": "decorado/chorreado.png"},
-        {"nombre": "Diseño o Temática", "imagen": "decorado/tematica.png"},
+        {"nombre": "Chantilli", "imagen": "C:/KioscoPP/img/decorado/chantilli.png"},
+        {"nombre": "Chorreado", "imagen": "C:/KioscoPP/img/decorado/chorreado.png"},
+        {"nombre": "Diseño o Temática", "imagen": "C:/KioscoPP/img/decorado/tematica.png"},
     ]
     for opcion in detalles_liso:
         carrusel_sub_opciones.controls.append(
             crear_tarjeta_seleccion(opcion["nombre"], opcion["imagen"], on_sub_opcion_liso_click)
         )
-
-    campo_edad = ft.TextField(
-        label="Años a cumplir (si aplica)",
-        keyboard_type=ft.KeyboardType.NUMBER,
-        on_change=on_edad_change,
-        width=200 # Un ancho más pequeño
-    )
 
     panel_principal = ft.Container(
         padding=20,
@@ -1475,15 +1465,11 @@ def vista_decorado2(page: ft.Page, use_cases: PedidoUseCases):
             controls=[
                 tematica_container,
                 contenedor_colores,
-                campo_mensaje,
-                campo_edad
             ]
         )
     )
 
 
-
-    # --- 3. Construcción del Layout Final ---
     contenido_superpuesto = ft.Column(
         expand=True,
         controls=[
@@ -1500,7 +1486,7 @@ def vista_decorado2(page: ft.Page, use_cases: PedidoUseCases):
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     scroll=ft.ScrollMode.ADAPTIVE,
                     controls=[
-                        ft.Image(src="Logo Pepe.png", width=250),
+                        ft.Image(src=logo_pepe, width=250),
                         ft.Text("Paso 8.1: Detalla tu Decorado", size=40, weight=ft.FontWeight.BOLD,
                                 color=ft.Colors.WHITE, text_align=ft.TextAlign.CENTER),
                         ft.Text("Elige un detalle:", color=ft.Colors.WHITE),
@@ -1525,7 +1511,7 @@ def vista_decorado2(page: ft.Page, use_cases: PedidoUseCases):
 
     layout_final = ft.Stack(
         controls=[
-            ft.Image(src="fondo_hd.png", fit=ft.ImageFit.COVER, expand=True),
+            ft.Image(src=fondo_hd, fit=ft.ImageFit.COVER, expand=True),
             ft.Container(bgcolor=ft.Colors.with_opacity(0.4, ft.Colors.BLACK), expand=True),
             contenido_superpuesto,
         ]
@@ -1682,7 +1668,7 @@ def vista_galeria(page: ft.Page, use_cases: PedidoUseCases):
 
     layout_final = ft.Stack(
         controls=[
-            ft.Image(src="fondo_hd.png", fit=ft.ImageFit.COVER, expand=True),
+            ft.Image(src=fondo_hd, fit=ft.ImageFit.COVER, expand=True),
             ft.Container(bgcolor=ft.Colors.with_opacity(0.4, ft.Colors.BLACK), expand=True),
             contenido_superpuesto
         ]
@@ -1697,11 +1683,12 @@ def vista_galeria(page: ft.Page, use_cases: PedidoUseCases):
     )
 
 
-# --- NUEVA VISTA DE MENSAJE ---
 def vista_mensaje(page: ft.Page, use_cases: PedidoUseCases):
-    # --- 1. Lógica y Manejadores ---
+    pedido_actual = use_cases.obtener_pedido_actual()
+    ruta_volver = "/galeria" if pedido_actual.tipo_decorado == "Imágenes Prediseñadas" else "/decorado2"
+
     def on_change(e):
-        use_cases.guardar_mensaje_y_edad(campo_mensaje.value, int(campo_edad.value) if campo_edad.value else None)
+        use_cases.guardar_mensaje_y_edad(campo_mensaje.value, campo_edad.value if campo_edad.value else None)
 
     def restablecer(e):
         use_cases.reiniciar_mensaje_y_edad()
@@ -1709,7 +1696,6 @@ def vista_mensaje(page: ft.Page, use_cases: PedidoUseCases):
         campo_edad.value = ""
         page.update()
 
-    # --- 2. Construcción de Componentes ---
     campo_mensaje = ft.TextField(
         label="Mensaje de felicitación (opcional)",
         value=use_cases.obtener_pedido_actual().mensaje_pastel or "",
@@ -1741,11 +1727,10 @@ def vista_mensaje(page: ft.Page, use_cases: PedidoUseCases):
         )
     )
 
-    # --- 3. Construcción del Layout Final ---
     contenido_superpuesto = ft.Column(
         expand=True,
         controls=[
-            ft.Container(  # Banner superior
+            ft.Container(
                 height=67, bgcolor="#89C5B0", alignment=ft.alignment.center,
                 content=ft.Text('Para envío gratuito en compras de $500 o más', color=ft.Colors.WHITE, size=28,
                                 font_family="Bebas Neue")
@@ -1757,7 +1742,7 @@ def vista_mensaje(page: ft.Page, use_cases: PedidoUseCases):
                     spacing=30,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
-                        ft.Image(src="Logo Pepe.png", width=250),
+                        ft.Image(src=logo_pepe, width=250),
                         ft.Text("Paso 9: Mensaje y Edad", size=40, weight=ft.FontWeight.BOLD,
                                 color=ft.Colors.WHITE, text_align=ft.TextAlign.CENTER),
                         panel_principal
@@ -1768,7 +1753,7 @@ def vista_mensaje(page: ft.Page, use_cases: PedidoUseCases):
                 alignment=ft.MainAxisAlignment.CENTER,
                 spacing=20,
                 controls=[
-                    crear_boton_navegacion("Volver", lambda _: page.go("/decorado2"), es_primario=False),
+                    crear_boton_navegacion("Volver", lambda _: page.go(ruta_volver), es_primario=False),
                     crear_boton_navegacion("Restablecer", restablecer, es_primario=False, bgcolor=ft.Colors.AMBER_300),
                     crear_boton_navegacion("Continuar", lambda _: page.go("/extras"))
                 ]
@@ -1779,7 +1764,7 @@ def vista_mensaje(page: ft.Page, use_cases: PedidoUseCases):
 
     layout_final = ft.Stack(
         controls=[
-            ft.Image(src="fondo_hd.png", fit=ft.ImageFit.COVER, expand=True),
+            ft.Image(src=fondo_hd, fit=ft.ImageFit.COVER, expand=True),
             contenido_superpuesto,
         ]
     )
@@ -1940,7 +1925,7 @@ def vista_extras(page: ft.Page, use_cases: PedidoUseCases):
             ),
             ft.Container(expand=True),
 
-            ft.Image(src="Logo Pepe.png", width=424, height=254),
+            ft.Image(src=logo_pepe, width=424, height=254),
 
             panel_interactivo,
 
@@ -1962,7 +1947,7 @@ def vista_extras(page: ft.Page, use_cases: PedidoUseCases):
 
     layout_final = ft.Stack(
         controls=[
-            ft.Image(src="fondo_hd.png", fit=ft.ImageFit.COVER, expand=True),
+            ft.Image(src=fondo_hd, fit=ft.ImageFit.COVER, expand=True),
             contenido_superpuesto,
         ]
     )
@@ -2006,10 +1991,30 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_
         mostrar_teclado()
 
     def finalizar_pedido(e):
+        campos_requeridos = {
+            nombre: "Nombre completo es requerido.",
+            telefono: "Teléfono es requerido.",
+            direccion: "Dirección es requerida.",
+            num_ext: "El número exterior es requerido",
+            entre_calles: "Entre calles es requerido.",
+            ciudad: "Ciudada es requerida.",
+        }
+
+        hay_errores = False
+        for campo, mensaje_error in campos_requeridos.items():
+            if not campo.value:
+                campo.error_text = mensaje_error
+                hay_errores = True
+            else:
+                campo.error_text = None
+
+        if hay_errores:
+            page.update()
+            return
+
         ocultar_teclado(e)
         if ref_boton_finalizar.current:
             ref_boton_finalizar.current.disabled = True
-            # Opcional: Cambiamos el texto para dar feedback
             ref_boton_finalizar.current.content.value = "Procesando..."
         page.update()
 
@@ -2057,7 +2062,7 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_
     estado = crear_campo_texto("Estado")
     referencias = crear_campo_texto("Referencias del domicilio", multiline=True, min_lines=3)
 
-    logo = ft.Image(ref=logo_ref, src="Logo Pepe.png", width=250)
+    logo = ft.Image(ref=logo_ref, src=logo_pepe, width=250)
     titulo = ft.Text(ref=titulo_ref, value="Datos de entrega", size=40, color=ft.Colors.WHITE, font_family="Cabin",
                      weight=ft.FontWeight.W_700)
 
@@ -2132,7 +2137,7 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_
 
     layout_final = ft.Stack(
         controls=[
-            ft.Image(src="fondo_hd.png", fit=ft.ImageFit.COVER, expand=True),
+            ft.Image(src=fondo_hd, fit=ft.ImageFit.COVER, expand=True),
             contenido_superpuesto,
         ]
     )
@@ -2319,7 +2324,7 @@ def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases, pedido
         )
         return vista_error, lambda: None
 
-    logo = ft.Image(src="Logo Pepe.png", width=424, height=254, opacity=0, animate_opacity=300)
+    logo = ft.Image(src=logo_pepe, width=424, height=254, opacity=0, animate_opacity=300)
 
     titulo = ft.Text("¡Pedido confirmado!", size=45, font_family="Outfit", weight=ft.FontWeight.W_700,
                      text_align=ft.TextAlign.CENTER, color=ft.Colors.WHITE, opacity=0, animate_opacity=500)
@@ -2369,7 +2374,7 @@ def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases, pedido
 
     layout_final = ft.Stack(
         controls=[
-            ft.Image(src="fondo_hd.png", fit=ft.ImageFit.COVER, expand=True),
+            ft.Image(src=fondo_hd, fit=ft.ImageFit.COVER, expand=True),
 
             ft.Column(
                 expand=True,

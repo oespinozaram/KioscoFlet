@@ -90,9 +90,10 @@ class PrintingService:
         # Precios
         c.drawString(margen_izquierdo, y, f"Costo Pastel: ${(ticket.precio_pastel or 0.0):.2f}")
         y -= (5 * mm)
-        c.drawString(margen_izquierdo, y, f"Costo Extra: ${(ticket.extra_costo or 0.0):.2f}")
+        c.drawString(margen_izquierdo, y, f"Costo Extras: ${(ticket.extra_costo or 0.0):.2f}")
         y -= (5 * mm)
-
+        c.drawString(margen_izquierdo, y, f"Deposito: ${(ticket.monto_deposito or 0.0):.2f}")
+        y -= (5 * mm)
         c.drawString(margen_izquierdo, y, f"Total: ${(ticket.total or 0.0):.2f}")
         y -= (8 * mm)
 

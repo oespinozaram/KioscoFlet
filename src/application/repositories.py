@@ -185,7 +185,8 @@ class TamanoRepository(ABC):
 
 
 class PastelConfigurado(NamedTuple):
-    precio_final: float
+    precio_base: float
+    precio_chocolate: float
     monto_deposito: float
     incluye: str
     peso_pastel: str

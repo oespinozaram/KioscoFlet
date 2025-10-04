@@ -404,41 +404,33 @@ class PastelConfiguradoRepositorySQLite(PastelConfiguradoRepository):
         self.db_path = db_path
 
     def obtener_configuracion(self, id_cat: int, id_pan: int, id_forma: int, id_tam: int) -> PastelConfigurado | None:
-        query_con_incluye = """
-            SELECT precio_final, monto_deposito, incluye, peso_pastel, medidas_pastel FROM pasteles_configurados
-            WHERE id_categoria = ? AND id_tipo_pan_seleccionado = ?
-            AND id_tipo_forma_seleccionada = ? AND id_tipo_tamano_seleccionado = ?
-        """
-        query_sin_incluye = """
-            SELECT precio_final, monto_deposito, incluye, peso_pastel, medidas_pastel FROM pasteles_configurados
+        query = """
+            SELECT precio_base, precio_chocolate, monto_deposito, incluye, peso_pastel, medidas_pastel 
+            FROM pasteles_configurados
             WHERE id_categoria = ? AND id_tipo_forma_seleccionada = ? AND id_tipo_tamano_seleccionado = ?
         """
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                try:
-                    if id_cat == 1 and id_pan == 2:
-                        cursor.execute(query_con_incluye, (id_cat, id_pan, id_forma, id_tam))
-                    else:
-                        cursor.execute(query_sin_incluye, (id_cat, id_forma, id_tam))
-                    result = cursor.fetchone()
-                    if result:
-                        precio_final = float(result[0]) if result[0] is not None else 0.0
-                        monto_deposito = float(result[1]) if result[1] is not None else 0.0
-                        incluye = result[2] or ""
-                        peso_pastel = result[3] or ""
-                        medidas_pastel = result[4] or ""
-                        return PastelConfigurado(precio_final=precio_final, monto_deposito=monto_deposito,
-                                                 incluye=incluye, peso_pastel=peso_pastel,medidas_pastel=medidas_pastel)
-                except sqlite3.Error:
-                    # Fallback si la columna 'incluye' no existe aún
-                    cursor.execute(query_sin_incluye, (id_cat, id_pan, id_forma, id_tam))
-                    result = cursor.fetchone()
-                    if result:
-                        precio_final = float(result[0]) if result[0] is not None else 0.0
-                        monto_deposito = float(result[1]) if result[1] is not None else 0.0
-                        return PastelConfigurado(precio_final=precio_final, monto_deposito=monto_deposito, incluye="",
-                                                 peso_pastel="", medidas_pastel="")
+
+                #if id_cat == 1 and id_pan == 2:
+                #    cursor.execute(query, (id_cat, id_pan, id_forma, id_tam))
+                #else:
+                cursor.execute(query, (id_cat, id_forma, id_tam))
+                result = cursor.fetchone()
+                if result:
+                    precio_base = float(result[0]) if result[0] is not None else 0.0
+                    precio_chocolate = float(result[1]) if result[1] is not None else 0.0
+                    monto_deposito = float(result[2]) if result[2] is not None else 0.0
+                    incluye = result[3] or ""
+                    peso_pastel = result[4] or ""
+                    medidas_pastel = result[5] or ""
+                    return PastelConfigurado(precio_base=precio_base,
+                                             precio_chocolate=precio_chocolate,
+                                             monto_deposito=monto_deposito,
+                                             incluye=incluye,
+                                             peso_pastel=peso_pastel,
+                                             medidas_pastel=medidas_pastel)
         except sqlite3.Error as e:
             print(f"Error al obtener precio: {e}")
         return None
