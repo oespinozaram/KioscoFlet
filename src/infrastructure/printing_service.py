@@ -22,7 +22,7 @@ class PrintingService:
             return 1
 
     def generar_ticket_pdf(self, ticket: Ticket) -> str:
-        file_path = f"ticket_{ticket.id_pedido}.pdf"
+        file_path = f"c:/KioscoPP/ticket_{ticket.id_pedido}.pdf"
 
         ancho_mm = 80
         # Reducimos la altura para un ticket más compacto

@@ -2199,7 +2199,7 @@ def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases, pedido
             return ft.Row(
                 spacing=15,
                 controls=[
-                    ft.Image(src=f"iconos/{icono}", width=40, height=40),
+                    ft.Image(src=f"c:/KioscoPP/img/iconos/{icono}", width=40, height=40),
                     ft.Column(
                         spacing=0,
                         controls=[
