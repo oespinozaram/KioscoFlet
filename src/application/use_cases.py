@@ -222,7 +222,10 @@ class PedidoUseCases:
         print(f"INFO: Pan '{nombre_pan}' seleccionado. Estado del pedido: {pedido}")
 
     def obtener_categorias(self) -> list[Categoria]:
-        return self.categoria_repo.obtener_todas()
+        pedido = self.pedido_repo.obtener()
+        if not pedido.id_tamano:
+            return []
+        return self.categoria_repo.obtener_todas(pedido.id_tamano)
 
     def seleccionar_categoria(self, id_categoria: int):
         pedido = self.pedido_repo.obtener()
@@ -533,13 +536,13 @@ class PedidoUseCases:
 
         # --- DEBUG PRINT: Muestra lo que devolvió la base de datos ---
         if config:
-            print(f"[DEBUG] Configuración encontrada: Precio=${config.precio_base}, Depósito=${config.monto_deposito}")
+            print(f"[DEBUG] Precio=${config.precio_base}, Precio Chocolate=${config.precio_chocolate}, Depósito=${config.monto_deposito}")
         else:
             print("[DEBUG] No se encontró una configuración de pastel para esos IDs.")
         print("[DEBUG] =============================================\n")
 
         precio_pastel = config.precio_base if config else 0.0
-        precio_chocolate = config.precio_base if config else 0.0
+        precio_chocolate = config.precio_chocolate if config else 0.0
         monto_deposito = config.monto_deposito if config else 0.0
         peso_pastel = config.peso_pastel if config else ""
         medidas_pastel = config.medidas_pastel if config else ""

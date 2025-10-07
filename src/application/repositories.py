@@ -52,7 +52,7 @@ class ExtraRepository(ABC):
 
 class CategoriaRepository(ABC):
     @abstractmethod
-    def obtener_todas(self) -> list[Categoria]:
+    def obtener_todas(self, id_tamano: int) -> list[Categoria]:
         pass
 
     @abstractmethod

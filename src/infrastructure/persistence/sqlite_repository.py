@@ -16,16 +16,27 @@ class CategoriaRepositorySQLite(CategoriaRepository):
     def __init__(self, db_path: str):
         self.db_path = db_path
 
-    def obtener_todas(self) -> list[Categoria]:
+    def obtener_todas(self, id_tamano: int) -> list[Categoria]:
+        query = """
+                SELECT id_categoria, nombre_categoria, imagen_url
+                FROM categorias c
+                WHERE EXISTS(SELECT 1 \
+                             FROM pasteles_configurados pc \
+                             WHERE pc.id_categoria = c.id_categoria \
+                               AND pc.id_tipo_tamano_seleccionado = ?)
+                ORDER BY id_categoria \
+                """
+        categorias = []
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT id_categoria, nombre_categoria, imagen_url FROM categorias ORDER BY id_categoria")
-                # Convertimos las filas de la BD en objetos Categoria
-                return [Categoria(id=row[0], nombre=row[1], imagen_url=row[2]) for row in cursor.fetchall()]
+                cursor.execute(query, (id_tamano,))
+                for row in cursor.fetchall():
+                    categorias.append(Categoria(id=row[0], nombre=row[1], imagen_url=row[2]))
+                #return [Categoria(id=row[0], nombre=row[1], imagen_url=row[2]) for row in cursor.fetchall()]
         except sqlite3.Error as e:
             print(f"Error al leer la tabla de categorías: {e}")
-            return []
+        return categorias
 
     def obtener_por_id(self, id_categoria: int) -> Categoria | None:
         query = "SELECT id_categoria, nombre_categoria, imagen_url FROM categorias WHERE id_categoria = ?"
@@ -412,10 +423,6 @@ class PastelConfiguradoRepositorySQLite(PastelConfiguradoRepository):
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-
-                #if id_cat == 1 and id_pan == 2:
-                #    cursor.execute(query, (id_cat, id_pan, id_forma, id_tam))
-                #else:
                 cursor.execute(query, (id_cat, id_forma, id_tam))
                 result = cursor.fetchone()
                 if result:
@@ -452,5 +459,3 @@ class ExtraRepositorySQLite(ExtraRepository):
         except sqlite3.Error as e:
             print(f"Error al obtener extra por descripción: {e}")
         return None
-
-

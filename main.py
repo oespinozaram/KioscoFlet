@@ -261,6 +261,12 @@ def main(page: ft.Page):
         pedido = pedido_use_cases.obtener_pedido_actual()
 
         config = pedido_use_cases.obtener_precio_pastel_configurado()
+        precio_base = config.precio_base if config else 0.0
+        precio_chocolate = config.precio_chocolate if config else 0.0
+        precio_pastel = precio_chocolate if pedido.id_pan == 2 else precio_base
+
+        if pedido.tipo_cobertura and "fondant" in pedido.tipo_cobertura.lower():
+            precio_pastel *= 2
 
         def mxn(v):
             try:
@@ -268,7 +274,7 @@ def main(page: ft.Page):
             except Exception:
                 return f"${v}"
 
-        precio_pastel = (config.precio_base if config else (pedido.precio_pastel or 0.0))
+        #precio_pastel = (config.precio_base if config else (pedido.precio_pastel or 0.0))
 
         extra_monto = pedido.extra_precio or 0.0
         extra_detalle = ""

@@ -1167,6 +1167,7 @@ def vista_cobertura(page: ft.Page, use_cases: PedidoUseCases):
 
     def on_cobertura_selected(e):
         use_cases.seleccionar_tipo_cobertura(e.control.data)
+        use_cases.obtener_precio_pastel_configurado()
         for card in carrusel_coberturas.controls:
             card.border = ft.border.all(3, ft.Colors.GREEN_500) if card == e.control else None
 
