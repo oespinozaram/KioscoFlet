@@ -760,10 +760,6 @@ def vista_tamano(page: ft.Page, use_cases: PedidoUseCases):
 def vista_categorias(page: ft.Page, use_cases: PedidoUseCases):
     ref_boton_continuar = ft.Ref[ft.Container]()
 
-    # def seleccionar_y_avanzar(id_categoria: int):
-    #     use_cases.seleccionar_categoria(id_categoria)
-    #     page.go("/forma")
-
     imagen_logo = ft.Image(
         src=logo_pepe,
         fit=ft.ImageFit.CONTAIN,
@@ -865,6 +861,17 @@ def vista_categorias(page: ft.Page, use_cases: PedidoUseCases):
                     )
                 ]
             ),
+            ft.Container(
+                alignment=ft.alignment.center,
+                padding=5,
+                content=ft.Text(
+                    "Imágenes ilustrativas diferentes al producto que representan.",
+                    size=22,
+                    color=ft.Colors.GREY_300,
+                    italic=True,
+                    text_align=ft.TextAlign.CENTER
+                )
+            ),
             ft.Container(height=30)
         ]
     )
@@ -956,6 +963,17 @@ def vista_forma(page: ft.Page, use_cases: PedidoUseCases):
                         disabled=True
                     )
                 ]
+            ),
+            ft.Container(
+                alignment=ft.alignment.center,
+                padding=5,
+                content=ft.Text(
+                    "Imágenes ilustrativas diferentes al producto que representan.",
+                    size=22,
+                    color=ft.Colors.GREY_300,
+                    italic=True,
+                    text_align=ft.TextAlign.CENTER
+                )
             ),
             ft.Container(height=30)
         ]
@@ -1050,6 +1068,17 @@ def vista_pan(page: ft.Page, use_cases: PedidoUseCases):
                     )
                 ]
             ),
+            ft.Container(
+                alignment=ft.alignment.center,
+                padding=5,
+                content=ft.Text(
+                    "Imágenes ilustrativas diferentes al producto que representan.",
+                    size=22,
+                    color=ft.Colors.GREY_300,
+                    italic=True,
+                    text_align=ft.TextAlign.CENTER
+                )
+            ),
             ft.Container(height=30)
         ]
     )
@@ -1142,6 +1171,17 @@ def vista_relleno(page: ft.Page, use_cases: PedidoUseCases):
                         disabled=True
                     )
                 ]
+            ),
+            ft.Container(
+                alignment=ft.alignment.center,
+                padding=5,
+                content=ft.Text(
+                    "Imágenes ilustrativas diferentes al producto que representan.",
+                    size=22,
+                    color=ft.Colors.GREY_300,
+                    italic=True,
+                    text_align=ft.TextAlign.CENTER
+                )
             ),
             ft.Container(height=30)
         ]
@@ -1236,6 +1276,17 @@ def vista_cobertura(page: ft.Page, use_cases: PedidoUseCases):
                         disabled=True
                     )
                 ]
+            ),
+            ft.Container(
+                alignment=ft.alignment.center,
+                padding=5,
+                content=ft.Text(
+                    "Imágenes ilustrativas diferentes al producto que representan.",
+                    size=22,
+                    color=ft.Colors.GREY_300,
+                    italic=True,
+                    text_align=ft.TextAlign.CENTER
+                )
             ),
             ft.Container(height=30)
         ]

@@ -88,13 +88,24 @@ class PrintingService:
         y -= (8 * mm)
 
         # Precios
-        c.drawString(margen_izquierdo, y, f"Costo Pastel: ${(ticket.precio_pastel or 0.0):.2f}")
+        costo_pastel = (ticket.precio_pastel or 0.0)
+        costo_extras = (ticket.extra_costo or 0.0)
+        deposito = (ticket.monto_deposito or 0.0)
+        # 'total' en el ticket normalmente es pastel + extras (sin depósito). Si viene None, recalculamos del desglose.
+        subtotal = (ticket.total if ticket.total is not None else (costo_pastel + costo_extras))
+        envio = 50.0 if subtotal < 500 else 0.0
+
+        c.drawString(margen_izquierdo, y, f"Costo Pastel: ${costo_pastel:.2f}")
         y -= (5 * mm)
-        c.drawString(margen_izquierdo, y, f"Costo Extras: ${(ticket.extra_costo or 0.0):.2f}")
+        c.drawString(margen_izquierdo, y, f"Costo Extras: ${costo_extras:.2f}")
         y -= (5 * mm)
-        c.drawString(margen_izquierdo, y, f"Deposito: ${(ticket.monto_deposito or 0.0):.2f}")
+        c.drawString(margen_izquierdo, y, f"Deposito: ${deposito:.2f}")
         y -= (5 * mm)
-        c.drawString(margen_izquierdo, y, f"Total: ${(ticket.total or 0.0):.2f}")
+        if envio > 0:
+            c.drawString(margen_izquierdo, y, f"Costo Envío: ${envio:.2f}")
+            y -= (5 * mm)
+        total_a_mostrar = subtotal + envio
+        c.drawString(margen_izquierdo, y, f"Total: ${total_a_mostrar:.2f}")
         y -= (8 * mm)
 
         c.drawCentredString(width / 2, y, "¡Gracias por su compra!")
