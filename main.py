@@ -260,40 +260,38 @@ def main(page: ft.Page):
     def abrir_resumen(e):
         pedido = pedido_use_cases.obtener_pedido_actual()
 
-        config = pedido_use_cases.obtener_precio_pastel_configurado()
-        precio_base = config.precio_base if config else 0.0
-        precio_chocolate = config.precio_chocolate if config else 0.0
-        precio_pastel = precio_chocolate if pedido.id_pan == 2 else precio_base
-
-        if pedido.tipo_cobertura and "fondant" in pedido.tipo_cobertura.lower():
-            precio_pastel *= 2
-
         def mxn(v):
             try:
                 return f"${v:,.2f}"
             except Exception:
                 return f"${v}"
 
-        #precio_pastel = (config.precio_base if config else (pedido.precio_pastel or 0.0))
+        precio_pastel = pedido.precio_pastel or 0.0
+        precio_chocolate = pedido.precio_chocolate
+        unit = pedido.extra_precio or 0.0
+        qty = pedido.extra_flor_cantidad or 0
+        if pedido.extra_seleccionado == "Flor Artificial" and qty > 0:
+            extra_monto = unit * qty
+            extra_detalle = f"{pedido.extra_seleccionado} ({qty} x {mxn(unit)})"
+        else:
+            extra_monto = unit
+            extra_detalle = pedido.extra_seleccionado or ""
 
-        extra_monto = pedido.extra_precio or 0.0
-        extra_detalle = ""
-        if pedido.extra_seleccionado:
-            if pedido.extra_seleccionado == "Flor Artificial" and (pedido.extra_flor_cantidad or 0) > 0:
-                unit = pedido.extra_precio or 0.0
-                qty = pedido.extra_flor_cantidad or 0
-                extra_monto = unit * qty
-                extra_detalle = f"{pedido.extra_seleccionado} ({qty} x {mxn(unit)})"
-            else:
-                extra_detalle = pedido.extra_seleccionado
+        if pedido.tipo_cobertura and "fondant" in pedido.tipo_cobertura.lower():
+            precio_pastel *= 2
 
-        total_mostrar = (precio_pastel or 0.0) + (extra_monto or 0.0)
+        if (str(pedido.id_pan) == "2") and precio_chocolate > 0.0:
+            precio_elegido = precio_chocolate
+        else:
+            precio_elegido = precio_pastel
 
-        # 4) Nombre de la categoría
+        subtotal = precio_pastel + extra_monto
+        costo_envio = 50.0 if subtotal < 500 else 0.0
+        total_mostrar = subtotal + costo_envio
+
         categorias = {c.id: c.nombre for c in pedido_use_cases.obtener_categorias()}
         nombre_categoria = categorias.get(pedido.id_categoria, "N/A")
 
-        # 5) Construir contenido del BottomSheet con montos e 'Incluye'
         bs.content.content = ft.Column(
             expand=True,
             scroll=ft.ScrollMode.ADAPTIVE,
@@ -329,13 +327,20 @@ def main(page: ft.Page):
                         controls=[
                             ft.Row(
                                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                                controls=[ft.Text("Precio del pastel"), ft.Text(mxn(precio_pastel))]
+                                controls=[ft.Text("Precio del pastel"), ft.Text(mxn(precio_elegido))]
                             ),
                             ft.Row(
                                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                                 controls=[
                                     ft.Text("Extra" + (f" – {extra_detalle}" if extra_detalle else "")),
                                     ft.Text(mxn(extra_monto))
+                                ]
+                            ),
+                            ft.Row(
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                controls=[
+                                    ft.Text("Costro de envio"),
+                                    ft.Text(mxn(costo_envio))
                                 ]
                             ),
                             ft.Divider(height=10),
@@ -354,7 +359,7 @@ def main(page: ft.Page):
                     padding=10,
                     bgcolor=ft.Colors.with_opacity(0.05, ft.Colors.BLACK),
                     border_radius=10,
-                    content=ft.Text((config.incluye if config else ""))
+                    content=ft.Text((pedido.incluye if pedido.incluye else ""))
                 ),
 
                 ft.Divider(height=15),

@@ -2212,7 +2212,10 @@ def vista_datos_cliente(page: ft.Page, use_cases: PedidoUseCases, finalizar_use_
 
 def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases, pedido_use_cases: PedidoUseCases):
     from src.infrastructure.printing_service import PrintingService
+
     ticket_finalizado = use_cases.finalizar_y_obtener_ticket()
+    pedido = pedido_use_cases.obtener_pedido_actual()
+
     if not ticket_finalizado:
         page.snack_bar = ft.SnackBar(ft.Text("No se pudo finalizar el pedido."))
         page.snack_bar.open = True
@@ -2243,9 +2246,13 @@ def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases, pedido
         page.go("/")
 
     def abrir_detalle_pedido(e):
-
-        categorias = {c.id: c.nombre for c in pedido_use_cases.obtener_categorias()}
-        nombre_categoria = categorias.get(ticket_finalizado.id_categoria, "N/A")
+        t = ticket_finalizado
+        p = pedido
+        if getattr(t, 'nombre_categoria', None):
+            nombre_categoria = t.nombre_categoria
+        else:
+            categorias = {c.id: c.nombre for c in pedido_use_cases.obtener_categorias()}
+            nombre_categoria = categorias.get(getattr(t, 'id_categoria', None), "N/A")
 
         def crear_fila_resumen(icono, titulo, valor):
             return ft.Row(
@@ -2271,16 +2278,24 @@ def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases, pedido
 
         # Detalle del extra (por si es Flor Artificial multiplicada)
         extra_detalle = ""
-        if ticket_finalizado.extra_seleccionado:
-            if ticket_finalizado.extra_seleccionado == "Flor Artificial" and (ticket_finalizado.extra_flor_cantidad or 0) > 0:
-                unit = (ticket_finalizado.extra_costo or 0.0) / (ticket_finalizado.extra_flor_cantidad or 1)
-                extra_detalle = f"{ticket_finalizado.extra_seleccionado} ({ticket_finalizado.extra_flor_cantidad} x {mxn(unit)})"
+        unit = (getattr(t, 'extra_precio', None) if getattr(t, 'extra_precio', None) is not None else (getattr(t, 'extra_costo', 0.0) or 0.0))
+        qty = getattr(t, 'extra_flor_cantidad', 0) or 0
+        if getattr(t, 'extra_seleccionado', None):
+            if t.extra_seleccionado == "Flor Artificial" and qty > 0:
+                extra_monto = unit * qty
+                extra_detalle = f"{t.extra_seleccionado} ({qty} x {mxn(unit)})"
             else:
-                extra_detalle = ticket_finalizado.extra_seleccionado
+                extra_monto = unit
+                extra_detalle = t.extra_seleccionado
+        else:
+            extra_monto = 0.0
+        costo_pastel = (getattr(t, 'precio_pastel', 0.0) or 0.0)
+        subtotal = (costo_pastel or 0.0) + (extra_monto or 0.0)
+        costo_envio = 50.0 if subtotal < 500 else 0.0
+        total_mostrar = subtotal + costo_envio
 
-        # Obtener 'incluye' de la configuración del pastel (si está disponible)
-        config = pedido_use_cases.obtener_precio_pastel_configurado()
-        incluye_texto = getattr(config, 'incluye', "") if config else ""
+        # 'incluye' puede no existir en Ticket; usar vacío como fallback
+        incluye_texto = p.incluye #getattr(t, 'incluye', '') or ''
 
         bs_detalle = ft.BottomSheet(
             content=ft.Container(
@@ -2295,28 +2310,28 @@ def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases, pedido
                             controls=[ft.IconButton(icon=ft.Icons.CLOSE, on_click=lambda _: setattr(bs_detalle, 'open',
                                                                                                     False) or page.update())]
                         ),
-                        ft.Text(f"Detalle del Pedido #{ticket_finalizado.id_pedido}", size=24, weight=ft.FontWeight.BOLD),
+                        ft.Text(f"Detalle del Pedido #{t.id_pedido}", size=24, weight=ft.FontWeight.BOLD),
                         ft.Divider(height=10),
                         ft.Row(
                             controls=[
                                 ft.Column([
                                     crear_fila_resumen("categoria.png", "Categoría", nombre_categoria),
-                                    crear_fila_resumen("forma.png", "Forma", ticket_finalizado.tipo_forma),
-                                    crear_fila_resumen("relleno.png", "Relleno", ticket_finalizado.tipo_relleno),
+                                    crear_fila_resumen("forma.png", "Forma", t.tipo_forma),
+                                    crear_fila_resumen("relleno.png", "Relleno", t.tipo_relleno),
                                 ], expand=1),
                                 ft.Column([
-                                    crear_fila_resumen("tamano2.png", "Tamaño (Personas)", ticket_finalizado.tamano_pastel),
-                                    crear_fila_resumen("pan.png", "Pan", ticket_finalizado.tipo_pan),
-                                    crear_fila_resumen("cobertura.png", "Cobertura", ticket_finalizado.tipo_cobertura),
+                                    crear_fila_resumen("tamano2.png", "Tamaño (Personas)", t.tamano_pastel),
+                                    crear_fila_resumen("pan.png", "Pan", t.tipo_pan),
+                                    crear_fila_resumen("cobertura.png", "Cobertura", t.tipo_cobertura),
                                 ], expand=1),
                             ]
                         ),
                         ft.Divider(height=10),
                         ft.Text(
-                            f"Fecha de entrega: {ticket_finalizado.fecha_entrega} a las {ticket_finalizado.hora_entrega}"),
-                        ft.Text(f"Cliente: {ticket_finalizado.nombre_cliente} ({ticket_finalizado.telefono_cliente})"),
+                            f"Fecha de entrega: {getattr(t, 'fecha_entrega', 'N/A') or 'N/A'} a las {getattr(t, 'hora_entrega', 'N/A') or 'N/A'}"),
+                        ft.Text(f"Cliente: {getattr(t, 'nombre_cliente', '')} ({getattr(t, 'telefono_cliente', '')})"),
                         ft.Text(
-                            f"Dirección: {ticket_finalizado.direccion_cliente} #{ticket_finalizado.num_ext_cliente}, {ticket_finalizado.colonia_cliente}, {ticket_finalizado.ciudad_cliente}, {ticket_finalizado.estado_cliente}, CP: {ticket_finalizado.cp_cliente}"),
+                            f"Dirección: {getattr(t, 'direccion_cliente', '')} #{getattr(t, 'num_ext_cliente', '')}, {getattr(t, 'colonia_cliente', '')}, {getattr(t, 'ciudad_cliente', '')}, {getattr(t, 'estado_cliente', '')}, CP: {getattr(t, 'cp_cliente', '')}"),
                         ft.Divider(height=15),
                         ft.Text("Resumen de montos", size=16, weight=ft.FontWeight.BOLD),
                         ft.Container(
@@ -2328,19 +2343,26 @@ def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases, pedido
                                 controls=[
                                     ft.Row(
                                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                                        controls=[ft.Text("Precio del pastel"), ft.Text(mxn(ticket_finalizado.precio_pastel or 0))]
+                                        controls=[ft.Text("Precio del pastel"), ft.Text(mxn(costo_pastel))]
                                     ),
                                     ft.Row(
                                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                                         controls=[
                                             ft.Text("Extra" + (f" – {extra_detalle}" if extra_detalle else "")),
-                                            ft.Text(mxn(ticket_finalizado.extra_costo or 0))
+                                            ft.Text(mxn(extra_monto))
+                                        ]
+                                    ),
+                                    ft.Row(
+                                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                        controls=[
+                                            ft.Text("Costo de envío"),
+                                            ft.Text(mxn(costo_envio))
                                         ]
                                     ),
                                     ft.Divider(height=10),
                                     ft.Row(
                                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                                        controls=[ft.Text("Total", weight=ft.FontWeight.W_700), ft.Text(mxn(ticket_finalizado.total or 0), weight=ft.FontWeight.W_700)]
+                                        controls=[ft.Text("Total", weight=ft.FontWeight.W_700), ft.Text(mxn(total_mostrar), weight=ft.FontWeight.W_700)]
                                     ),
                                 ]
                             )

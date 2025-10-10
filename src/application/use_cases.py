@@ -336,7 +336,7 @@ class PedidoUseCases:
 
         total = precio_pastel + extra_costo
 
-        if pedido.id_pan == 2:
+        if pedido.id_pan == 2 and precio_chocolate > 0.0:
             pedido.precio_pastel = precio_chocolate
         else:
             pedido.precio_pastel = precio_pastel
@@ -539,13 +539,14 @@ class PedidoUseCases:
             print(f"[DEBUG] Precio=${config.precio_base}, Precio Chocolate=${config.precio_chocolate}, Depósito=${config.monto_deposito}")
         else:
             print("[DEBUG] No se encontró una configuración de pastel para esos IDs.")
-        print("[DEBUG] =============================================\n")
+        print("[DEBUG] obtener_precio_pastel_configurado =============================================\n")
 
         precio_pastel = config.precio_base if config else 0.0
         precio_chocolate = config.precio_chocolate if config else 0.0
         monto_deposito = config.monto_deposito if config else 0.0
         peso_pastel = config.peso_pastel if config else ""
         medidas_pastel = config.medidas_pastel if config else ""
+        incluye = config.incluye if config else ""
 
         if pedido.tipo_cobertura and "fondant" in pedido.tipo_cobertura.lower():
             print(f"INFO: Cobertura de Fondant detectada. Duplicando precio base de ${precio_pastel}.")
@@ -555,15 +556,17 @@ class PedidoUseCases:
         extra_costo = pedido.extra_precio or 0.0
         total = precio_pastel + extra_costo
 
-        if pedido.id_pan == 2:
-            pedido.precio_pastel = precio_chocolate
-        else:
-            pedido.precio_pastel = precio_pastel
+        # if pedido.id_pan == 2 and precio_chocolate > 0:
+        #     pedido.precio_pastel = precio_chocolate
+        # else:
+        pedido.precio_pastel = precio_pastel
         pedido.monto_deposito = monto_deposito
         pedido.extra_costo = extra_costo
+        pedido.precio_chocolate = precio_chocolate
         pedido.total = total
         pedido.tamano_peso = peso_pastel
         pedido.tamano_descripcion = medidas_pastel
+        pedido.incluye = incluye
 
         self.pedido_repo.guardar(pedido)
 
@@ -593,66 +596,68 @@ class FinalizarPedidoUseCases:
         self.printing_service = PrintingService()
 
 
-    def generar_y_guardar_codigo_imagen(self):
-        pedido = self.pedido_repo.obtener()
-        if all([pedido.id_categoria, pedido.id_pan, pedido.id_forma, pedido.id_tamano]):
-            codigo = f"{pedido.id_categoria}-{pedido.id_pan}-{pedido.id_forma}-{pedido.id_tamano}"
-            pedido.imagen_pastel = codigo
-            self.pedido_repo.guardar(pedido)
+    # def generar_y_guardar_codigo_imagen(self):
+    #     pedido = self.pedido_repo.obtener()
+    #
+    #     if all([pedido.id_categoria, pedido.id_pan, pedido.id_forma, pedido.id_tamano]):
+    #         codigo = f"{pedido.id_categoria}-{pedido.id_pan}-{pedido.id_forma}-{pedido.id_tamano}"
+    #         pedido.imagen_pastel = codigo
+    #         self.pedido_repo.guardar(pedido)
 
-    def finalizar_y_calcular_total(self):
-        pedido = self.pedido_repo.obtener()
-        ruta_impresion = None
-
-        config = self.pastel_config_repo.obtener_configuracion(
-            id_cat=pedido.id_categoria,
-            id_pan=pedido.id_pan,
-            id_forma=pedido.id_forma,
-            id_tam=pedido.id_tamano
-        )
-
-        precio_pastel = config.precio_base if config else 0.0
-        precio_chocolate = config.precio_chocolate if config else 0.0
-        monto_deposito = config.monto_deposito if config else 0.0
-        peso_pastel = config.peso_pastel if config else ""
-        medidas_pastel = config.medidas_pastel if config else ""
-
-        if pedido.tipo_cobertura and "fondant" in pedido.tipo_cobertura.lower():
-            print(f"INFO: Cobertura de Fondant detectada. Duplicando precio base de ${precio_pastel}.")
-            precio_pastel *= 2
-            precio_chocolate *= 2
-
-        extra_costo = pedido.extra_precio or 0.0
-        if pedido.extra_seleccionado == "Flor Artificial" and pedido.extra_flor_cantidad:
-            extra_costo *= pedido.extra_flor_cantidad
-
-        total = precio_pastel + extra_costo
-
-        if pedido.id_pan == 2:
-            pedido.precio_pastel = precio_chocolate
-        else:
-            pedido.precio_pastel = precio_pastel
-        pedido.monto_deposito = monto_deposito
-        pedido.extra_costo = extra_costo
-        pedido.total = total
-        # Asignar peso y medidas desde la configuración antes de guardar
-        pedido.tamano_peso = peso_pastel
-        pedido.tamano_descripcion = medidas_pastel
-
-        self.generar_y_guardar_codigo_imagen()
-
-        id_nuevo_pedido = self.finalizar_repo.guardar(pedido)
-
-        if id_nuevo_pedido:
-            ticket = self.finalizar_repo.obtener_por_id(id_nuevo_pedido)
-            if ticket:
-                try:
-                    ruta_impresion = self.printing_service.generar_ticket_pdf(ticket)
-                    self.printing_service.enviar_a_impresora(ruta_impresion)
-                    return True
-                except Exception as e:
-                    print(f"ERROR: Falló el proceso de impresión: {e}")
-        return False
+    # def finalizar_y_calcular_total(self):
+    #     pedido = self.pedido_repo.obtener()
+    #     print(pedido)
+    #     ruta_impresion = None
+    #
+    #     config = self.pastel_config_repo.obtener_configuracion(
+    #         id_cat=pedido.id_categoria,
+    #         id_pan=pedido.id_pan,
+    #         id_forma=pedido.id_forma,
+    #         id_tam=pedido.id_tamano
+    #     )
+    #
+    #     precio_pastel = config.precio_base if config else 0.0
+    #     precio_chocolate = config.precio_chocolate if config else 0.0
+    #     monto_deposito = config.monto_deposito if config else 0.0
+    #     peso_pastel = config.peso_pastel if config else ""
+    #     medidas_pastel = config.medidas_pastel if config else ""
+    #
+    #     if pedido.tipo_cobertura and "fondant" in pedido.tipo_cobertura.lower():
+    #         print(f"INFO: Cobertura de Fondant detectada. Duplicando precio base de ${precio_pastel}.")
+    #         precio_pastel *= 2
+    #         precio_chocolate *= 2
+    #
+    #     extra_costo = pedido.extra_precio or 0.0
+    #     if pedido.extra_seleccionado == "Flor Artificial" and pedido.extra_flor_cantidad:
+    #         extra_costo *= pedido.extra_flor_cantidad
+    #
+    #     total = precio_pastel + extra_costo
+    #
+    #     if pedido.id_pan == 2:
+    #         pedido.precio_pastel = precio_chocolate
+    #     else:
+    #         pedido.precio_pastel = precio_pastel
+    #     pedido.monto_deposito = monto_deposito
+    #     pedido.extra_costo = extra_costo
+    #     pedido.total = total
+    #     # Asignar peso y medidas desde la configuración antes de guardar
+    #     pedido.tamano_peso = peso_pastel
+    #     pedido.tamano_descripcion = medidas_pastel
+    #
+    #     self.generar_y_guardar_codigo_imagen()
+    #
+    #     id_nuevo_pedido = self.finalizar_repo.guardar(pedido)
+    #
+    #     if id_nuevo_pedido:
+    #         ticket = self.finalizar_repo.obtener_por_id(id_nuevo_pedido)
+    #         if ticket:
+    #             try:
+    #                 ruta_impresion = self.printing_service.generar_ticket_pdf(ticket)
+    #                 self.printing_service.enviar_a_impresora(ruta_impresion)
+    #                 return True
+    #             except Exception as e:
+    #                 print(f"ERROR: Falló el proceso de impresión: {e}")
+    #     return False
 
 
     def obtener_nombre_categoria(self, id_categoria: int) -> str:
@@ -686,7 +691,7 @@ class FinalizarPedidoUseCases:
 
         total = precio_pastel + extra_costo
 
-        if pedido.id_pan == 2:
+        if pedido.id_pan == 2 and precio_chocolate > 0:
             pedido.precio_pastel = precio_chocolate
         else:
             pedido.precio_pastel = precio_pastel
