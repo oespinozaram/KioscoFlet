@@ -1,4 +1,3 @@
-# src/domain/datos_entrega.py
 from dataclasses import dataclass
 
 @dataclass

@@ -1,4 +1,3 @@
-# src/domain/pedido.py
 import datetime
 from .datos_entrega import DatosEntrega
 

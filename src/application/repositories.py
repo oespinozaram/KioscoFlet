@@ -1,4 +1,3 @@
-# src/application/repositories.py
 from abc import ABC, abstractmethod
 from typing import NamedTuple
 from src.domain.pedido import Pedido

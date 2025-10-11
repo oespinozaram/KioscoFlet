@@ -3,11 +3,13 @@ import flet as ft
 import datetime
 from dateutil.relativedelta import relativedelta
 from flet.core import page
-
 from src.application.use_cases import PedidoUseCases, FinalizarPedidoUseCases
 from .keyboard import VirtualKeyboard
 from .controles_comunes import crear_boton_navegacion
 from src.application.use_cases import AuthUseCases
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 fondo_hd = 'C:/KioscoPP/img/fondo_hd.png'
@@ -1410,10 +1412,8 @@ def vista_decorado1(page: ft.Page, use_cases: PedidoUseCases):
 
 
 def vista_decorado2(page: ft.Page, use_cases: PedidoUseCases):
-    # --- 1. Referencias y Manejadores ---
     ref_boton_continuar = ft.Ref[ft.Container]()
 
-    # --- Manejadores de Eventos ---
     def on_text_tematica_change(e):
         use_cases.guardar_detalle_decorado("Liso c/s Conchas de Betún", "Diseño o Temática", e.control.value)
         check_continuar()
@@ -1422,67 +1422,117 @@ def vista_decorado2(page: ft.Page, use_cases: PedidoUseCases):
         use_cases.seleccionar_colores_decorado(dd_color1.value, dd_color2.value)
         check_continuar()
 
-    def check_continuar():
-        pedido = use_cases.obtener_pedido_actual()
-        listo = False
-
-        if pedido.tipo_decorado == "Liso c/s Conchas de Betún":
-            colores_disponibles = use_cases.obtener_colores_disponibles() or []
-            requiere_color = len(colores_disponibles) > 0
-            tiene_color = bool(pedido.decorado_liso_color1) if requiere_color else True
-
-            #if pedido.decorado_liso_detalle and pedido.decorado_liso_color1:
-            if pedido.decorado_liso_detalle and tiene_color:
-                if pedido.decorado_liso_detalle == "Diseño o Temática":
-                    listo = bool(pedido.decorado_tematica_detalle and pedido.decorado_tematica_detalle.strip())
-                    #if pedido.decorado_tematica_detalle:
-                    #    listo = True
-                else:
-                    listo = True
+    def actualizar_estado_continuar():
+        """Función única que revisa si se puede continuar."""
         if ref_boton_continuar.current:
-            ref_boton_continuar.current.disabled = not listo
+            ref_boton_continuar.current.disabled = not use_cases.check_continuar_decorado()
         page.update()
 
+    def check_continuar():
+        if ref_boton_continuar.current:
+            ref_boton_continuar.current.disabled = not use_cases.check_continuar_decorado()
+        page.update()
+        # pedido = use_cases.obtener_pedido_actual()
+        # listo = False
+
+        # if pedido.tipo_decorado == "Liso c/s Conchas de Betún":
+        #     colores_disponibles = use_cases.obtener_colores_disponibles() or []
+        #     requiere_color = len(colores_disponibles) > 0
+        #     tiene_color = bool(pedido.decorado_liso_color1) if requiere_color else True
+        #
+        #     #if pedido.decorado_liso_detalle and pedido.decorado_liso_color1:
+        #     if pedido.decorado_liso_detalle and tiene_color:
+        #         if pedido.decorado_liso_detalle == "Diseño o Temática":
+        #             listo = bool(pedido.decorado_tematica_detalle and pedido.decorado_tematica_detalle.strip())
+        #             #if pedido.decorado_tematica_detalle:
+        #             #    listo = True
+        #         else:
+        #             listo = True
+        # if ref_boton_continuar.current:
+        #     ref_boton_continuar.current.disabled = not listo
+        # page.update()
+
     def on_sub_opcion_liso_click(e):
+        # Primero, reseteamos cualquier estado anterior para evitar conflictos
+        use_cases.reiniciar_detalles_decorado()
+
         detalle = e.control.data
         use_cases.guardar_detalle_decorado("Liso c/s Conchas de Betún", detalle)
 
+        # Resaltado visual
         for btn in carrusel_sub_opciones.controls:
             btn.border = ft.border.all(3, ft.Colors.GREEN_500) if btn == e.control else None
 
+        # Lógica para mostrar/ocultar controles
         colores_disponibles = use_cases.obtener_colores_disponibles()
-        opciones_color = [ft.dropdown.Option(color) for color in colores_disponibles]
-        #or [ft.dropdown.Option(key="no-color", text="No hay opciones", disabled=True)]
-
-        hay_colores = len(colores_disponibles) > 0
-        dd_color1.options = opciones_color
-        dd_color2.options = opciones_color
-        dd_color1.value = None
-        dd_color2.value = None
-
-        panel_principal.visible = True
-        contenedor_colores.visible = hay_colores
-        campo_mensaje.visible = True
-
-        if detalle == "Diseño o Temática":
-            tematica_container.visible = True
+        if colores_disponibles:
+            opciones_color = [ft.dropdown.Option(color) for color in colores_disponibles]
+            dd_color1.options = opciones_color
+            dd_color2.options = opciones_color
+            contenedor_colores.visible = True
         else:
-            tematica_container.visible = False
+            # Si no hay colores, asignamos el valor por defecto y ocultamos el selector
+            use_cases.seleccionar_colores_decorado("Sin Selección", None)
+            contenedor_colores.visible = False
+        # hay_colores = bool(colores_disponibles)
+        #
+        # contenedor_colores.visible = hay_colores
+        # if not hay_colores:
+        #     use_cases.seleccionar_colores_decorado("Sin Selección", None)
 
-        check_continuar()
+        tematica_container.visible = (detalle == "Diseño o Temática")
+        panel_principal.visible = True
+
+        actualizar_estado_continuar()
         page.update()
+        #
+        # use_cases.reiniciar_detalles_decorado()
+        #
+        # detalle = e.control.data
+        # use_cases.guardar_detalle_decorado("Liso c/s Conchas de Betún", detalle)
+        #
+        # for btn in carrusel_sub_opciones.controls:
+        #     btn.border = ft.border.all(3, ft.Colors.GREEN_500) if btn == e.control else None
+        #
+        # colores_disponibles = use_cases.obtener_colores_disponibles()
+        # opciones_color = [ft.dropdown.Option(color) for color in colores_disponibles]
+        # #or [ft.dropdown.Option(key="no-color", text="No hay opciones", disabled=True)]
+        #
+        # hay_colores = len(colores_disponibles) > 0
+        # dd_color1.options = opciones_color
+        # dd_color2.options = opciones_color
+        # dd_color1.value = None
+        # dd_color2.value = None
+        #
+        # panel_principal.visible = True
+        # contenedor_colores.visible = hay_colores
+        # campo_mensaje.visible = True
+        #
+        # if detalle == "Diseño o Temática":
+        #     tematica_container.visible = True
+        # else:
+        #     tematica_container.visible = False
+        #
+        # check_continuar()
+        # page.update()
 
     def restablecer(e):
-        use_cases.guardar_detalle_decorado("Liso c/s Conchas de Betún", None)
-        use_cases.seleccionar_colores_decorado(None, None)
-
-        for card in carrusel_sub_opciones.controls:
-            card.border = None
-
+        use_cases.reiniciar_detalles_decorado()
+        for card in carrusel_sub_opciones.controls: card.border = None
         panel_principal.visible = False
         if ref_boton_continuar.current:
             ref_boton_continuar.current.disabled = True
         page.update()
+        # use_cases.guardar_detalle_decorado("Liso c/s Conchas de Betún", None)
+        # use_cases.seleccionar_colores_decorado(None, None)
+        #
+        # for card in carrusel_sub_opciones.controls:
+        #     card.border = None
+        #
+        # panel_principal.visible = False
+        # if ref_boton_continuar.current:
+        #     ref_boton_continuar.current.disabled = True
+        # page.update()
 
     campo_mensaje = ft.TextField(label="Mensaje en el pastel (opcional)")
     tematica_container = ft.Column(
@@ -2227,7 +2277,7 @@ def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases, pedido
         pdf_path = ps.generar_ticket_pdf(ticket_finalizado)
         ps.enviar_a_impresora(pdf_path)
     except Exception as e:
-        print(f"ERROR impresión: {e}")
+        logger.error(f"ERROR impresión: {e}")
 
     def animar_entrada():
         import time

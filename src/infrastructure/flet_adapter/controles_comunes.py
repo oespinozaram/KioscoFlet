@@ -1,11 +1,9 @@
-# src/infrastructure/flet_adapter/controles_comunes.py
 import flet as ft
 
 
 def crear_boton_navegacion(texto: str, on_click_handler, es_primario: bool = True, **kwargs):
 
     if "bgcolor" in kwargs:
-
         color_fondo = kwargs.pop("bgcolor")
     else:
         color_fondo = "#E5ADAD" if es_primario else ft.Colors.BLUE_GREY_300
@@ -13,7 +11,7 @@ def crear_boton_navegacion(texto: str, on_click_handler, es_primario: bool = Tru
     return ft.Container(
         width=150,
         height=45,
-        bgcolor=color_fondo,  # Se aplica el color determinado
+        bgcolor=color_fondo,
         border_radius=ft.border_radius.all(10),
         content=ft.Text(
             texto,

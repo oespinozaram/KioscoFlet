@@ -1,6 +1,8 @@
-# src/application/use_cases.py
 import datetime
 import os.path
+import logging
+
+logger = logging.getLogger(__name__)
 
 from .repositories import (
     PedidoRepository, TamanoRepository, CategoriaRepository, TipoCobertura,
@@ -21,10 +23,10 @@ class AuthUseCases:
     def login(self, username: str, password: str) -> bool:
 
         if username.lower() == "admin" and password == "1234":
-            print("INFO: Credenciales correctas.")
+            logger.info("INFO: Credenciales correctas.")
             return True
         else:
-            print("ERROR: Credenciales incorrectas.")
+            logger.error("ERROR: Credenciales incorrectas.")
             return False
 
 
@@ -74,13 +76,13 @@ class PedidoUseCases:
         self.pedido_repo.guardar(pedido)
 
     def obtener_url_imagen_galeria_por_id(self, id_imagen: int) -> str | None:
-        print(f"DIAGNÓSTICO: Buscando imagen con ID: {id_imagen}")
+        logger.info(f"DIAGNÓSTICO: Buscando imagen con ID: {id_imagen}")
         imagen = self.imagen_galeria_repo.obtener_por_id(id_imagen)
         if imagen:
-            print(f"DIAGNÓSTICO: Imagen encontrada. URL: {imagen.ruta}")
+            logger.info(f"Imagen encontrada. URL: {imagen.ruta}")
             return imagen.ruta
         else:
-            print(f"DIAGNÓSTICO: No se encontró ninguna imagen con el ID {id_imagen}.")
+            logger.info(f"DIAGNÓSTICO: No se encontró ninguna imagen con el ID {id_imagen}.")
             return None
 
     def buscar_imagenes_galeria(self, categoria: str | None, termino: str | None) -> list[ImagenGaleria]:
@@ -88,19 +90,16 @@ class PedidoUseCases:
 
     def seleccionar_imagen_decorado(self, id_imagen: int):
         pedido = self.pedido_repo.obtener()
-        # Guardar el ID seleccionado
         pedido.decorado_imagen_id = id_imagen
-        # Consultar en la galería para obtener la URL y guardarla en imagen_pastel
         try:
             imagen = self.imagen_galeria_repo.obtener_por_id(id_imagen)
             if imagen and getattr(imagen, "ruta", None):
                 img_file = os.path.basename(imagen.ruta)
                 pedido.imagen_pastel = os.path.splitext(img_file)[0]
             else:
-                # Si no existe la imagen o no tiene ruta, limpiamos el campo
                 pedido.imagen_pastel = None
         except Exception as e:
-            print(f"ADVERTENCIA: No se pudo obtener la URL de la imagen con ID {id_imagen}: {e}")
+            logger.warning(f"ADVERTENCIA: No se pudo obtener la URL de la imagen con ID {id_imagen}: {e}")
             pedido.imagen_pastel = None
         self.pedido_repo.guardar(pedido)
 
@@ -146,7 +145,7 @@ class PedidoUseCases:
         pedido = self.pedido_repo.obtener()
         pedido.tipo_cobertura = nombre_cobertura
         self.pedido_repo.guardar(pedido)
-        print(f"INFO: Cobertura '{nombre_cobertura}' seleccionada. Estado del pedido: {pedido}")
+        logger.info(f"INFO: Cobertura '{nombre_cobertura}' seleccionada. Estado del pedido: {pedido}")
 
     def obtener_rellenos_disponibles(self, id_categoria: int, id_tipo_pan: int) -> list[TipoRelleno]:
         return self.tipo_relleno_repo.obtener_por_categoria_y_pan(id_categoria, id_tipo_pan)
@@ -155,7 +154,7 @@ class PedidoUseCases:
         pedido = self.pedido_repo.obtener()
         pedido.tipo_relleno = nombre_relleno
         self.pedido_repo.guardar(pedido)
-        print(f"INFO: Relleno '{nombre_relleno}' seleccionado. Estado del pedido: {pedido}")
+        logger.info(f"INFO: Relleno '{nombre_relleno}' seleccionado. Estado del pedido: {pedido}")
 
     def obtener_formas_por_categoria(self, id_categoria: int) -> list[FormaPastel]:
         formas_disponibles = self.tipo_forma_repo.obtener_por_categoria(id_categoria)
@@ -169,32 +168,32 @@ class PedidoUseCases:
                     tamano_personas = int(pedido.tamano_pastel)
 
                 if tamano_personas > 10:
-                    print(f"INFO: Tamaño para {tamano_personas} personas detectado. Ocultando forma de corazón.")
+                    logger.info(f"INFO: Tamaño para {tamano_personas} personas detectado. Ocultando forma de corazón.")
                     formas_disponibles  = [forma for forma in formas_disponibles if "corazón" not in forma.nombre.lower()]
 
                 tamanos_permitidos_redonda = [5, 10, 15, 18, 20]
                 if tamano_personas not in tamanos_permitidos_redonda:
                     formas_disponibles = [f for f in formas_disponibles if 'redonda' not in f.nombre.lower()]
-                    print(f"INFO: Tamaño para {tamano_personas}. Se ha ocultado la forma 'Redonda'.")
+                    logger.info(f"INFO: Tamaño para {tamano_personas}. Se ha ocultado la forma 'Redonda'.")
 
                 tamanos_permitidos_rectangular = [20, 40, 60, 80, 120, 150, 180]
                 if tamano_personas not in tamanos_permitidos_rectangular:
                     formas_disponibles = [f for f in formas_disponibles if "rectangular" not in f.nombre.lower()]
-                    print(f"INFO: Tamaño para {tamano_personas}. Se oculta la forma rectangular.")
+                    logger.info(f"INFO: Tamaño para {tamano_personas}. Se oculta la forma rectangular.")
 
                 tamanos_permitidos_altos = [15, 30, 35, 40]
                 if tamano_personas not in tamanos_permitidos_altos:
                     formas_disponibles = [f for f in formas_disponibles if 'alto (3 o 4 capas)' not in f.nombre.lower()]
-                    print(f"INFO: Tamaño para {tamano_personas}. Se oculta la forma Altos.")
+                    logger.info(f"INFO: Tamaño para {tamano_personas}. Se oculta la forma Altos.")
 
                 tamanos_permitidos_pisos = [25, 30, 35, 40, 60, 70, 80, 100, 150,160, 200, 250]
                 if tamano_personas not in tamanos_permitidos_pisos:
                     formas_disponibles = [f for f in formas_disponibles if 'pisos' not in f.nombre.lower()]
-                    print(f"INFO: Tamanño para {tamano_personas}. Se oculta la forma 'Pisos'.")
+                    logger.info(f"INFO: Tamanño para {tamano_personas}. Se oculta la forma 'Pisos'.")
 
                 return formas_disponibles
             except (ValueError, TypeError):
-                print(f"ADVERTENCIA: El tamaño '{pedido.tamano_pastel}' no es un número válido.")
+                logger.warning(f"ADVERTENCIA: El tamaño '{pedido.tamano_pastel}' no es un número válido.")
                 pass
         return formas_disponibles
 
@@ -207,9 +206,16 @@ class PedidoUseCases:
                 pan for pan in panes_disponibles
                 if "chocolate" not in pan.nombre.lower()
             ]
-            print(f"INFO: Forma 'Pisos' seleccionada. Se ha ocultado el pan de chocolate.")
+            logger.info(f"INFO: Forma 'Pisos' seleccionada. Se ha ocultado el pan de chocolate.")
             return panes_filtrados
         return panes_disponibles
+
+    def reiniciar_detalles_decorado(self):
+        pedido = self.pedido_repo.obtener()
+        pedido.decorado_liso_color1 = None
+        pedido.decorado_liso_color2 = None
+        pedido.decorado_tematica_detalle = None
+        self.pedido_repo.guardar(pedido)
 
     def seleccionar_tipo_pan(self, id_pan: int,  nombre_pan: str):
         pedido = self.pedido_repo.obtener()
@@ -219,7 +225,7 @@ class PedidoUseCases:
         pedido.id_pan = id_pan
         pedido.tipo_pan = nombre_pan
         self.pedido_repo.guardar(pedido)
-        print(f"INFO: Pan '{nombre_pan}' seleccionado. Estado del pedido: {pedido}")
+        logger.info(f"INFO: Pan '{nombre_pan}' seleccionado. Estado del pedido: {pedido}")
 
     def obtener_categorias(self) -> list[Categoria]:
         pedido = self.pedido_repo.obtener()
@@ -239,7 +245,7 @@ class PedidoUseCases:
             pedido.nombre_categoria = categoria_obj.nombre
 
         self.pedido_repo.guardar(pedido)
-        print(f"INFO: Categoría {id_categoria} seleccionada. Estado del pedido: {pedido}")
+        logger.info(f"INFO: Categoría {id_categoria} seleccionada. Estado del pedido: {pedido}")
 
     def seleccionar_fecha(self, fecha: datetime.date):
         pedido = self.pedido_repo.obtener()
@@ -314,7 +320,7 @@ class PedidoUseCases:
         pedido = self.pedido_repo.obtener()
 
         if not all([pedido.id_categoria, pedido.id_pan, pedido.id_forma, pedido.id_tamano]):
-            print("ADVERTENCIA: Faltan IDs para calcular el precio.")
+            logger.warning("ADVERTENCIA: Faltan IDs para calcular el precio.")
             return
 
         config = self.pastel_config_repo.obtener_configuracion(
@@ -330,7 +336,7 @@ class PedidoUseCases:
         extra_costo = pedido.extra_precio or 0.0
 
         if pedido.tipo_cobertura and "fondant" in pedido.tipo_cobertura.lower():
-            print(f"INFO: Cobertura de Fondant detectada. Duplicando precio base de ${precio_pastel}.")
+            logger.info(f"INFO: Cobertura de Fondant detectada. Duplicando precio base de ${precio_pastel}.")
             precio_pastel *= 2
             precio_chocolate *= 2
 
@@ -358,7 +364,6 @@ class PedidoUseCases:
         self.pedido_repo.guardar(pedido)
 
     def guardar_edad_pastel(self, edad: int | None):
-        """Guarda la edad para el pastel en el pedido."""
         pedido = self.pedido_repo.obtener()
         pedido.edad_pastel = edad
         self.pedido_repo.guardar(pedido)
@@ -367,7 +372,7 @@ class PedidoUseCases:
         pedido = self.pedido_repo.obtener()
         pedido.mensaje_pastel = mensaje
         self.pedido_repo.guardar(pedido)
-        print(f"INFO: Mensaje '{mensaje}' guardado.")
+        logger.info(f"INFO: Mensaje '{mensaje}' guardado.")
 
 
     def guardar_datos_y_finalizar(self, datos: dict) -> Pedido:
@@ -375,9 +380,9 @@ class PedidoUseCases:
         pedido.datos_entrega = DatosEntrega(**datos)
         self.pedido_repo.guardar(pedido)
 
-        print("INFO: Finalizando pedido y guardando en la base de datos...")
+        logger.info("INFO: Finalizando pedido y guardando en la base de datos...")
         self.finalizar_repo.guardar(pedido)
-        print("INFO: ¡Pedido guardado permanentemente!")
+        logger.info("INFO: ¡Pedido guardado permanentemente!")
 
         return pedido
 
@@ -385,13 +390,41 @@ class PedidoUseCases:
         pedido = self.pedido_repo.obtener()
         pedido.decorado_liso_color = color
         self.pedido_repo.guardar(pedido)
-        print(f"INFO: Color de decorado '{color}' seleccionado.")
+        logger.info(f"INFO: Color de decorado '{color}' seleccionado.")
 
     def obtener_colores_disponibles(self) -> list[str]:
         pedido = self.pedido_repo.obtener()
         if not pedido.id_categoria or not pedido.tipo_cobertura:
             return []
         return self.tipo_color_repo.obtener_por_categoria_y_cobertura(pedido.id_categoria, pedido.tipo_cobertura)
+
+    def check_continuar_decorado(self) -> bool:
+        """
+        Verifica si se han cumplido las condiciones para continuar
+        desde la pantalla de detalles de decorado.
+        """
+        pedido = self.pedido_repo.obtener()
+
+        # Si no se ha elegido un detalle de decorado liso, no se puede continuar.
+        if not pedido.decorado_liso_detalle:
+            return False
+
+        # Verificamos si hay colores disponibles para esta configuración.
+        # Si no los hay, no necesitamos validar la selección de color.
+        colores_disponibles = self.obtener_colores_disponibles()
+        requiere_color = bool(colores_disponibles)
+
+        # La condición "tiene_color" es verdadera si se ha seleccionado un color,
+        # o si no se requería seleccionar uno.
+        tiene_color = bool(pedido.decorado_liso_color1) if requiere_color else True
+
+        # Si la opción es "Diseño o Temática", debe tener color Y texto.
+        if pedido.decorado_liso_detalle == "Diseño o Temática":
+            tiene_texto_tematica = bool(pedido.decorado_tematica_detalle and pedido.decorado_tematica_detalle.strip())
+            return tiene_texto_tematica and tiene_color
+
+        # Para las otras opciones ("Chantilli", "Chorreado"), solo se necesita tener un color válido.
+        return tiene_color
 
     def seleccionar_colores_decorado(self, color1: str | None, color2: str | None):
         pedido = self.pedido_repo.obtener()
@@ -461,41 +494,39 @@ class PedidoUseCases:
         self.pedido_repo.guardar(pedido_actual)
 
     def obtener_rangos_de_hora(self, fecha_seleccionada: datetime.date) -> list[str]:
-        print(f"\n[DEBUG] === Iniciando cálculo de rangos para fecha: {fecha_seleccionada} ===")
+        logger.info(f"\n[DEBUG] === Iniciando cálculo de rangos para fecha: {fecha_seleccionada} ===")
 
         horario = self.horario_repo.obtener_horario()
         if not horario:
-            print("[DEBUG] No se encontró un horario de entrega en la base de datos.")
+            logger.info("[DEBUG] No se encontró un horario de entrega en la base de datos.")
             return []
 
-        print(
-            f"[DEBUG] Horario de operación obtenido: {horario.hora_inicio.strftime('%H:%M')} a {horario.hora_fin.strftime('%H:%M')}")
+        logger.info(f"[DEBUG] Horario de operación obtenido: {horario.hora_inicio.strftime('%H:%M')} a {horario.hora_fin.strftime('%H:%M')}")
 
         # 1. Revisa si es día festivo (esto llamará a la función con sus propios prints)
         es_dia_festivo = self.dia_festivo_repo.es_festivo(fecha_seleccionada)
 
         # 2. Elige el intervalo de tiempo
         intervalo_horas = 2 if es_dia_festivo else 1
-        print(f"[DEBUG] Intervalo de horas determinado: {intervalo_horas} hora(s)")
+        logger.info(f"[DEBUG] Intervalo de horas determinado: {intervalo_horas} hora(s)")
 
         # 3. "Corta" el día en rangos
         rangos = []
         hora_actual = datetime.datetime.combine(fecha_seleccionada, horario.hora_inicio)
         hora_final = datetime.datetime.combine(fecha_seleccionada, horario.hora_fin)
 
-        print("[DEBUG] --- Generando rangos ---")
+        logger.info("[DEBUG] --- Generando rangos ---")
         while hora_actual < hora_final:
             hora_siguiente = hora_actual + datetime.timedelta(hours=intervalo_horas)
             if hora_siguiente > hora_final:
                 hora_siguiente = hora_final
 
-            # Formateamos a AM/PM como te gustó
             rango_str = f"{hora_actual.strftime('%I:%M %p')} - {hora_siguiente.strftime('%I:%M %p')}"
             rangos.append(rango_str)
-            print(f"[DEBUG]   - Rango generado: {rango_str}")
+            logger.info(f"[DEBUG]   - Rango generado: {rango_str}")
             hora_actual = hora_siguiente
 
-        print(f"[DEBUG] === Cálculo finalizado. Se generaron {len(rangos)} rangos. ===\n")
+        logger.info(f"[DEBUG] === Cálculo finalizado. Se generaron {len(rangos)} rangos. ===\n")
         return rangos
 
     def seleccionar_tamano(self, id_tamano: int, nombre_tamano: str, descripcion_tamano: str):
@@ -510,23 +541,22 @@ class PedidoUseCases:
         pedido.id_forma = id_forma
         pedido.tipo_forma = nombre_forma
         self.pedido_repo.guardar(pedido)
-        print(f"INFO: Forma '{nombre_forma}' seleccionada. Estado del pedido: {pedido}")
+        logger.info(f"INFO: Forma '{nombre_forma}' seleccionada. Estado del pedido: {pedido}")
 
     def obtener_precio_pastel_configurado(self) -> PastelConfigurado:
         pedido = self.pedido_repo.obtener()
 
-        print("\n[DEBUG] === Consultando Precio de Pastel Configurado ===")
-        print(f"[DEBUG] ID Categoría: {pedido.id_categoria}")
-        print(f"[DEBUG] ID Pan: {pedido.id_pan}")
-        print(f"[DEBUG] ID Forma: {pedido.id_forma}")
-        print(f"[DEBUG] ID Tamaño: {pedido.id_tamano}")
+        logger.info("\n[DEBUG] === Consultando Precio de Pastel Configurado ===")
+        logger.info(f"[DEBUG] ID Categoría: {pedido.id_categoria}")
+        logger.info(f"[DEBUG] ID Pan: {pedido.id_pan}")
+        logger.info(f"[DEBUG] ID Forma: {pedido.id_forma}")
+        logger.info(f"[DEBUG] ID Tamaño: {pedido.id_tamano}")
 
         if not all([pedido.id_categoria, pedido.id_pan, pedido.id_forma, pedido.id_tamano]):
-            print("[DEBUG] Faltan IDs para calcular el precio. Devolviendo 0.0")
-            print("[DEBUG] =============================================\n")
+            logger.info("[DEBUG] Faltan IDs para calcular el precio. Devolviendo 0.0")
+            logger.info("[DEBUG] =============================================\n")
             return 0.0
 
-        # Llama al repositorio para obtener la configuración
         config = self.pastel_config_repo.obtener_configuracion(
             id_cat=pedido.id_categoria,
             id_pan=pedido.id_pan,
@@ -534,12 +564,11 @@ class PedidoUseCases:
             id_tam=pedido.id_tamano
         )
 
-        # --- DEBUG PRINT: Muestra lo que devolvió la base de datos ---
         if config:
-            print(f"[DEBUG] Precio=${config.precio_base}, Precio Chocolate=${config.precio_chocolate}, Depósito=${config.monto_deposito}")
+            logger.info(f"[DEBUG] Precio=${config.precio_base}, Precio Chocolate=${config.precio_chocolate}, Depósito=${config.monto_deposito}")
         else:
-            print("[DEBUG] No se encontró una configuración de pastel para esos IDs.")
-        print("[DEBUG] obtener_precio_pastel_configurado =============================================\n")
+            logger.info("[DEBUG] No se encontró una configuración de pastel para esos IDs.")
+        logger.info("[DEBUG] =============================================\n")
 
         precio_pastel = config.precio_base if config else 0.0
         precio_chocolate = config.precio_chocolate if config else 0.0
@@ -549,16 +578,13 @@ class PedidoUseCases:
         incluye = config.incluye if config else ""
 
         if pedido.tipo_cobertura and "fondant" in pedido.tipo_cobertura.lower():
-            print(f"INFO: Cobertura de Fondant detectada. Duplicando precio base de ${precio_pastel}.")
+            logger.info(f"INFO: Cobertura de Fondant detectada. Duplicando precio base de ${precio_pastel}.")
             precio_pastel *= 2
             precio_chocolate *= 2
 
         extra_costo = pedido.extra_precio or 0.0
         total = precio_pastel + extra_costo
 
-        # if pedido.id_pan == 2 and precio_chocolate > 0:
-        #     pedido.precio_pastel = precio_chocolate
-        # else:
         pedido.precio_pastel = precio_pastel
         pedido.monto_deposito = monto_deposito
         pedido.extra_costo = extra_costo
@@ -595,71 +621,6 @@ class FinalizarPedidoUseCases:
         self.categoria_repo = categoria_repo
         self.printing_service = PrintingService()
 
-
-    # def generar_y_guardar_codigo_imagen(self):
-    #     pedido = self.pedido_repo.obtener()
-    #
-    #     if all([pedido.id_categoria, pedido.id_pan, pedido.id_forma, pedido.id_tamano]):
-    #         codigo = f"{pedido.id_categoria}-{pedido.id_pan}-{pedido.id_forma}-{pedido.id_tamano}"
-    #         pedido.imagen_pastel = codigo
-    #         self.pedido_repo.guardar(pedido)
-
-    # def finalizar_y_calcular_total(self):
-    #     pedido = self.pedido_repo.obtener()
-    #     print(pedido)
-    #     ruta_impresion = None
-    #
-    #     config = self.pastel_config_repo.obtener_configuracion(
-    #         id_cat=pedido.id_categoria,
-    #         id_pan=pedido.id_pan,
-    #         id_forma=pedido.id_forma,
-    #         id_tam=pedido.id_tamano
-    #     )
-    #
-    #     precio_pastel = config.precio_base if config else 0.0
-    #     precio_chocolate = config.precio_chocolate if config else 0.0
-    #     monto_deposito = config.monto_deposito if config else 0.0
-    #     peso_pastel = config.peso_pastel if config else ""
-    #     medidas_pastel = config.medidas_pastel if config else ""
-    #
-    #     if pedido.tipo_cobertura and "fondant" in pedido.tipo_cobertura.lower():
-    #         print(f"INFO: Cobertura de Fondant detectada. Duplicando precio base de ${precio_pastel}.")
-    #         precio_pastel *= 2
-    #         precio_chocolate *= 2
-    #
-    #     extra_costo = pedido.extra_precio or 0.0
-    #     if pedido.extra_seleccionado == "Flor Artificial" and pedido.extra_flor_cantidad:
-    #         extra_costo *= pedido.extra_flor_cantidad
-    #
-    #     total = precio_pastel + extra_costo
-    #
-    #     if pedido.id_pan == 2:
-    #         pedido.precio_pastel = precio_chocolate
-    #     else:
-    #         pedido.precio_pastel = precio_pastel
-    #     pedido.monto_deposito = monto_deposito
-    #     pedido.extra_costo = extra_costo
-    #     pedido.total = total
-    #     # Asignar peso y medidas desde la configuración antes de guardar
-    #     pedido.tamano_peso = peso_pastel
-    #     pedido.tamano_descripcion = medidas_pastel
-    #
-    #     self.generar_y_guardar_codigo_imagen()
-    #
-    #     id_nuevo_pedido = self.finalizar_repo.guardar(pedido)
-    #
-    #     if id_nuevo_pedido:
-    #         ticket = self.finalizar_repo.obtener_por_id(id_nuevo_pedido)
-    #         if ticket:
-    #             try:
-    #                 ruta_impresion = self.printing_service.generar_ticket_pdf(ticket)
-    #                 self.printing_service.enviar_a_impresora(ruta_impresion)
-    #                 return True
-    #             except Exception as e:
-    #                 print(f"ERROR: Falló el proceso de impresión: {e}")
-    #     return False
-
-
     def obtener_nombre_categoria(self, id_categoria: int) -> str:
         categoria = self.categoria_repo.obtener_por_id(id_categoria)
         return categoria.nombre if categoria else "Desconocida"
@@ -681,7 +642,7 @@ class FinalizarPedidoUseCases:
         medidas_pastel = config.medidas_pastel if config else ""
 
         if pedido.tipo_cobertura and "fondant" in pedido.tipo_cobertura.lower():
-            print(f"INFO: Cobertura de Fondant detectada. Duplicando precio base de ${precio_pastel}.")
+            logger.info(f"INFO: Cobertura de Fondant detectada. Duplicando precio base de ${precio_pastel}.")
             precio_pastel *= 2
             precio_chocolate *= 2
 

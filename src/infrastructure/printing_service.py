@@ -6,6 +6,9 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch, mm
 import barcode
 from barcode.writer import ImageWriter
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class PrintingService:
@@ -18,7 +21,7 @@ class PrintingService:
                 row = cursor.fetchone()
                 return str(row[0]) if row and row[0] is not None else ""
         except Exception as e:
-            print(f"WARN: No se pudo leer nSucursalPK desde Sucursales: {e}. Usando 1 por defecto.")
+            logger.warning(f"WARN: No se pudo leer nSucursalPK desde Sucursales: {e}. Usando 1 por defecto.")
             return 1
 
     def generar_ticket_pdf(self, ticket: Ticket) -> str:
@@ -116,9 +119,8 @@ class PrintingService:
         return os.path.abspath(file_path)
 
     def enviar_a_impresora(self, file_path: str):
-
         if not os.path.exists(file_path):
-            print(f"ERROR: El archivo a imprimir no existe: {file_path}")
+            logger.error(f"ERROR: El archivo a imprimir no existe: {file_path}")
             return
 
         if platform.system() == "Windows":
@@ -126,7 +128,7 @@ class PrintingService:
                 import win32api
                 import win32print
                 printer_name = win32print.GetDefaultPrinter()
-                print(f"INFO: Enviando a la impresora por defecto: '{printer_name}'")
+                logger.info(f"INFO: Enviando a la impresora por defecto: '{printer_name}'")
 
                 win32api.ShellExecute(
                         0,
@@ -137,8 +139,8 @@ class PrintingService:
                         0
                     )
             except ImportError:
-                print("ERROR: La librería 'pywin32' no está instalada. Ejecuta: pip install pywin32")
+                logger.error("ERROR: La librería 'pywin32' no está instalada. Ejecuta: pip install pywin32")
             except Exception as e:
-                print(f"ERROR: No se pudo imprimir con win32api. {e}")
+                logger.error(f"ERROR: No se pudo imprimir con win32api. {e}")
         else:
-            print("ERROR: La impresión directa de PDF solo está configurada para Windows.")
+            logger.error("ERROR: La impresión directa de PDF solo está configurada para Windows.")

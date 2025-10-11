@@ -12,7 +12,6 @@ class VirtualKeyboard:
         self.keyboard_control = self._build_controls()
 
     def _create_key(self, text: str, data: str, expand: int = 1):
-        """Función de ayuda para crear cada tecla."""
         return ft.Container(
             content=ft.Text(text, size=20),
             alignment=ft.alignment.center,

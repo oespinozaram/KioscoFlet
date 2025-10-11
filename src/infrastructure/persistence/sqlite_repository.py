@@ -1,4 +1,3 @@
-# src/infrastructure/persistence/sqlite_repository.py
 import sqlite3
 import datetime
 from src.domain.pedido import Pedido
@@ -10,6 +9,9 @@ from src.application.repositories import (
     Ticket, HorarioEntregaRepository, Horario, DiaFestivoRepository, TamanoPastel,
     PastelConfiguradoRepository, ExtraRepository, Extra, PastelConfigurado
 )
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class CategoriaRepositorySQLite(CategoriaRepository):
@@ -33,9 +35,8 @@ class CategoriaRepositorySQLite(CategoriaRepository):
                 cursor.execute(query, (id_tamano,))
                 for row in cursor.fetchall():
                     categorias.append(Categoria(id=row[0], nombre=row[1], imagen_url=row[2]))
-                #return [Categoria(id=row[0], nombre=row[1], imagen_url=row[2]) for row in cursor.fetchall()]
         except sqlite3.Error as e:
-            print(f"Error al leer la tabla de categorías: {e}")
+            logger.error(f"Error al leer la tabla de categorías: {e}")
         return categorias
 
     def obtener_por_id(self, id_categoria: int) -> Categoria | None:
@@ -48,7 +49,7 @@ class CategoriaRepositorySQLite(CategoriaRepository):
                 if row:
                     return Categoria(id=row[0], nombre=row[1], imagen_url=row[2])
         except sqlite3.Error as e:
-            print(f"Error al obtener categoría por ID: {e}")
+            logger.error(f"Error al obtener categoría por ID: {e}")
         return None
 
 
@@ -69,7 +70,7 @@ class TipoPanRepositorySQLite(TipoPanRepository):
                 cursor.execute(query, (id_categoria,))
                 return [TipoPan(id=row[0], nombre=row[1], imagen_url=row[2]) for row in cursor.fetchall()]
         except sqlite3.Error as e:
-            print(f"Error al leer los tipos de pan por categoría: {e}")
+            logger.error(f"Error al leer los tipos de pan por categoría: {e}")
             return []
 
 
@@ -90,7 +91,7 @@ class TipoFormaRepositorySQLite(TipoFormaRepository):
                 cursor.execute(query, (id_categoria,))
                 return [FormaPastel(id=row[0], nombre=row[1], imagen_url=row[2]) for row in cursor.fetchall()]
         except sqlite3.Error as e:
-            print(f"Error al leer los tipos de forma por categoría: {e}")
+            logger.error(f"Error al leer los tipos de forma por categoría: {e}")
             return []
 
 class TamanoRepositorySQLite(TamanoRepository):
@@ -104,7 +105,7 @@ class TamanoRepositorySQLite(TamanoRepository):
                 cursor.execute("SELECT id_tipo_tamano, nombre_tamano FROM tipos_tamano ORDER BY id_tipo_tamano")
                 return [TamanoPastel(id=row[0], nombre=row[1]) for row in cursor.fetchall()]
         except sqlite3.Error as e:
-            print(f"Error al leer la base de datos: {e}")
+            logger.error(f"Error al leer la base de datos: {e}")
             return []
 
 
@@ -126,7 +127,7 @@ class TipoRellenoRepositorySQLite(TipoRellenoRepository):
                 cursor.execute(query, (id_categoria, id_tipo_pan))
                 return [TipoRelleno(nombre=row[0], imagen_url=row[1]) for row in cursor.fetchall()]
         except sqlite3.Error as e:
-            print(f"Error al leer los tipos de relleno: {e}")
+            logger.error(f"Error al leer los tipos de relleno: {e}")
             return []
 
 
@@ -147,7 +148,7 @@ class TipoCoberturaRepositorySQLite(TipoCoberturaRepository):
                 cursor.execute(query, (id_categoria, id_tipo_pan))
                 return [TipoCobertura(nombre=row[0], imagen_url=row[1]) for row in cursor.fetchall()]
         except sqlite3.Error as e:
-            print(f"Error al leer los tipos de cobertura por categoría: {e}")
+            logger.error(f"Error al leer los tipos de cobertura por categoría: {e}")
             return []
 
 
@@ -219,7 +220,7 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
                 conn.commit()
                 return cursor.lastrowid
         except sqlite3.Error as e:
-            print(f"Error al guardar el pedido final en la base de datos: {e}")
+            logger.error(f"Error al guardar el pedido final en la base de datos: {e}")
             return 0
 
     def obtener_por_id(self, id_pedido: int) -> Ticket | None:
@@ -282,7 +283,7 @@ class FinalizarPedidoRepositorySQLite(FinalizarPedidoRepository):
                                   edad_pastel=row[39],
                                   )
         except sqlite3.Error as e:
-            print(f"Error al obtener el pedido por ID: {e}")
+            logger.error(f"Error al obtener el pedido por ID: {e}")
         return None
 
 
@@ -315,7 +316,7 @@ class ImagenGaleriaRepositorySQLite(ImagenGaleriaRepository):
                 return [ImagenGaleria(id=row[0], ruta=row[1], descripcion=row[2], categoria=row[3], tags=row[4]) for row
                         in cursor.fetchall()]
         except sqlite3.Error as e:
-            print(f"Error al buscar en la galería de imágenes: {e}")
+            logger.error(f"Error al buscar en la galería de imágenes: {e}")
             return []
 
     def obtener_por_id(self, id_imagen: int) -> ImagenGaleria | None:
@@ -329,7 +330,7 @@ class ImagenGaleriaRepositorySQLite(ImagenGaleriaRepository):
                     return ImagenGaleria(id=row[0], ruta=row[1], descripcion=row[2], categoria=row[3], tags=row[4])
                 return None
         except sqlite3.Error as e:
-            print(f"Error al obtener imagen por ID: {e}")
+            logger.error(f"Error al obtener imagen por ID: {e}")
             return None
 
 
@@ -361,7 +362,7 @@ class TipoColorRepositorySQLite(TipoColorRepository):
                 cursor.execute(query_colores, (id_categoria, id_cobertura))
                 return [row[0] for row in cursor.fetchall()]
         except sqlite3.Error as e:
-            print(f"Error al leer los colores por cobertura: {e}")
+            logger.error(f"Error al leer los colores por cobertura: {e}")
             return []
 
 
@@ -381,7 +382,7 @@ class HorarioEntregaRepositorySQLite(HorarioEntregaRepository):
                     hora_final = datetime.datetime.strptime(row[1], '%H:%M').time()
                     return Horario(hora_inicio=hora_inicial, hora_fin=hora_final)
         except sqlite3.Error as e:
-            print(f"Error al obtener horario: {e}")
+            logger.error(f"Error al obtener horario: {e}")
         return None
 
 
@@ -392,21 +393,19 @@ class DiaFestivoRepositorySQLite(DiaFestivoRepository):
     def es_festivo(self, fecha: datetime.date) -> bool:
         query = "SELECT 1 FROM dias_festivos WHERE strftime('%m-%d', festivo) = ?"
 
-        # Formateamos la fecha seleccionada al mismo formato 'MM-DD' para la comparación
         fecha_str = fecha.strftime('%m-%d')
 
-        # --- DEBUG PRINT ---
-        print(f"\n[DEBUG] Verificando si '{fecha_str}' es festivo...")
+        logger.info(f"\n[DEBUG] Verificando si '{fecha_str}' es festivo...")
 
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute(query, (fecha_str,))
                 resultado = cursor.fetchone() is not None
-                print(f"[DEBUG] Resultado: {resultado}")
+                logger.info(f"[DEBUG] Resultado: {resultado}")
                 return resultado
         except sqlite3.Error as e:
-            print(f"Error al verificar día festivo: {e}")
+            logger.error(f"Error al verificar día festivo: {e}")
         return False
 
 
@@ -439,7 +438,7 @@ class PastelConfiguradoRepositorySQLite(PastelConfiguradoRepository):
                                              peso_pastel=peso_pastel,
                                              medidas_pastel=medidas_pastel)
         except sqlite3.Error as e:
-            print(f"Error al obtener precio: {e}")
+            logger.error(f"Error al obtener precio: {e}")
         return None
 
 
@@ -457,5 +456,5 @@ class ExtraRepositorySQLite(ExtraRepository):
                 if row:
                     return Extra(id=row[0], descripcion=row[1], costo=float(row[2]))
         except sqlite3.Error as e:
-            print(f"Error al obtener extra por descripción: {e}")
+            logger.error(f"Error al obtener extra por descripción: {e}")
         return None

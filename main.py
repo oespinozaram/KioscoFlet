@@ -1,4 +1,3 @@
-# main.py
 import flet as ft
 import os
 import sys
@@ -8,6 +7,29 @@ from datetime import datetime
 import msvcrt
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
+import logging
+from logging.handlers import RotatingFileHandler
+
+
+LOG_DIR = r"C:\KioscoPP\logs"
+os.makedirs(LOG_DIR, exist_ok=True)
+LOG_FILE = os.path.join(LOG_DIR, "app.log")
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+fmt = logging.Formatter(
+    fmt='%(asctime)s | %(levelname)s | %(name)s | %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
+file_handler = RotatingFileHandler(LOG_FILE, maxBytes=5_000_000, backupCount=5, encoding='utf-8')
+file_handler.setFormatter(fmt)
+logger.addHandler(file_handler)
+
+# console_handler = logging.StreamHandler()
+# console_handler.setFormatter(fmt)
+# logger.addHandler(console_handler)
 
 # === Watchdog integration flags (optional, defensive) ===
 ENABLE_HEARTBEAT = os.getenv("ENABLE_HEARTBEAT", "1") == "1"
@@ -133,7 +155,7 @@ def main(page: ft.Page):
     page.window.width = 1920
     page.window.height = 1080
     page.window.resizable = True
-    page.window.full_screen = True
+    #page.window.full_screen = True
 
     page.padding = 0
 
@@ -185,10 +207,10 @@ def main(page: ft.Page):
         with open("config.json", "r") as f:
             config = json.load(f)
         API_URL_PEDIDOS = config.get("api_url_pedidos", default_api_url)
-        print(f"INFO: URL de la API cargada desde config.json: {API_URL_PEDIDOS}")
+        logger.info(f"INFO: URL de la API cargada desde config.json: {API_URL_PEDIDOS}")
     except FileNotFoundError:
         API_URL_PEDIDOS = default_api_url
-        print(f"ADVERTENCIA: No se encontró config.json. Usando URL por defecto: {API_URL_PEDIDOS}")
+        logger.warning(f"ADVERTENCIA: No se encontró config.json. Usando URL por defecto: {API_URL_PEDIDOS}")
 
 
     finalizar_repo_api = FinalizarPedidoRepositoryAPI(api_url=API_URL_PEDIDOS, db_path=db_path)
@@ -352,7 +374,6 @@ def main(page: ft.Page):
                     )
                 ),
 
-                # === Sección "Incluye" ===
                 ft.Container(height=10),
                 ft.Text("Incluye", size=16, weight=ft.FontWeight.BOLD),
                 ft.Container(
@@ -370,8 +391,6 @@ def main(page: ft.Page):
                         crear_fila_resumen("hora.png", "Hora de Entrega", pedido.hora_entrega),
                     ]
                 ),
-                #ft.Container(height=20),
-                #boton_restablecer_estilizado
             ]
         )
         bs.open = True
@@ -381,7 +400,7 @@ def main(page: ft.Page):
     page.overlay.append(bs)
 
     def route_change(route):
-        print(f"Cambiando a la ruta: {page.route}")
+        logger.info(f"Cambiando a la ruta: {page.route}")
         page.views.clear()
         funcion_animacion = None
 

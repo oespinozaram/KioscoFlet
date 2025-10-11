@@ -1,7 +1,9 @@
-# src/infrastructure/persistence/api_repository.py
 import requests
 import sqlite3
 from src.application.repositories import FinalizarPedidoRepository, Ticket
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class FinalizarPedidoRepositoryAPI(FinalizarPedidoRepository):
@@ -72,11 +74,11 @@ class FinalizarPedidoRepositoryAPI(FinalizarPedidoRepository):
 
             response_data = response.json()
             nuevo_id = response_data.get("id", 0)
-            print(f"INFO: Pedido enviado al web service. Nuevo ID: {nuevo_id}")
+            logger.info(f"INFO: Pedido enviado al web service. Nuevo ID: {nuevo_id}")
             return nuevo_id
 
         except requests.exceptions.RequestException as e:
-            print(f"ERROR: No se pudo enviar el pedido al web service: {e}")
+            logger.error(f"ERROR: No se pudo enviar el pedido al web service: {e}")
             return 0
 
     def obtener_por_id(self, id_pedido: int) -> Ticket | None:
