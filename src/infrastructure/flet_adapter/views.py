@@ -1,8 +1,6 @@
-# src/infrastructure/flet_adapter/views.py
 import flet as ft
 import datetime
 from dateutil.relativedelta import relativedelta
-from flet.core import page
 from src.application.use_cases import PedidoUseCases, FinalizarPedidoUseCases
 from .keyboard import VirtualKeyboard
 from .controles_comunes import crear_boton_navegacion
@@ -1414,107 +1412,53 @@ def vista_decorado1(page: ft.Page, use_cases: PedidoUseCases):
 def vista_decorado2(page: ft.Page, use_cases: PedidoUseCases):
     ref_boton_continuar = ft.Ref[ft.Container]()
 
+    def check_continuar():
+        print("[DEBUG] VISTA: Verificando si se puede continuar...")
+        if ref_boton_continuar.current:
+            is_ready = use_cases.check_continuar_decorado()
+            ref_boton_continuar.current.disabled = not is_ready
+            print(f"[DEBUG] VISTA: Botón 'Continuar' deshabilitado: {not is_ready}")
+
     def on_text_tematica_change(e):
+        print(f"[DEBUG] VISTA: Se escribió en temática: '{e.control.value}'")
         use_cases.guardar_detalle_decorado("Liso c/s Conchas de Betún", "Diseño o Temática", e.control.value)
         check_continuar()
+        page.update()
 
     def on_color_change(e):
+        print(f"[DEBUG] VISTA: Cambió color. Color1='{dd_color1.value}', Color2='{dd_color2.value}'")
         use_cases.seleccionar_colores_decorado(dd_color1.value, dd_color2.value)
         check_continuar()
-
-    def actualizar_estado_continuar():
-        """Función única que revisa si se puede continuar."""
-        if ref_boton_continuar.current:
-            ref_boton_continuar.current.disabled = not use_cases.check_continuar_decorado()
         page.update()
-
-    def check_continuar():
-        if ref_boton_continuar.current:
-            ref_boton_continuar.current.disabled = not use_cases.check_continuar_decorado()
-        page.update()
-        # pedido = use_cases.obtener_pedido_actual()
-        # listo = False
-
-        # if pedido.tipo_decorado == "Liso c/s Conchas de Betún":
-        #     colores_disponibles = use_cases.obtener_colores_disponibles() or []
-        #     requiere_color = len(colores_disponibles) > 0
-        #     tiene_color = bool(pedido.decorado_liso_color1) if requiere_color else True
-        #
-        #     #if pedido.decorado_liso_detalle and pedido.decorado_liso_color1:
-        #     if pedido.decorado_liso_detalle and tiene_color:
-        #         if pedido.decorado_liso_detalle == "Diseño o Temática":
-        #             listo = bool(pedido.decorado_tematica_detalle and pedido.decorado_tematica_detalle.strip())
-        #             #if pedido.decorado_tematica_detalle:
-        #             #    listo = True
-        #         else:
-        #             listo = True
-        # if ref_boton_continuar.current:
-        #     ref_boton_continuar.current.disabled = not listo
-        # page.update()
 
     def on_sub_opcion_liso_click(e):
-        # Primero, reseteamos cualquier estado anterior para evitar conflictos
+        print(f"\n[DEBUG] VISTA: === Clic en sub-opción: '{e.control.data}' ===")
         use_cases.reiniciar_detalles_decorado()
 
         detalle = e.control.data
         use_cases.guardar_detalle_decorado("Liso c/s Conchas de Betún", detalle)
 
-        # Resaltado visual
         for btn in carrusel_sub_opciones.controls:
             btn.border = ft.border.all(3, ft.Colors.GREEN_500) if btn == e.control else None
 
-        # Lógica para mostrar/ocultar controles
         colores_disponibles = use_cases.obtener_colores_disponibles()
-        if colores_disponibles:
-            opciones_color = [ft.dropdown.Option(color) for color in colores_disponibles]
-            dd_color1.options = opciones_color
-            dd_color2.options = opciones_color
-            contenedor_colores.visible = True
+        hay_colores = bool(colores_disponibles)
+
+        if hay_colores:
+            dd_color1.options = [ft.dropdown.Option(color) for color in colores_disponibles]
+            dd_color2.options = [ft.dropdown.Option(color) for color in colores_disponibles]
+            dd_color1.value = None
+            dd_color2.value = None
         else:
-            # Si no hay colores, asignamos el valor por defecto y ocultamos el selector
             use_cases.seleccionar_colores_decorado("Sin Selección", None)
-            contenedor_colores.visible = False
-        # hay_colores = bool(colores_disponibles)
-        #
-        # contenedor_colores.visible = hay_colores
-        # if not hay_colores:
-        #     use_cases.seleccionar_colores_decorado("Sin Selección", None)
 
-        tematica_container.visible = (detalle == "Diseño o Temática")
         panel_principal.visible = True
+        contenedor_colores.visible = hay_colores
+        tematica_container.visible = (detalle == "Diseño o Temática")
 
-        actualizar_estado_continuar()
+        check_continuar()
         page.update()
-        #
-        # use_cases.reiniciar_detalles_decorado()
-        #
-        # detalle = e.control.data
-        # use_cases.guardar_detalle_decorado("Liso c/s Conchas de Betún", detalle)
-        #
-        # for btn in carrusel_sub_opciones.controls:
-        #     btn.border = ft.border.all(3, ft.Colors.GREEN_500) if btn == e.control else None
-        #
-        # colores_disponibles = use_cases.obtener_colores_disponibles()
-        # opciones_color = [ft.dropdown.Option(color) for color in colores_disponibles]
-        # #or [ft.dropdown.Option(key="no-color", text="No hay opciones", disabled=True)]
-        #
-        # hay_colores = len(colores_disponibles) > 0
-        # dd_color1.options = opciones_color
-        # dd_color2.options = opciones_color
-        # dd_color1.value = None
-        # dd_color2.value = None
-        #
-        # panel_principal.visible = True
-        # contenedor_colores.visible = hay_colores
-        # campo_mensaje.visible = True
-        #
-        # if detalle == "Diseño o Temática":
-        #     tematica_container.visible = True
-        # else:
-        #     tematica_container.visible = False
-        #
-        # check_continuar()
-        # page.update()
+        print("[DEBUG] VISTA: === Fin del clic ===\n")
 
     def restablecer(e):
         use_cases.reiniciar_detalles_decorado()
@@ -1523,18 +1467,7 @@ def vista_decorado2(page: ft.Page, use_cases: PedidoUseCases):
         if ref_boton_continuar.current:
             ref_boton_continuar.current.disabled = True
         page.update()
-        # use_cases.guardar_detalle_decorado("Liso c/s Conchas de Betún", None)
-        # use_cases.seleccionar_colores_decorado(None, None)
-        #
-        # for card in carrusel_sub_opciones.controls:
-        #     card.border = None
-        #
-        # panel_principal.visible = False
-        # if ref_boton_continuar.current:
-        #     ref_boton_continuar.current.disabled = True
-        # page.update()
 
-    campo_mensaje = ft.TextField(label="Mensaje en el pastel (opcional)")
     tematica_container = ft.Column(
         visible=False,
         controls=[
@@ -1567,10 +1500,10 @@ def vista_decorado2(page: ft.Page, use_cases: PedidoUseCases):
             controls=[
                 tematica_container,
                 contenedor_colores,
+
             ]
         )
     )
-
 
     contenido_superpuesto = ft.Column(
         expand=True,
@@ -1610,7 +1543,6 @@ def vista_decorado2(page: ft.Page, use_cases: PedidoUseCases):
             ft.Container(height=30)
         ]
     )
-
     layout_final = ft.Stack(
         controls=[
             ft.Image(src=fondo_hd, fit=ft.ImageFit.COVER, expand=True),

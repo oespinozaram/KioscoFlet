@@ -211,6 +211,7 @@ class PedidoUseCases:
         return panes_disponibles
 
     def reiniciar_detalles_decorado(self):
+        print("[DEBUG] UC: Ejecutando reiniciar_detalles_decorado...")
         pedido = self.pedido_repo.obtener()
         pedido.decorado_liso_color1 = None
         pedido.decorado_liso_color2 = None
@@ -399,40 +400,42 @@ class PedidoUseCases:
         return self.tipo_color_repo.obtener_por_categoria_y_cobertura(pedido.id_categoria, pedido.tipo_cobertura)
 
     def check_continuar_decorado(self) -> bool:
-        """
-        Verifica si se han cumplido las condiciones para continuar
-        desde la pantalla de detalles de decorado.
-        """
         pedido = self.pedido_repo.obtener()
-
-        # Si no se ha elegido un detalle de decorado liso, no se puede continuar.
+        print("\n[DEBUG] UC: ---- Verificando 'check_continuar_decorado' ----")
+        print(f"[DEBUG] UC: Detalle seleccionado: '{pedido.decorado_liso_detalle}'")
+        print(f"[DEBUG] UC: Color 1 seleccionado: '{pedido.decorado_liso_color1}'")
         if not pedido.decorado_liso_detalle:
             return False
 
-        # Verificamos si hay colores disponibles para esta configuración.
-        # Si no los hay, no necesitamos validar la selección de color.
         colores_disponibles = self.obtener_colores_disponibles()
         requiere_color = bool(colores_disponibles)
 
-        # La condición "tiene_color" es verdadera si se ha seleccionado un color,
-        # o si no se requería seleccionar uno.
         tiene_color = bool(pedido.decorado_liso_color1) if requiere_color else True
+        print(f"[DEBUG] UC: ¿Tiene color válido?: {tiene_color}")
 
-        # Si la opción es "Diseño o Temática", debe tener color Y texto.
-        if pedido.decorado_liso_detalle == "Diseño o Temática":
-            tiene_texto_tematica = bool(pedido.decorado_tematica_detalle and pedido.decorado_tematica_detalle.strip())
-            return tiene_texto_tematica and tiene_color
+        listo = False
+        if pedido.decorado_liso_detalle and tiene_color:
+            if pedido.decorado_liso_detalle == "Diseño o Temática":
+                tiene_texto_tematica = bool(pedido.decorado_tematica_detalle and pedido.decorado_tematica_detalle.strip())
+                print(f"[DEBUG] UC: ¿Tiene texto de temática?: {tiene_texto_tematica}")
+                listo = tiene_texto_tematica
+                #return tiene_texto_tematica and tiene_color
+            else:
+                listo = True
 
-        # Para las otras opciones ("Chantilli", "Chorreado"), solo se necesita tener un color válido.
+        print(f"[DEBUG] UC: Resultado final de la validación: {listo}")
+        print("[DEBUG] UC: ------------------------------------------\n")
         return tiene_color
 
     def seleccionar_colores_decorado(self, color1: str | None, color2: str | None):
+        print(f"[DEBUG] UC: Guardando colores: Color1='{color1}', Color2='{color2}'")
         pedido = self.pedido_repo.obtener()
         pedido.decorado_liso_color1 = color1
         pedido.decorado_liso_color2 = color2
         self.pedido_repo.guardar(pedido)
 
     def guardar_detalle_decorado(self, tipo_principal: str, detalle: str, texto_tematica: str | None = None):
+        print(f"[DEBUG] UC: Guardando detalle: {detalle}, Temática: {texto_tematica}")
         pedido = self.pedido_repo.obtener()
         if tipo_principal == "Liso c/s Conchas de Betún":
             if pedido.decorado_liso_detalle != detalle:

@@ -183,6 +183,8 @@ def main(page: ft.Page):
         "Bebas Neue": "fuentes/BebasNeue-Regular.ttf",
         "Be Vietnam Pro": "fuentes/BeVietnamPro-Regular.ttf",
         "Montserrat Alternates": "fuentes/Montserrat-Alternates-Regular.ttf",
+        "Outfit": "fuentes/Outfit-Regular.ttf",
+        "Cabin": "fuentes/Cabin-Regular.ttf",
     }
 
     db_path = r"C:/KioscoPP/config.db"
@@ -299,8 +301,8 @@ def main(page: ft.Page):
             extra_monto = unit
             extra_detalle = pedido.extra_seleccionado or ""
 
-        if pedido.tipo_cobertura and "fondant" in pedido.tipo_cobertura.lower():
-            precio_pastel *= 2
+        # if pedido.tipo_cobertura and "fondant" in pedido.tipo_cobertura.lower():
+        #     precio_pastel *= 2
 
         if (str(pedido.id_pan) == "2") and precio_chocolate > 0.0:
             precio_elegido = precio_chocolate
