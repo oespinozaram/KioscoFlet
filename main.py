@@ -155,7 +155,7 @@ def main(page: ft.Page):
     page.window.width = 1920
     page.window.height = 1080
     page.window.resizable = True
-    #page.window.full_screen = True
+    page.window.full_screen = True
 
     page.padding = 0
 

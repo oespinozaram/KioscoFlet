@@ -102,7 +102,16 @@ class TamanoRepositorySQLite(TamanoRepository):
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT id_tipo_tamano, nombre_tamano FROM tipos_tamano ORDER BY id_tipo_tamano")
+                cursor.execute("""
+                SELECT id_tipo_tamano, nombre_tamano
+                    FROM tipos_tamano
+                    ORDER BY
+                        CASE
+                            WHEN INSTR(nombre_tamano, '-') > 0
+                            THEN CAST(TRIM(SUBSTR(nombre_tamano, 1, INSTR(nombre_tamano, '-') - 1)) AS INTEGER)
+                            ELSE CAST(nombre_tamano AS INTEGER) 
+                            END ASC
+                """)
                 return [TamanoPastel(id=row[0], nombre=row[1]) for row in cursor.fetchall()]
         except sqlite3.Error as e:
             logger.error(f"Error al leer la base de datos: {e}")
