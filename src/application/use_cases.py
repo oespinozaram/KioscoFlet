@@ -211,7 +211,7 @@ class PedidoUseCases:
         return panes_disponibles
 
     def reiniciar_detalles_decorado(self):
-        print("[DEBUG] UC: Ejecutando reiniciar_detalles_decorado...")
+        logger.info("[DEBUG] UC: Ejecutando reiniciar_detalles_decorado...")
         pedido = self.pedido_repo.obtener()
         pedido.decorado_liso_color1 = None
         pedido.decorado_liso_color2 = None
@@ -310,12 +310,9 @@ class PedidoUseCases:
             pedido.tamano_pastel = tamanos[nuevo_idx].nombre
             self.pedido_repo.guardar(pedido)
         except ValueError:
-            # Si algo falla, asigna el primero por defecto
             pedido.id_tamano = tamanos[0].id
             pedido.tamano_pastel = tamanos[0].nombre
             self.pedido_repo.guardar(pedido)
-
-
 
     def calcular_y_guardar_precios_finales(self):
         pedido = self.pedido_repo.obtener()
@@ -356,7 +353,6 @@ class PedidoUseCases:
             pedido.tamano_descripcion = getattr(config, 'medidas_pastel', None)
 
         self.pedido_repo.guardar(pedido)
-
 
     def reiniciar_tamano(self):
         pedido = self.pedido_repo.obtener()
@@ -401,9 +397,9 @@ class PedidoUseCases:
 
     def check_continuar_decorado(self) -> bool:
         pedido = self.pedido_repo.obtener()
-        print("\n[DEBUG] UC: ---- Verificando 'check_continuar_decorado' ----")
-        print(f"[DEBUG] UC: Detalle seleccionado: '{pedido.decorado_liso_detalle}'")
-        print(f"[DEBUG] UC: Color 1 seleccionado: '{pedido.decorado_liso_color1}'")
+        logger.info("\n[DEBUG] UC: ---- Verificando 'check_continuar_decorado' ----")
+        logger.info(f"[DEBUG] UC: Detalle seleccionado: '{pedido.decorado_liso_detalle}'")
+        logger.info(f"[DEBUG] UC: Color 1 seleccionado: '{pedido.decorado_liso_color1}'")
         if not pedido.decorado_liso_detalle:
             return False
 
@@ -411,31 +407,31 @@ class PedidoUseCases:
         requiere_color = bool(colores_disponibles)
 
         tiene_color = bool(pedido.decorado_liso_color1) if requiere_color else True
-        print(f"[DEBUG] UC: ¿Tiene color válido?: {tiene_color}")
+        logger.info(f"[DEBUG] UC: ¿Tiene color válido?: {tiene_color}")
 
         listo = False
         if pedido.decorado_liso_detalle and tiene_color:
             if pedido.decorado_liso_detalle == "Diseño o Temática":
                 tiene_texto_tematica = bool(pedido.decorado_tematica_detalle and pedido.decorado_tematica_detalle.strip())
-                print(f"[DEBUG] UC: ¿Tiene texto de temática?: {tiene_texto_tematica}")
+                logger.info(f"[DEBUG] UC: ¿Tiene texto de temática?: {tiene_texto_tematica}")
                 listo = tiene_texto_tematica
                 #return tiene_texto_tematica and tiene_color
             else:
                 listo = True
 
-        print(f"[DEBUG] UC: Resultado final de la validación: {listo}")
-        print("[DEBUG] UC: ------------------------------------------\n")
+        logger.info(f"[DEBUG] UC: Resultado final de la validación: {listo}")
+        logger.info("[DEBUG] UC: ------------------------------------------\n")
         return tiene_color
 
     def seleccionar_colores_decorado(self, color1: str | None, color2: str | None):
-        print(f"[DEBUG] UC: Guardando colores: Color1='{color1}', Color2='{color2}'")
+        logger.info(f"[DEBUG] UC: Guardando colores: Color1='{color1}', Color2='{color2}'")
         pedido = self.pedido_repo.obtener()
         pedido.decorado_liso_color1 = color1
         pedido.decorado_liso_color2 = color2
         self.pedido_repo.guardar(pedido)
 
     def guardar_detalle_decorado(self, tipo_principal: str, detalle: str, texto_tematica: str | None = None):
-        print(f"[DEBUG] UC: Guardando detalle: {detalle}, Temática: {texto_tematica}")
+        logger.info(f"[DEBUG] UC: Guardando detalle: {detalle}, Temática: {texto_tematica}")
         pedido = self.pedido_repo.obtener()
         if tipo_principal == "Liso c/s Conchas de Betún":
             if pedido.decorado_liso_detalle != detalle:
@@ -506,14 +502,11 @@ class PedidoUseCases:
 
         logger.info(f"[DEBUG] Horario de operación obtenido: {horario.hora_inicio.strftime('%H:%M')} a {horario.hora_fin.strftime('%H:%M')}")
 
-        # 1. Revisa si es día festivo (esto llamará a la función con sus propios prints)
         es_dia_festivo = self.dia_festivo_repo.es_festivo(fecha_seleccionada)
 
-        # 2. Elige el intervalo de tiempo
         intervalo_horas = 2 if es_dia_festivo else 1
         logger.info(f"[DEBUG] Intervalo de horas determinado: {intervalo_horas} hora(s)")
 
-        # 3. "Corta" el día en rangos
         rangos = []
         hora_actual = datetime.datetime.combine(fecha_seleccionada, horario.hora_inicio)
         hora_final = datetime.datetime.combine(fecha_seleccionada, horario.hora_fin)
