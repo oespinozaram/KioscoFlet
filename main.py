@@ -141,7 +141,8 @@ from src.infrastructure.persistence.sqlite_repository import (
     TipoRellenoRepositorySQLite, TipoCoberturaRepositorySQLite,
     FinalizarPedidoRepositorySQLite, ImagenGaleriaRepositorySQLite,
     TipoColorRepositorySQLite, HorarioEntregaRepositorySQLite, DiaFestivoRepositorySQLite,
-    PastelConfiguradoRepositorySQLite, ExtraRepositorySQLite,
+    PastelConfiguradoRepositorySQLite, ExtraRepositorySQLite, ExtraChorreadoRepositorySQLite,
+    TamanoRectangularRepositorySQLite
 )
 from src.infrastructure.flet_adapter import views
 from src.infrastructure.persistence.api_repository import FinalizarPedidoRepositoryAPI
@@ -155,15 +156,12 @@ def main(page: ft.Page):
     page.window.width = 1920
     page.window.height = 1080
     page.window.resizable = True
-    page.window.full_screen = True
+    #page.window.full_screen = True
 
     page.padding = 0
 
-    # --- Watchdog integrations (optional, defensivas) ---
-    # 1) Heartbeat a archivo para supervisores externos
     start_heartbeat()
 
-    # 2) Servidor local de healthcheck HTTP
     health_server = start_health_server(35791)
 
     # 3) Observador de archivos opcional (desactivado por defecto)
@@ -201,6 +199,8 @@ def main(page: ft.Page):
     dia_festivo_repo = DiaFestivoRepositorySQLite(db_path)
     pastel_config_repo = PastelConfiguradoRepositorySQLite(db_path)
     extra_repo = ExtraRepositorySQLite(db_path)
+    extra_chorreado_repo = ExtraChorreadoRepositorySQLite(db_path)
+    tamano_rectangular_repo = TamanoRectangularRepositorySQLite(db_path)
 
     config = {}
     default_api_url = "http://localhost:8000/api/pedidos"
@@ -224,7 +224,7 @@ def main(page: ft.Page):
         tipo_pan_repo, tipo_forma_repo, tipo_relleno_repo,
         tipo_cobertura_repo, finalizar_pedido_repo, imagen_galeria_repo,
         tipo_color_repo, horario_repo, dia_festivo_repo, pastel_config_repo,
-        extra_repo
+        extra_repo, extra_chorreado_repo, tamano_rectangular_repo,
     )
 
     finalizar_repo_compuesto = FinalizarPedidoRepositoryComposite(

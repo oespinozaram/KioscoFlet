@@ -15,11 +15,11 @@ logo_pepe = 'C:/KioscoPP/img/logo.png'
 chef = 'C:/KioscoPP/img/chef.png'
 
 
-def crear_tarjeta_seleccion(texto, imagen_src, on_click_handler):
+def crear_tarjeta_seleccion(texto, imagen_src, on_click_handler, data=None):
     return ft.Container(
         width=226, height=314, bgcolor=ft.Colors.WHITE,
         border_radius=ft.border_radius.all(30),
-        data=texto,
+        data=data,
         on_click=on_click_handler,
         content=ft.Column(
             spacing=15, horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -1121,7 +1121,7 @@ def vista_relleno(page: ft.Page, use_cases: PedidoUseCases):
         for relleno in use_cases.obtener_rellenos_disponibles(pedido.id_categoria, pan_obj.id):
             carrusel_rellenos.controls.append(
                 crear_tarjeta_seleccion(
-                    relleno.nombre, f"C:/KioscoPP/img/rellenos/{relleno.imagen_url}", on_relleno_selected
+                    relleno.nombre, f"C:/KioscoPP/img/rellenos/{relleno.imagen_url}", on_relleno_selected, data=relleno.nombre
                 )
             )
     else:
@@ -1227,7 +1227,7 @@ def vista_cobertura(page: ft.Page, use_cases: PedidoUseCases):
         for cobertura in use_cases.obtener_coberturas_disponibles(pedido.id_categoria, pan_obj.id):
             carrusel_coberturas.controls.append(
                 crear_tarjeta_seleccion(cobertura.nombre, f"C:/KioscoPP/img/coberturas/{cobertura.imagen_url}",
-                                        on_cobertura_selected))
+                                        on_cobertura_selected, data=cobertura.nombre))
     else:
         carrusel_coberturas.controls.append(ft.Text("Error al cargar coberturas.", color=ft.Colors.RED))
 
@@ -1309,22 +1309,104 @@ def vista_cobertura(page: ft.Page, use_cases: PedidoUseCases):
 
 def vista_decorado1(page: ft.Page, use_cases: PedidoUseCases):
     ref_boton_continuar = ft.Ref[ft.Container]()
+    pedido_actual = use_cases.obtener_pedido_actual()
+
+    opciones_decorado_base = [
+        {"nombre": "Liso c/s Conchas de Betún", "imagen": "C:/KioscoPP/img/decorado/liso2.png", "ruta_destino": "/decorado2"},
+        {"nombre": "Imágenes Prediseñadas", "imagen": "C:/KioscoPP/img/decorado/imagenes.png", "ruta_destino": "/galeria"},
+        {"nombre": "Temática o Personaje", "imagen": "C:/KioscoPP/img/decorado/tematica.png", "ruta_destino": "/mensaje"}
+    ]
+
+    opciones_a_mostrar = []
+
+    nombre_categoria = pedido_actual.nombre_categoria
+    if not nombre_categoria and pedido_actual.id_categoria:
+        categoria_obj = use_cases.categoria_repo.obtener_por_id(pedido_actual.id_categoria)
+        if categoria_obj:
+            nombre_categoria = categoria_obj.nombre
+
+    if nombre_categoria == "CASERO" and pedido_actual.tipo_cobertura == "CHORREADO":
+        logger.info("INFO: Condición Casero + Chorreado cumplida. Navegando directo a /decorado2.")
+        use_cases.seleccionar_tipo_decorado("Liso c/s Conchas de Betún")
+        use_cases.guardar_detalle_decorado("Liso c/s Conchas de Betún", "Chorreado")
+        page.go("/decorado2")
+        return ft.View(route="/decorado1", controls=[], padding=0)
+
+
+    if nombre_categoria == "TRES LECHES" and pedido_actual.tipo_cobertura in ["CHANTILLY", "ESCENARIO DE ACETATOS"]:
+        opciones_a_mostrar = [
+            opcion for opcion in opciones_decorado_base
+            if opcion["nombre"] in ["Imágenes Prediseñadas", "Temática o Personaje"]
+        ]
+        logger.info(f"INFO: Condición Tres Leches + {pedido_actual.tipo_cobertura} cumplida. Mostrando decorados filtrados.")
+    elif nombre_categoria == "TRES LECHES" and pedido_actual.tipo_cobertura == "CHORREADO":
+        opciones_a_mostrar = [
+            opcion for opcion in opciones_decorado_base
+            if opcion["nombre"] == "Liso c/s Conchas de Betún"
+        ]
+        logger.info("INFO: Condición Tres Leches + Chorreado cumplida. Mostrando solo 'Liso'.")
+    elif nombre_categoria == "ESPECIALIDAD" and pedido_actual.tipo_cobertura in ["BETUN CON MERENGUE", "ESCENARIO DE ACETATOS", "GANACHE DE CHOCOLATE"]:
+        opciones_a_mostrar = [
+            opcion for opcion in opciones_decorado_base
+            if opcion["nombre"] in ["Imágenes Prediseñadas", "Temática o Personaje"]
+        ]
+        logger.info(
+            f"INFO: Condición Especialidad + {pedido_actual.tipo_cobertura} cumplida. Mostrando 'Imágenes' y 'Temática'.")
+    elif nombre_categoria == "CASERO" and pedido_actual.tipo_cobertura in ["FONDANT", "ESCENARIO DE ACETATOS"]:
+        opciones_a_mostrar = [
+            opcion for opcion in opciones_decorado_base
+            if opcion["nombre"] in ["Imágenes Prediseñadas", "Temática o Personaje"]
+        ]
+        logger.info(
+            f"INFO: Condición Casero + {pedido_actual.tipo_cobertura} cumplida. Mostrando 'Imágenes' y 'Temática'.")
+    else:
+        opciones_a_mostrar = [
+            opcion for opcion in opciones_decorado_base
+            if opcion["nombre"] in ["Liso c/s Conchas de Betún", "Imágenes Prediseñadas"]
+        ]
+        logger.info(
+            f"INFO: Ninguna condición especial cumplida (Cat: {nombre_categoria}, Cob: {pedido_actual.tipo_cobertura}). Mostrando 'Liso' e 'Imágenes'.")
 
     def on_decorado_principal_click(e):
-        tipo_decorado = e.control.data
+        opcion_seleccionada = e.control.data
+        tipo_decorado = opcion_seleccionada["nombre"] #e.control.data
+        ruta_destino = opcion_seleccionada["ruta_destino"]
+
         use_cases.seleccionar_tipo_decorado(tipo_decorado)
+
+        if tipo_decorado == "Temática o Personaje":
+            pedido_actual.decorado_liso_detalle = None
+            pedido_actual.decorado_imagen_id = None
+            pedido_actual.decorado_liso_color1 = None
+            pedido_actual.decorado_liso_color2 = None
+            logger.info("INFO: Opción 'Temática o Personaje' seleccionada.")
+
+        elif tipo_decorado == "Imágenes Prediseñadas":
+            logger.info("INFO: Opción 'Imágenes Prediseñadas' seleccionada. Navegando a galería.")
+            page.go(ruta_destino)  # /galeria
+            return
+
+        elif tipo_decorado == "Liso c/s Conchas de Betún":
+            logger.info("INFO: Opción 'Liso...' seleccionada.")
 
         for card in carrusel_decorado.controls:
             card.border = ft.border.all(3, ft.Colors.GREEN_500) if card == e.control else None
 
-        if tipo_decorado == "Imágenes Prediseñadas":
-            page.go("/galeria")
-            return
-
-
         if ref_boton_continuar.current:
             ref_boton_continuar.current.disabled = False
+            ref_boton_continuar.current.data = ruta_destino
+
         page.update()
+
+    carrusel_decorado = ft.Row(
+        scroll=ft.ScrollMode.ALWAYS,
+        spacing=30,
+        controls=[
+            crear_tarjeta_seleccion(opcion["nombre"], opcion["imagen"], on_decorado_principal_click, data=opcion)
+            for opcion in opciones_a_mostrar
+        ]
+    )
+
 
     def restablecer(e):
         use_cases.reiniciar_decorado()
@@ -1332,18 +1414,9 @@ def vista_decorado1(page: ft.Page, use_cases: PedidoUseCases):
             card.border = None
         if ref_boton_continuar.current:
             ref_boton_continuar.current.disabled = True
+            ref_boton_continuar.current.data = None
         page.update()
 
-    carrusel_decorado = ft.Row(
-        scroll=ft.ScrollMode.ALWAYS,
-        spacing=30,
-        controls=[
-            crear_tarjeta_seleccion("Liso c/s Conchas de Betún", "C:/KioscoPP/img/decorado/liso2.png",
-                                    on_decorado_principal_click),
-            crear_tarjeta_seleccion("Imágenes Prediseñadas", "C:/KioscoPP/img/decorado/imagenes.png",
-                                    on_decorado_principal_click, ),
-        ]
-    )
 
     contenido_superpuesto = ft.Column(
         expand=True,
@@ -1411,96 +1484,114 @@ def vista_decorado1(page: ft.Page, use_cases: PedidoUseCases):
 
 def vista_decorado2(page: ft.Page, use_cases: PedidoUseCases):
     ref_boton_continuar = ft.Ref[ft.Container]()
+    pedido_actual = use_cases.obtener_pedido_actual()
 
     def check_continuar():
-        print("[DEBUG] VISTA: Verificando si se puede continuar...")
+        logger.debug("[DEBUG] VISTA decorado2: Verificando si se puede continuar...")
+        is_ready = False
+        if tematica_container.visible:
+            is_ready = bool(campo_tematica.value and campo_tematica.value.strip())
+            logger.debug(f"[DEBUG] VISTA decorado2: Temática visible. Texto='{campo_tematica.value}'. Listo={is_ready}")
+        elif contenedor_colores.visible:
+            colores_disponibles = bool(dd_color1.options)
+            if colores_disponibles:
+                is_ready = bool(dd_color1.value)
+                logger.debug(f"[DEBUG] VISTA decorado2: Colores visibles y disponibles. Color1='{dd_color1.value}'. Listo={is_ready}")
+            else:
+                is_ready = True
+                logger.debug("[DEBUG] VISTA decorado2: Colores visibles pero no disponibles. Listo=True")
+
         if ref_boton_continuar.current:
-            is_ready = use_cases.check_continuar_decorado()
             ref_boton_continuar.current.disabled = not is_ready
-            print(f"[DEBUG] VISTA: Botón 'Continuar' deshabilitado: {not is_ready}")
+            logger.debug(f"[DEBUG] VISTA decorado2: Botón 'Continuar' deshabilitado: {not is_ready}")
+        page.update()
 
     def on_text_tematica_change(e):
-        print(f"[DEBUG] VISTA: Se escribió en temática: '{e.control.value}'")
-        use_cases.guardar_detalle_decorado("Liso c/s Conchas de Betún", "Diseño o Temática", e.control.value)
+        logger.debug(f"[DEBUG] VISTA decorado2: Se escribió en temática: '{e.control.value}'")
+        use_cases.guardar_detalle_decorado("Temática o Personaje", "Diseño o Temática", e.control.value) # Ajustamos llamada
         check_continuar()
-        page.update()
 
     def on_color_change(e):
-        print(f"[DEBUG] VISTA: Cambió color. Color1='{dd_color1.value}', Color2='{dd_color2.value}'")
+        logger.debug(f"[DEBUG] VISTA decorado2: Cambió color. Color1='{dd_color1.value}', Color2='{dd_color2.value}'")
         use_cases.seleccionar_colores_decorado(dd_color1.value, dd_color2.value)
         check_continuar()
-        page.update()
-
-    def on_sub_opcion_liso_click(e):
-        print(f"\n[DEBUG] VISTA: === Clic en sub-opción: '{e.control.data}' ===")
-        use_cases.reiniciar_detalles_decorado()
-
-        detalle = e.control.data
-        use_cases.guardar_detalle_decorado("Liso c/s Conchas de Betún", detalle)
-
-        for btn in carrusel_sub_opciones.controls:
-            btn.border = ft.border.all(3, ft.Colors.GREEN_500) if btn == e.control else None
-
-        colores_disponibles = use_cases.obtener_colores_disponibles()
-        hay_colores = bool(colores_disponibles)
-
-        if hay_colores:
-            dd_color1.options = [ft.dropdown.Option(color) for color in colores_disponibles]
-            dd_color2.options = [ft.dropdown.Option(color) for color in colores_disponibles]
-            dd_color1.value = None
-            dd_color2.value = None
-        else:
-            use_cases.seleccionar_colores_decorado("Sin Selección", None)
-
-        panel_principal.visible = True
-        contenedor_colores.visible = hay_colores
-        tematica_container.visible = (detalle == "Diseño o Temática")
-
-        check_continuar()
-        page.update()
-        print("[DEBUG] VISTA: === Fin del clic ===\n")
 
     def restablecer(e):
-        use_cases.reiniciar_detalles_decorado()
-        for card in carrusel_sub_opciones.controls: card.border = None
-        panel_principal.visible = False
+        logger.debug("[DEBUG] VISTA decorado2: Restableciendo...")
+        if tematica_container.visible:
+             campo_tematica.value = ""
+             use_cases.guardar_detalle_decorado("Temática o Personaje", "Diseño o Temática", None)
+        if contenedor_colores.visible:
+             dd_color1.value = None
+             dd_color2.value = None
+             use_cases.seleccionar_colores_decorado(None, None)
+
         if ref_boton_continuar.current:
             ref_boton_continuar.current.disabled = True
+        logger.debug("[DEBUG] VISTA decorado2: Restablecimiento completado.")
         page.update()
 
+    campo_tematica = ft.TextField(
+        label="Escribe la temática o personaje",
+        value=pedido_actual.decorado_tematica_detalle or "",
+        on_change=on_text_tematica_change
+    )
     tematica_container = ft.Column(
-        visible=False,
         controls=[
-            ft.TextField(label="Escribe la temática o personaje", on_change=on_text_tematica_change),
+            campo_tematica,
             ft.Text("El material será acetato no comestible.", italic=True, size=12, color=ft.Colors.BLACK54)
         ]
     )
-    dd_color1 = ft.Dropdown(label="Color Principal", expand=True, on_change=on_color_change)
-    dd_color2 = ft.Dropdown(label="Color Secundario (opcional)", expand=True, on_change=on_color_change)
-    contenedor_colores = ft.Row(controls=[dd_color1, dd_color2], visible=False)
 
-    carrusel_sub_opciones = ft.Row(scroll=ft.ScrollMode.ALWAYS, spacing=15)
-    detalles_liso = [
-        {"nombre": "Chantilli", "imagen": "C:/KioscoPP/img/decorado/chantilli.png"},
-        {"nombre": "Chorreado", "imagen": "C:/KioscoPP/img/decorado/chorreado.png"},
-        {"nombre": "Diseño o Temática", "imagen": "C:/KioscoPP/img/decorado/tematica.png"},
-    ]
-    for opcion in detalles_liso:
-        carrusel_sub_opciones.controls.append(
-            crear_tarjeta_seleccion(opcion["nombre"], opcion["imagen"], on_sub_opcion_liso_click)
-        )
+    dd_color1 = ft.Dropdown(
+        label="Color Principal",
+        expand=True,
+        on_change=on_color_change,
+        value=pedido_actual.decorado_liso_color1
+    )
+    dd_color2 = ft.Dropdown(
+        label="Color Secundario (opcional)",
+        expand=True,
+        on_change=on_color_change,
+        value=pedido_actual.decorado_liso_color2
+    )
+    contenedor_colores = ft.Row(
+        controls=[dd_color1, dd_color2]
+    )
+
+    mostrar_tematica = pedido_actual.tipo_decorado == "Temática o Personaje"
+    mostrar_colores = not mostrar_tematica
+
+    tematica_container.visible = mostrar_tematica
+    contenedor_colores.visible = mostrar_colores
+
+    if mostrar_colores:
+        todos_los_colores = use_cases.obtener_todos_los_colores()
+        opciones_color = [ft.dropdown.Option(color) for color in todos_los_colores]
+
+        if todos_los_colores:
+            dd_color1.options = opciones_color.copy()
+            dd_color2.options = opciones_color.copy()
+            if pedido_actual.decorado_liso_color1 not in todos_los_colores:
+                dd_color1.value = None
+            if pedido_actual.decorado_liso_color2 not in todos_los_colores:
+                dd_color2.value = None
+            logger.info(f"INFO: Cargados {len(todos_los_colores)} colores en los dropdowns.")
+        else:
+            dd_color1.options = []
+            dd_color2.options = []
+            logger.warning("WARN: No se encontraron colores en la tabla tipos_colores.")
+
 
     panel_principal = ft.Container(
         padding=20,
         border_radius=20,
         bgcolor=ft.Colors.with_opacity(0.8, ft.Colors.WHITE),
-        visible=False,
         content=ft.Column(
             spacing=15,
             controls=[
                 tematica_container,
                 contenedor_colores,
-
             ]
         )
     )
@@ -1508,7 +1599,7 @@ def vista_decorado2(page: ft.Page, use_cases: PedidoUseCases):
     contenido_superpuesto = ft.Column(
         expand=True,
         controls=[
-            ft.Container(
+            ft.Container(  # Banner
                 height=67, bgcolor="#89C5B0", alignment=ft.alignment.center,
                 content=ft.Text('Para envío gratuito en compras de $500 o más', color=ft.Colors.WHITE, size=36,
                                 font_family="Bebas Neue")
@@ -1524,8 +1615,6 @@ def vista_decorado2(page: ft.Page, use_cases: PedidoUseCases):
                         ft.Image(src=logo_pepe, width=250),
                         ft.Text("Paso 8.1: Detalla tu Decorado", size=40, weight=ft.FontWeight.BOLD,
                                 color=ft.Colors.WHITE, text_align=ft.TextAlign.CENTER),
-                        ft.Text("Elige un detalle:", color=ft.Colors.WHITE),
-                        carrusel_sub_opciones,
                         panel_principal,
                     ]
                 )
@@ -1550,6 +1639,8 @@ def vista_decorado2(page: ft.Page, use_cases: PedidoUseCases):
             contenido_superpuesto,
         ]
     )
+
+    check_continuar()
 
     return ft.View(
         route="/decorado2",
@@ -1584,12 +1675,12 @@ def vista_galeria(page: ft.Page, use_cases: PedidoUseCases):
         page,
         on_key=on_keyboard_key,
         on_hide=ocultar_teclado,
-        on_enter=ocultar_teclado  # La tecla Enter simplemente oculta el teclado
+        on_enter=ocultar_teclado
     )
     teclado_virtual.keyboard_control.visible = False
 
     grid = ft.GridView(
-        expand=True,  # Permitimos que la cuadrícula se expanda
+        expand=True,
         runs_count=5,
         max_extent=200,
         child_aspect_ratio=1.0,

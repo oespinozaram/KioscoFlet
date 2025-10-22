@@ -7,7 +7,8 @@ from src.application.repositories import (
     FinalizarPedidoRepository, FormaPastel, TipoRelleno, TipoCobertura,
     Categoria, TipoPan, ImagenGaleriaRepository, ImagenGaleria, TipoColorRepository,
     Ticket, HorarioEntregaRepository, Horario, DiaFestivoRepository, TamanoPastel,
-    PastelConfiguradoRepository, ExtraRepository, Extra, PastelConfigurado
+    PastelConfiguradoRepository, ExtraRepository, Extra, PastelConfigurado,
+    ExtraChorreadoRepository, TamanoRectangularRepository
 )
 import logging
 
@@ -347,31 +348,15 @@ class TipoColorRepositorySQLite(TipoColorRepository):
     def __init__(self, db_path: str):
         self.db_path = db_path
 
-    def obtener_por_categoria_y_cobertura(self, id_categoria: int, nombre_cobertura: str) -> list[str]:
-        query_id = "SELECT id_tipo_cobertura FROM tipos_cobertura WHERE nombre_tipo_cobertura = ?"
-
-        query_colores = """
-                        SELECT TC.nombre_tipo_color \
-                        FROM categorias_tipos_cobertura_colores CTCC, \
-                             tipos_colores TC
-                        WHERE CTCC.id_tipo_color = TC.id_tipo_color \
-                          AND CTCC.id_categoria = ? \
-                          AND CTCC.id_tipo_cobertura = ?
-                        ORDER BY TC.nombre_tipo_color \
-                        """
+    def obtener_todos(self) -> list[str]:  # NUEVO MÉTODO
+        query = "SELECT nombre_tipo_color FROM tipos_colores ORDER BY nombre_tipo_color"
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute(query_id, (nombre_cobertura,))
-                id_cobertura_row = cursor.fetchone()
-                if not id_cobertura_row:
-                    return []
-
-                id_cobertura = id_cobertura_row[0]
-                cursor.execute(query_colores, (id_categoria, id_cobertura))
+                cursor.execute(query)
                 return [row[0] for row in cursor.fetchall()]
         except sqlite3.Error as e:
-            logger.error(f"Error al leer los colores por cobertura: {e}")
+            logger.error(f"Error al leer todos los tipos de colores: {e}")
             return []
 
 
@@ -467,3 +452,47 @@ class ExtraRepositorySQLite(ExtraRepository):
         except sqlite3.Error as e:
             logger.error(f"Error al obtener extra por descripción: {e}")
         return None
+
+
+class ExtraChorreadoRepositorySQLite(ExtraChorreadoRepository):
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+
+    def obtener_precio_por_tamano(self, tamano: str) -> float | None:
+        query = "SELECT costo FROM extra_chorreado WHERE LOWER(tamano) = LOWER(?)"
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (tamano,))
+                row = cursor.fetchone()
+                if row and row[0] is not None:
+                    logger.info(f"INFO: Precio encontrado para chorreado tamaño '{tamano}': ${float(row[0])}")
+                    return float(row[0])
+                else:
+                    logger.warning(f"WARN: No se encontró precio en extra_chorreado para tamaño '{tamano}'.")
+                    return 0.0
+        except sqlite3.Error as e:
+            logger.error(f"Error al obtener precio de extra_chorreado por tamaño '{tamano}': {e}")
+            return 0.0
+
+
+class TamanoRectangularRepositorySQLite(TamanoRectangularRepository):
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+
+    def obtener_precio_por_peso(self, peso: str) -> float | None:
+        query = "SELECT costo FROM tamano_rectangular WHERE LOWER(tamano) = LOWER(?)"
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (peso,))
+                row = cursor.fetchone()
+                if row and row[0] is not None:
+                    logger.info(f"INFO: Precio encontrado en tamano_rectangular para peso '{peso}': ${float(row[0])}")
+                    return float(row[0])
+                else:
+                    logger.warning(f"WARN: No se encontró precio en tamano_rectangular para peso '{peso}'.")
+                    return 0.0
+        except sqlite3.Error as e:
+            logger.error(f"Error al obtener precio de tamano_rectangular por peso '{peso}': {e}")
+            return 0.0

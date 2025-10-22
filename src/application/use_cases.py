@@ -10,7 +10,7 @@ from .repositories import (
     TipoCoberturaRepository, FinalizarPedidoRepository, Categoria, TipoPan,
     ImagenGaleriaRepository, TipoColorRepository, FormaPastel, TipoRelleno, Ticket,
     HorarioEntregaRepository, DiaFestivoRepository, PastelConfiguradoRepository,
-    TamanoPastel, ExtraRepository, PastelConfigurado
+    TamanoPastel, ExtraRepository, PastelConfigurado, ExtraChorreadoRepository, TamanoRectangularRepository
 )
 from src.domain.datos_entrega import DatosEntrega
 from src.domain.pedido import Pedido
@@ -37,7 +37,8 @@ class PedidoUseCases:
                  tipo_cobertura_repo: TipoCoberturaRepository, finalizar_repo: FinalizarPedidoRepository,
                  imagen_galeria_repo: ImagenGaleriaRepository, tipo_color_repo: TipoColorRepository,
                  horario_repo: HorarioEntregaRepository, dia_festivo_repo: DiaFestivoRepository,
-                 pastel_config_repo: PastelConfiguradoRepository, extra_repo: ExtraRepository,):
+                 pastel_config_repo: PastelConfiguradoRepository, extra_repo: ExtraRepository,
+                 extra_chorreado_repo: ExtraChorreadoRepository, tamano_rectangular_repo: TamanoRectangularRepository):
         self.pedido_repo = pedido_repo
         self.tamano_repo = tamano_repo
         self.categoria_repo = categoria_repo
@@ -53,6 +54,8 @@ class PedidoUseCases:
         self.dia_festivo_repo = dia_festivo_repo
         self.pastel_config_repo = pastel_config_repo
         self.extra_repo = extra_repo
+        self.extra_chorreado_repo = extra_chorreado_repo
+        self.tamano_rectangular_repo = tamano_rectangular_repo
 
     def guardar_datos_cliente(
             self, nombre, telefono, direccion, num_ext,
@@ -105,24 +108,80 @@ class PedidoUseCases:
 
     def seleccionar_extra(self, extra_descripcion: str | None):
         pedido = self.pedido_repo.obtener()
+        nuevo_precio_extra = None
 
-        if not extra_descripcion:
+        if not extra_descripcion or extra_descripcion == "Ninguno":
             pedido.extra_seleccionado = None
             pedido.extra_precio = None
             pedido.extra_flor_cantidad = None
+            logger.info("INFO: Ningún extra seleccionado.")
+
+        elif extra_descripcion in ["Chorreado Dorado", "Chorreado Plateado"]:
+            pedido.extra_seleccionado = extra_descripcion
+            pedido.extra_flor_cantidad = None
+            logger.info(f"INFO: Extra '{extra_descripcion}' seleccionado. Verificando forma y tamaño/peso...")
+
+            if pedido.tipo_forma and "redonda" in pedido.tipo_forma.lower():
+                logger.info("INFO: La forma es Redonda.")
+                medidas = pedido.tamano_descripcion
+                if medidas:
+                    logger.info(f"INFO: Buscando precio de chorreado para tamaño redondo: '{medidas}'")
+                    precio_chorreado = self.extra_chorreado_repo.obtener_precio_por_tamano(medidas)
+                    if precio_chorreado is not None:
+                        nuevo_precio_extra = precio_chorreado
+                        logger.info(f"INFO: Precio encontrado en extra_chorreado (redondo): ${nuevo_precio_extra}")
+                    else:
+                        nuevo_precio_extra = 0.0
+                        logger.warning(
+                            f"WARN: Tamaño redondo '{medidas}' no encontrado en extra_chorreado. Precio establecido a 0.0")
+                else:
+                    nuevo_precio_extra = 0.0
+                    logger.warning("WARN: No se encontraron 'medidas_pastel' para redondo. Precio de chorreado a 0.0")
+
+            elif pedido.tipo_forma and "rectangular" in pedido.tipo_forma.lower():
+                logger.info("INFO: La forma es Rectangular.")
+                peso = pedido.tamano_peso
+                if peso:
+                    logger.info(f"INFO: Buscando precio de chorreado para peso rectangular: '{peso}'")
+                    precio_rectangular = self.tamano_rectangular_repo.obtener_precio_por_peso(peso)
+                    if precio_rectangular is not None:
+                        nuevo_precio_extra = precio_rectangular
+                        logger.info(f"INFO: Precio encontrado en tamano_rectangular (por peso): ${nuevo_precio_extra}")
+                    else:
+                        nuevo_precio_extra = 0.0
+                        logger.warning(
+                            f"WARN: Peso rectangular '{peso}' no encontrado en tamano_rectangular. Precio establecido a 0.0")
+                else:
+                    nuevo_precio_extra = 0.0
+                    logger.warning("WARN: No se encontró 'peso_pastel' para rectangular. Precio de chorreado a 0.0")
+
+            else:
+                nuevo_precio_extra = 0.0
+                logger.info(
+                    f"INFO: La forma '{pedido.tipo_forma}' no es Redonda ni Rectangular. Precio de chorreado establecido a 0.0")
+
+            pedido.extra_precio = nuevo_precio_extra
+
         else:
+            logger.info(f"INFO: Buscando extra '{extra_descripcion}' en tabla 'extras' general.")
             extra_obj = self.extra_repo.obtener_por_descripcion(extra_descripcion)
             if extra_obj:
                 pedido.extra_seleccionado = extra_obj.descripcion
-                pedido.extra_precio = extra_obj.costo
+                nuevo_precio_extra = extra_obj.costo
+                logger.info(f"INFO: Extra general encontrado. Precio unitario: ${nuevo_precio_extra}")
             else:
                 pedido.extra_seleccionado = None
-                pedido.extra_precio = None
+                nuevo_precio_extra = None
+                logger.warning(f"WARN: Extra '{extra_descripcion}' no encontrado en tabla 'extras'.")
 
-        if extra_descripcion != "Flor Artificial":
-            pedido.extra_flor_cantidad = None
+            pedido.extra_precio = nuevo_precio_extra
+            if extra_descripcion != "Flor Artificial":
+                pedido.extra_flor_cantidad = None
 
         self.pedido_repo.guardar(pedido)
+        logger.info(
+            f"INFO: Estado final del extra guardado: Seleccionado='{pedido.extra_seleccionado}', Precio Unitario='{pedido.extra_precio}', Cant Flor='{pedido.extra_flor_cantidad}'")
+
 
     def guardar_cantidad_flor(self, cantidad: int | None):
         pedido = self.pedido_repo.obtener()
@@ -389,39 +448,47 @@ class PedidoUseCases:
         self.pedido_repo.guardar(pedido)
         logger.info(f"INFO: Color de decorado '{color}' seleccionado.")
 
-    def obtener_colores_disponibles(self) -> list[str]:
-        pedido = self.pedido_repo.obtener()
-        if not pedido.id_categoria or not pedido.tipo_cobertura:
-            return []
-        return self.tipo_color_repo.obtener_por_categoria_y_cobertura(pedido.id_categoria, pedido.tipo_cobertura)
+
+    def obtener_todos_los_colores(self) -> list[str]:
+        return self.tipo_color_repo.obtener_todos()
 
     def check_continuar_decorado(self) -> bool:
         pedido = self.pedido_repo.obtener()
         logger.info("\n[DEBUG] UC: ---- Verificando 'check_continuar_decorado' ----")
-        logger.info(f"[DEBUG] UC: Detalle seleccionado: '{pedido.decorado_liso_detalle}'")
+        logger.info(f"[DEBUG] UC: Tipo decorado: '{pedido.tipo_decorado}'")
+        logger.info(f"[DEBUG] UC: Detalle liso: '{pedido.decorado_liso_detalle}'")
+        logger.info(f"[DEBUG] UC: Detalle temática: '{pedido.decorado_tematica_detalle}'")
         logger.info(f"[DEBUG] UC: Color 1 seleccionado: '{pedido.decorado_liso_color1}'")
-        if not pedido.decorado_liso_detalle:
+
+        if not pedido.tipo_decorado:
+            logger.info("[DEBUG] UC: No hay tipo de decorado seleccionado. Resultado=False")
+            logger.info("[DEBUG] UC: ------------------------------------------\n")
             return False
 
-        colores_disponibles = self.obtener_colores_disponibles()
-        requiere_color = bool(colores_disponibles)
-
-        tiene_color = bool(pedido.decorado_liso_color1) if requiere_color else True
-        logger.info(f"[DEBUG] UC: ¿Tiene color válido?: {tiene_color}")
-
         listo = False
-        if pedido.decorado_liso_detalle and tiene_color:
-            if pedido.decorado_liso_detalle == "Diseño o Temática":
-                tiene_texto_tematica = bool(pedido.decorado_tematica_detalle and pedido.decorado_tematica_detalle.strip())
-                logger.info(f"[DEBUG] UC: ¿Tiene texto de temática?: {tiene_texto_tematica}")
-                listo = tiene_texto_tematica
-                #return tiene_texto_tematica and tiene_color
+        if pedido.tipo_decorado == "Liso c/s Conchas de Betún":
+            if not pedido.decorado_liso_detalle:
+                logger.info("[DEBUG] UC: Decorado 'Liso...' seleccionado, pero falta detalle. Resultado=False")
+            elif not pedido.decorado_liso_color1:
+                logger.info(
+                    "[DEBUG] UC: Decorado 'Liso...' con detalle seleccionado, pero falta Color 1. Resultado=False")
             else:
                 listo = True
+                logger.info("[DEBUG] UC: Decorado 'Liso...' con detalle y Color 1 seleccionados. Resultado=True")
+
+        elif pedido.tipo_decorado == "Temática o Personaje":
+            tiene_texto_tematica = bool(pedido.decorado_tematica_detalle and pedido.decorado_tematica_detalle.strip())
+            logger.info(f"[DEBUG] UC: Decorado 'Temática'. ¿Tiene texto?: {tiene_texto_tematica}")
+            listo = tiene_texto_tematica
+
+        elif pedido.tipo_decorado == "Imágenes Prediseñadas":
+            tiene_imagen = pedido.decorado_imagen_id is not None
+            logger.info(f"[DEBUG] UC: Decorado 'Imágenes'. ¿Tiene ID?: {tiene_imagen}")
+            listo = tiene_imagen
 
         logger.info(f"[DEBUG] UC: Resultado final de la validación: {listo}")
         logger.info("[DEBUG] UC: ------------------------------------------\n")
-        return tiene_color
+        return listo
 
     def seleccionar_colores_decorado(self, color1: str | None, color2: str | None):
         logger.info(f"[DEBUG] UC: Guardando colores: Color1='{color1}', Color2='{color2}'")
@@ -605,6 +672,35 @@ class PedidoUseCases:
         pedido.mensaje_pastel = None
         pedido.edad_pastel = None
         self.pedido_repo.guardar(pedido)
+
+    def obtener_detalles_decorado_disponibles(self) -> list[dict]:
+        """
+        Devuelve la lista de opciones de detalle de decorado, aplicando las reglas
+        de negocio basadas en la cobertura seleccionada.
+        """
+        pedido = self.pedido_repo.obtener()
+        cobertura_seleccionada = pedido.tipo_cobertura.lower() if pedido.tipo_cobertura else ""
+
+        # Opciones de detalle por defecto
+        detalles = [
+            {"nombre": "Chantilli", "imagen": "/assets/decorado/chantilli.png"},
+            {"nombre": "Chorreado", "imagen": "/assets/decorado/chorreado.png"},
+            {"nombre": "Diseño o Temática", "imagen": "/assets/decorado/tematica.png"},
+        ]
+
+        # --- APLICACIÓN DE REGLAS DE NEGOCIO ---
+
+        # Regla 1: Si la cobertura es "chantilly", se oculta la opción de decorado "Chantilli"
+        if "chantilly" in cobertura_seleccionada:
+            print("[DEBUG] UC: Aplicando regla de CHANTILLY. Ocultando opción redundante.")
+            detalles = [d for d in detalles if d["nombre"] != "Chantilli"]
+
+        # Regla 2: Si la cobertura es "chorreado", no hay opciones de detalle
+        if "chorreado" in cobertura_seleccionada:
+            print("[DEBUG] UC: Aplicando regla de CHORREADO. No hay sub-opciones de decorado.")
+            return []  # Devuelve una lista vacía
+
+        return detalles
 
 
 class FinalizarPedidoUseCases:

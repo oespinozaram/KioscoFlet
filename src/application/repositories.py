@@ -99,7 +99,7 @@ class ImagenGaleriaRepository(ABC):
 
 class TipoColorRepository(ABC):
     @abstractmethod
-    def obtener_por_categoria_y_cobertura(self, id_categoria: int, nombre_cobertura: str) -> list[str]:
+    def obtener_todos(self) -> list[str]:
         pass
 
 class Horario(NamedTuple):
@@ -195,4 +195,26 @@ class PastelConfigurado(NamedTuple):
 class PastelConfiguradoRepository(ABC):
     @abstractmethod
     def obtener_configuracion(self, id_cat: int, id_pan: int, id_forma: int, id_tam: int) -> PastelConfigurado | None:
+        pass
+
+
+class ExtraChorreado(NamedTuple):
+    tamano: str
+    costo: float
+
+
+class ExtraChorreadoRepository(ABC):
+    @abstractmethod
+    def obtener_precio_por_tamano(self, tamano: str) -> float | None:
+        pass
+
+
+class TamanoRectangular(NamedTuple):
+    peso: str
+    precio: float
+
+
+class TamanoRectangularRepository(ABC):
+    @abstractmethod
+    def obtener_precio_por_peso(self, peso: str) -> float | None:
         pass
