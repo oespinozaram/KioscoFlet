@@ -106,6 +106,7 @@ class PedidoUseCases:
             pedido.imagen_pastel = None
         self.pedido_repo.guardar(pedido)
 
+
     def seleccionar_extra(self, extra_descripcion: str | None):
         pedido = self.pedido_repo.obtener()
         nuevo_precio_extra = None
@@ -118,47 +119,48 @@ class PedidoUseCases:
 
         elif extra_descripcion in ["Chorreado Dorado", "Chorreado Plateado"]:
             pedido.extra_seleccionado = extra_descripcion
-            pedido.extra_flor_cantidad = None
+            pedido.extra_flor_cantidad = None  # Limpiamos flores
             logger.info(f"INFO: Extra '{extra_descripcion}' seleccionado. Verificando forma y tamaño/peso...")
 
-            if pedido.tipo_forma and "redonda" in pedido.tipo_forma.lower():
-                logger.info("INFO: La forma es Redonda.")
+            precio_encontrado_especial = None
+            forma_lower = pedido.tipo_forma.lower() if pedido.tipo_forma else ""
+
+            if "redonda" in forma_lower or "corazón" in forma_lower:
+                logger.info(f"INFO: La forma es Redonda o Corazón ('{forma_lower}').")
                 medidas = pedido.tamano_descripcion
                 if medidas:
-                    logger.info(f"INFO: Buscando precio de chorreado para tamaño redondo: '{medidas}'")
-                    precio_chorreado = self.extra_chorreado_repo.obtener_precio_por_tamano(medidas)
-                    if precio_chorreado is not None:
-                        nuevo_precio_extra = precio_chorreado
-                        logger.info(f"INFO: Precio encontrado en extra_chorreado (redondo): ${nuevo_precio_extra}")
-                    else:
-                        nuevo_precio_extra = 0.0
-                        logger.warning(
-                            f"WARN: Tamaño redondo '{medidas}' no encontrado en extra_chorreado. Precio establecido a 0.0")
+                    logger.info(f"INFO: Buscando precio en 'extra_chorreado' para tamaño: '{medidas}'")
+                    precio_encontrado_especial = self.extra_chorreado_repo.obtener_precio_por_tamano(medidas)
                 else:
-                    nuevo_precio_extra = 0.0
-                    logger.warning("WARN: No se encontraron 'medidas_pastel' para redondo. Precio de chorreado a 0.0")
+                    logger.warning("WARN: No se encontraron 'medidas_pastel' (tamano_descripcion) para esta forma.")
 
-            elif pedido.tipo_forma and "rectangular" in pedido.tipo_forma.lower():
-                logger.info("INFO: La forma es Rectangular.")
+            elif "rectangular" in forma_lower:
+                logger.info(f"INFO: La forma es Rectangular ('{forma_lower}').")
                 peso = pedido.tamano_peso
                 if peso:
-                    logger.info(f"INFO: Buscando precio de chorreado para peso rectangular: '{peso}'")
-                    precio_rectangular = self.tamano_rectangular_repo.obtener_precio_por_peso(peso)
-                    if precio_rectangular is not None:
-                        nuevo_precio_extra = precio_rectangular
-                        logger.info(f"INFO: Precio encontrado en tamano_rectangular (por peso): ${nuevo_precio_extra}")
-                    else:
-                        nuevo_precio_extra = 0.0
-                        logger.warning(
-                            f"WARN: Peso rectangular '{peso}' no encontrado en tamano_rectangular. Precio establecido a 0.0")
+                    logger.info(f"INFO: Buscando precio en 'tamano_rectangular' para peso: '{peso}'")
+                    precio_encontrado_especial = self.tamano_rectangular_repo.obtener_precio_por_peso(peso)
                 else:
-                    nuevo_precio_extra = 0.0
-                    logger.warning("WARN: No se encontró 'peso_pastel' para rectangular. Precio de chorreado a 0.0")
+                    logger.warning("WARN: No se encontró 'peso_pastel' para esta forma.")
 
             else:
-                nuevo_precio_extra = 0.0
                 logger.info(
-                    f"INFO: La forma '{pedido.tipo_forma}' no es Redonda ni Rectangular. Precio de chorreado establecido a 0.0")
+                    f"INFO: La forma '{forma_lower}' no aplica para precio especial de chorreado. Se usará precio genérico.")
+
+            if precio_encontrado_especial is not None:
+                nuevo_precio_extra = precio_encontrado_especial
+                logger.info(f"INFO: Precio especial encontrado: ${nuevo_precio_extra}")
+            else:
+                logger.warning(
+                    f"WARN: No se encontró precio especial. Buscando precio genérico en 'extras' para '{extra_descripcion}'...")
+                extra_obj_generico = self.extra_repo.obtener_por_descripcion(extra_descripcion)
+                if extra_obj_generico:
+                    nuevo_precio_extra = extra_obj_generico.costo
+                    logger.info(f"INFO: Precio genérico de 'extras' encontrado: ${nuevo_precio_extra}")
+                else:
+                    nuevo_precio_extra = 0.0
+                    logger.error(
+                        f"ERROR: No se encontró precio especial NI precio genérico para '{extra_descripcion}'. Precio establecido a 0.0")
 
             pedido.extra_precio = nuevo_precio_extra
 
@@ -168,7 +170,7 @@ class PedidoUseCases:
             if extra_obj:
                 pedido.extra_seleccionado = extra_obj.descripcion
                 nuevo_precio_extra = extra_obj.costo
-                logger.info(f"INFO: Extra general encontrado. Precio unitario: ${nuevo_precio_extra}")
+                logger.info(f"INFO: Extra general encontrado. Precio unitario: {nuevo_precio_extra}")
             else:
                 pedido.extra_seleccionado = None
                 nuevo_precio_extra = None
@@ -284,8 +286,62 @@ class PedidoUseCases:
             pedido.tipo_cobertura = None
         pedido.id_pan = id_pan
         pedido.tipo_pan = nombre_pan
+        pedido.id_pastel_configurado = None
         self.pedido_repo.guardar(pedido)
         logger.info(f"INFO: Pan '{nombre_pan}' seleccionado. Estado del pedido: {pedido}")
+
+    def obtener_configuraciones_disponibles(self) -> list[PastelConfigurado]:
+        pedido = self.pedido_repo.obtener()
+        if not all([pedido.id_categoria, pedido.id_pan, pedido.id_forma, pedido.id_tamano]):
+            logger.warning("WARN: Faltan IDs para buscar configuraciones.")
+            return []
+
+        return self.pastel_config_repo.obtener_configuraciones(
+            id_cat=pedido.id_categoria,
+            id_pan=pedido.id_pan,
+            id_forma=pedido.id_forma,
+            id_tam=pedido.id_tamano
+        )
+
+    def seleccionar_configuracion_variante(self, id_config: int):
+        pedido = self.pedido_repo.obtener()
+        config = self.pastel_config_repo.obtener_configuracion_por_id(id_config)
+
+        if not config:
+            logger.error(f"ERROR: No se pudo seleccionar la configuración con ID {id_config}")
+            pedido.id_pastel_configurado = None
+            self.pedido_repo.guardar(pedido)
+            return
+
+        pedido.id_pastel_configurado = config.id_pastel_configurado
+
+        precio_pastel = config.precio_base
+        precio_chocolate = config.precio_chocolate
+        monto_deposito = config.monto_deposito
+
+        if pedido.tipo_cobertura and "fondant" in pedido.tipo_cobertura.lower():
+            logger.info(f"INFO: Cobertura de Fondant detectada. Duplicando precio base de ${precio_pastel}.")
+            precio_pastel *= 2
+            precio_chocolate *= 2
+
+        extra_costo = pedido.extra_precio or 0.0
+
+        if pedido.id_pan == 2 and precio_chocolate > 0.0:
+            pedido.precio_pastel = precio_chocolate
+        else:
+            pedido.precio_pastel = precio_pastel
+
+        pedido.precio_chocolate = precio_chocolate
+        pedido.monto_deposito = monto_deposito
+        pedido.extra_costo = extra_costo
+        pedido.total = pedido.precio_pastel + extra_costo
+
+        pedido.tamano_peso = config.peso_pastel
+        pedido.tamano_descripcion = config.medidas_pastel
+        pedido.incluye = config.incluye
+
+        self.pedido_repo.guardar(pedido)
+        logger.info(f"INFO: Variante de configuración ID {id_config} seleccionada. Detalles guardados.")
 
     def obtener_categorias(self) -> list[Categoria]:
         pedido = self.pedido_repo.obtener()
@@ -303,7 +359,7 @@ class PedidoUseCases:
         categoria_obj = self.categoria_repo.obtener_por_id(id_categoria)
         if categoria_obj:
             pedido.nombre_categoria = categoria_obj.nombre
-
+        pedido.id_pastel_configurado = None
         self.pedido_repo.guardar(pedido)
         logger.info(f"INFO: Categoría {id_categoria} seleccionada. Estado del pedido: {pedido}")
 
@@ -597,12 +653,14 @@ class PedidoUseCases:
         pedido.id_tamano = id_tamano
         pedido.tamano_pastel = nombre_tamano
         pedido.descripcion_pastel = descripcion_tamano
+        pedido.id_pastel_configurado = None
         self.pedido_repo.guardar(pedido)
 
     def seleccionar_tipo_forma(self, id_forma: int, nombre_forma: str):
         pedido = self.pedido_repo.obtener()
         pedido.id_forma = id_forma
         pedido.tipo_forma = nombre_forma
+        pedido.id_pastel_configurado = None
         self.pedido_repo.guardar(pedido)
         logger.info(f"INFO: Forma '{nombre_forma}' seleccionada. Estado del pedido: {pedido}")
 
@@ -610,35 +668,43 @@ class PedidoUseCases:
         pedido = self.pedido_repo.obtener()
 
         logger.info("\n[DEBUG] === Consultando Precio de Pastel Configurado ===")
-        logger.info(f"[DEBUG] ID Categoría: {pedido.id_categoria}")
-        logger.info(f"[DEBUG] ID Pan: {pedido.id_pan}")
-        logger.info(f"[DEBUG] ID Forma: {pedido.id_forma}")
-        logger.info(f"[DEBUG] ID Tamaño: {pedido.id_tamano}")
 
-        if not all([pedido.id_categoria, pedido.id_pan, pedido.id_forma, pedido.id_tamano]):
-            logger.info("[DEBUG] Faltan IDs para calcular el precio. Devolviendo 0.0")
-            logger.info("[DEBUG] =============================================\n")
-            return 0.0
+        if pedido.id_pastel_configurado:
+            logger.info(f"[DEBUG] Obteniendo config por ID único: {pedido.id_pastel_configurado}")
+            config = self.pastel_config_repo.obtener_configuracion_por_id(pedido.id_pastel_configurado)
 
-        config = self.pastel_config_repo.obtener_configuracion(
-            id_cat=pedido.id_categoria,
-            id_pan=pedido.id_pan,
-            id_forma=pedido.id_forma,
-            id_tam=pedido.id_tamano
-        )
-
-        if config:
-            logger.info(f"[DEBUG] Precio=${config.precio_base}, Precio Chocolate=${config.precio_chocolate}, Depósito=${config.monto_deposito}")
+        # LÓGICA ANTIGUA: Si no, buscamos por los 4 IDs (esto es un fallback)
+        elif all([pedido.id_categoria, pedido.id_pan, pedido.id_forma, pedido.id_tamano]):
+            logger.info("[DEBUG] Obteniendo config por 4 IDs (fallback)...")
+            config = self.pastel_config_repo.obtener_configuracion(
+                id_cat=pedido.id_categoria,
+                id_pan=pedido.id_pan,
+                id_forma=pedido.id_forma,
+                id_tam=pedido.id_tamano
+            )
         else:
-            logger.info("[DEBUG] No se encontró una configuración de pastel para esos IDs.")
-        logger.info("[DEBUG] =============================================\n")
+            logger.info("[DEBUG] Faltan IDs para calcular el precio. Devolviendo None")
+            config = None
 
-        precio_pastel = config.precio_base if config else 0.0
-        precio_chocolate = config.precio_chocolate if config else 0.0
-        monto_deposito = config.monto_deposito if config else 0.0
-        peso_pastel = config.peso_pastel if config else ""
-        medidas_pastel = config.medidas_pastel if config else ""
-        incluye = config.incluye if config else ""
+        if not config:
+            logger.info("[DEBUG] No se encontró configuración. Precios a 0.0")
+            logger.info("[DEBUG] =============================================\n")
+            # Limpiamos precios si no hay config
+            pedido.precio_pastel = 0.0
+            pedido.monto_deposito = 0.0
+            pedido.extra_costo = 0.0
+            pedido.precio_chocolate = 0.0
+            pedido.total = 0.0
+            pedido.tamano_peso = None
+            pedido.tamano_descripcion = None
+            pedido.incluye = None
+            self.pedido_repo.guardar(pedido)
+            return None  # Devolvemos None si no se encontró
+
+        # --- Si se encontró config, (re)calculamos y guardamos ---
+        precio_pastel = config.precio_base
+        precio_chocolate = config.precio_chocolate
+        monto_deposito = config.monto_deposito
 
         if pedido.tipo_cobertura and "fondant" in pedido.tipo_cobertura.lower():
             logger.info(f"INFO: Cobertura de Fondant detectada. Duplicando precio base de ${precio_pastel}.")
@@ -646,20 +712,85 @@ class PedidoUseCases:
             precio_chocolate *= 2
 
         extra_costo = pedido.extra_precio or 0.0
-        total = precio_pastel + extra_costo
 
-        pedido.precio_pastel = precio_pastel
+        if pedido.id_pan == 2 and precio_chocolate > 0:
+            pedido.precio_pastel = precio_chocolate
+        else:
+            pedido.precio_pastel = precio_pastel
+
+        total = pedido.precio_pastel + extra_costo
+
+        pedido.precio_chocolate = precio_chocolate
         pedido.monto_deposito = monto_deposito
         pedido.extra_costo = extra_costo
-        pedido.precio_chocolate = precio_chocolate
         pedido.total = total
-        pedido.tamano_peso = peso_pastel
-        pedido.tamano_descripcion = medidas_pastel
-        pedido.incluye = incluye
+        pedido.tamano_peso = config.peso_pastel
+        pedido.tamano_descripcion = config.medidas_pastel
+        pedido.incluye = config.incluye
+
+        # Guardamos el ID de la config si veníamos del fallback
+        if not pedido.id_pastel_configurado:
+            pedido.id_pastel_configurado = config.id_pastel_configurado
 
         self.pedido_repo.guardar(pedido)
-
+        logger.info(f"[DEBUG] Configuración ID {config.id_pastel_configurado} procesada y guardada.")
+        logger.info("[DEBUG] =============================================\n")
         return config
+
+    # def obtener_precio_pastel_configurado(self) -> PastelConfigurado:
+    #     pedido = self.pedido_repo.obtener()
+    #
+    #     logger.info("\n[DEBUG] === Consultando Precio de Pastel Configurado ===")
+    #     logger.info(f"[DEBUG] ID Categoría: {pedido.id_categoria}")
+    #     logger.info(f"[DEBUG] ID Pan: {pedido.id_pan}")
+    #     logger.info(f"[DEBUG] ID Forma: {pedido.id_forma}")
+    #     logger.info(f"[DEBUG] ID Tamaño: {pedido.id_tamano}")
+    #
+    #     if not all([pedido.id_categoria, pedido.id_pan, pedido.id_forma, pedido.id_tamano]):
+    #         logger.info("[DEBUG] Faltan IDs para calcular el precio. Devolviendo 0.0")
+    #         logger.info("[DEBUG] =============================================\n")
+    #         return 0.0
+    #
+    #     config = self.pastel_config_repo.obtener_configuracion(
+    #         id_cat=pedido.id_categoria,
+    #         id_pan=pedido.id_pan,
+    #         id_forma=pedido.id_forma,
+    #         id_tam=pedido.id_tamano
+    #     )
+    #
+    #     if config:
+    #         logger.info(f"[DEBUG] Precio=${config.precio_base}, Precio Chocolate=${config.precio_chocolate}, Depósito=${config.monto_deposito}")
+    #     else:
+    #         logger.info("[DEBUG] No se encontró una configuración de pastel para esos IDs.")
+    #     logger.info("[DEBUG] =============================================\n")
+    #
+    #     precio_pastel = config.precio_base if config else 0.0
+    #     precio_chocolate = config.precio_chocolate if config else 0.0
+    #     monto_deposito = config.monto_deposito if config else 0.0
+    #     peso_pastel = config.peso_pastel if config else ""
+    #     medidas_pastel = config.medidas_pastel if config else ""
+    #     incluye = config.incluye if config else ""
+    #
+    #     if pedido.tipo_cobertura and "fondant" in pedido.tipo_cobertura.lower():
+    #         logger.info(f"INFO: Cobertura de Fondant detectada. Duplicando precio base de ${precio_pastel}.")
+    #         precio_pastel *= 2
+    #         precio_chocolate *= 2
+    #
+    #     extra_costo = pedido.extra_precio or 0.0
+    #     total = precio_pastel + extra_costo
+    #
+    #     pedido.precio_pastel = precio_pastel
+    #     pedido.monto_deposito = monto_deposito
+    #     pedido.extra_costo = extra_costo
+    #     pedido.precio_chocolate = precio_chocolate
+    #     pedido.total = total
+    #     pedido.tamano_peso = peso_pastel
+    #     pedido.tamano_descripcion = medidas_pastel
+    #     pedido.incluye = incluye
+    #
+    #     self.pedido_repo.guardar(pedido)
+    #
+    #     return config
 
     def guardar_mensaje_y_edad(self, mensaje: str | None, edad: int | None):
         pedido = self.pedido_repo.obtener()
@@ -720,12 +851,18 @@ class FinalizarPedidoUseCases:
     def finalizar_y_obtener_ticket(self) -> Ticket | None:
         pedido = self.pedido_repo.obtener()
 
-        config = self.pastel_config_repo.obtener_configuracion(
-            id_cat=pedido.id_categoria,
-            id_pan=pedido.id_pan,
-            id_forma=pedido.id_forma,
-            id_tam=pedido.id_tamano
-        )
+        config = None
+
+        if pedido.id_pastel_configurado:
+            config = self.pastel_config_repo.obtener_configuracion_por_id(pedido.id_pastel_configurado)
+
+        if not config and all([pedido.id_categoria, pedido.id_pan, pedido.id_forma, pedido.id_tamano]):
+            config = self.pastel_config_repo.obtener_configuracion(
+                id_cat=pedido.id_categoria,
+                id_pan=pedido.id_pan,
+                id_forma=pedido.id_forma,
+                id_tam=pedido.id_tamano
+            )
 
         precio_pastel = config.precio_base if config else 0.0
         precio_chocolate = config.precio_chocolate if config else 0.0

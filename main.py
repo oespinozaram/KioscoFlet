@@ -156,7 +156,7 @@ def main(page: ft.Page):
     page.window.width = 1920
     page.window.height = 1080
     page.window.resizable = True
-    #page.window.full_screen = True
+    page.window.full_screen = True
 
     page.padding = 0
 
@@ -164,7 +164,6 @@ def main(page: ft.Page):
 
     health_server = start_health_server(35791)
 
-    # 3) Observador de archivos opcional (desactivado por defecto)
     fs_observer = None
     def _on_fs_change(path_changed):
         try:
@@ -422,6 +421,8 @@ def main(page: ft.Page):
             page.views.append(views.vista_forma(page, pedido_use_cases))
         elif page.route == "/pan":
             page.views.append(views.vista_pan(page, pedido_use_cases))
+        elif page.route == "/variante":
+            page.views.append(views.vista_variante(page, pedido_use_cases))
         elif page.route == "/relleno":
             page.views.append(views.vista_relleno(page, pedido_use_cases))
         elif page.route == "/cobertura":

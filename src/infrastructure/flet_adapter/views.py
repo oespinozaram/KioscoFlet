@@ -994,8 +994,139 @@ def vista_forma(page: ft.Page, use_cases: PedidoUseCases):
     )
 
 
+def vista_variante(page: ft.Page, use_cases: PedidoUseCases):
+    # Obtener las configuraciones ambiguas
+    configs = use_cases.obtener_configuraciones_disponibles()
+
+    if not configs:
+        # Esto no debería pasar si la lógica de navegación es correcta
+        logger.error("ERROR: Se llegó a vista_variante pero no se encontraron configuraciones.")
+        # Devolver a 'pan'
+        return ft.View(
+            route="/variante",
+            controls=[
+                ft.Text("Error: No se encontraron variantes. Regresando..."),
+                crear_boton_navegacion("Volver", lambda _: page.go("/pan"), es_primario=False)
+            ]
+        )
+
+    def on_variante_click(e):
+        id_config_seleccionada = e.control.data
+        logger.info(f"INFO: Variante ID {id_config_seleccionada} seleccionada.")
+        # Guardar la selección Y recalcular precios
+        use_cases.seleccionar_configuracion_variante(id_config_seleccionada)
+        # Ir al siguiente paso
+        page.go("/relleno")
+
+    # Crear las tarjetas de selección
+    carrusel_variantes = ft.Row(
+        scroll=ft.ScrollMode.ALWAYS,
+        spacing=30,
+        controls=[]
+    )
+
+    for config in configs:
+        # Usamos 'medidas_pastel' como el texto descriptivo
+        texto_opcion = config.medidas_pastel or f"Variante ID {config.id_pastel_configurado}"
+        # Puedes elegir una imagen genérica o una específica si la tienes
+        imagen_opcion = "C:/KioscoPP/img/formas/pisos.png"  # Asumiendo una imagen genérica
+
+        tarjeta = crear_tarjeta_seleccion(
+            texto=texto_opcion,
+            imagen_src=imagen_opcion,
+            on_click_handler=on_variante_click,
+            data=config.id_pastel_configurado
+        )
+        carrusel_variantes.controls.append(tarjeta)
+
+    # Layout de la vista
+    contenido_superpuesto = ft.Column(
+        expand=True,
+        controls=[
+            ft.Container(  # Banner (opcional)
+                height=67, bgcolor="#89C5B0", alignment=ft.alignment.center,
+                content=ft.Text('Para envío gratuito en compras de $500 o más', color=ft.Colors.WHITE, size=36,
+                                font_family="Bebas Neue")
+            ),
+            ft.Container(
+                expand=True,
+                alignment=ft.alignment.center,
+                content=ft.Column(
+                    spacing=30,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[
+                        ft.Image(src=logo_pepe, width=250),
+                        ft.Text("Paso 5.1: Elige la Variante", size=40, weight=ft.FontWeight.BOLD,
+                                color=ft.Colors.WHITE,
+                                text_align=ft.TextAlign.CENTER),
+                        ft.Text("Detectamos varias opciones para tu selección:", size=24, color=ft.Colors.WHITE,
+                                text_align=ft.TextAlign.CENTER),
+                        carrusel_variantes
+                    ]
+                )
+            ),
+            ft.Row(
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=20,
+                controls=[
+                    crear_boton_navegacion(
+                        texto="Volver",
+                        on_click_handler=lambda _: page.go("/pan"),  # Vuelve a la selección de pan
+                        es_primario=False
+                    ),
+                    # No hay botón 'Continuar', la selección es directa
+                ]
+            ),
+            ft.Container(
+                alignment=ft.alignment.center,
+                padding=5,
+                content=ft.Text(
+                    "Imágenes ilustrativas diferentes al producto que representan.",
+                    size=22,
+                    color=ft.Colors.GREY_300,
+                    italic=True,
+                    text_align=ft.TextAlign.CENTER
+                )
+            ),
+            ft.Container(height=60)  # Espacio inferior
+        ]
+    )
+
+    layout_final = ft.Stack(
+        controls=[
+            ft.Image(src=fondo_hd, fit=ft.ImageFit.COVER, expand=True),
+            ft.Container(bgcolor=ft.Colors.with_opacity(0.4, ft.Colors.BLACK), expand=True),
+            contenido_superpuesto,
+        ]
+    )
+
+    return ft.View(
+        route="/variante",
+        controls=[layout_final],
+        padding=0
+    )
+
 def vista_pan(page: ft.Page, use_cases: PedidoUseCases):
     ref_boton_continuar = ft.Ref[ft.Container]()
+
+    def navegar_desde_pan(e):
+        configs = use_cases.obtener_configuraciones_disponibles()
+
+        if not configs:
+            logger.error(f"ERROR: No se encontró NINGUNA configuración para la selección actual. Revisar DB.")
+            page.snack_bar = ft.SnackBar(ft.Text("Error: No hay productos para esta combinación."),
+                                         bgcolor=ft.Colors.RED_700)
+            page.snack_bar.open = True
+            page.update()
+            return
+
+        if len(configs) == 1:
+            logger.info("INFO: Se encontró 1 configuración. Seleccionando automáticamente.")
+            use_cases.seleccionar_configuracion_variante(configs[0].id_pastel_configurado)
+            page.go("/relleno")
+        else:
+            logger.info(f"INFO: Se encontraron {len(configs)} configuraciones ambiguas. Navegando a /variante.")
+            page.go("/variante")
 
     def on_pan_selected(e):
         id_pan, nombre_pan = e.control.data
@@ -1062,7 +1193,7 @@ def vista_pan(page: ft.Page, use_cases: PedidoUseCases):
                     ),
                     crear_boton_navegacion(
                         texto="Continuar",
-                        on_click_handler=lambda _: page.go("/relleno"),
+                        on_click_handler=navegar_desde_pan, #lambda _: page.go("/relleno"),
                         ref=ref_boton_continuar,
                         disabled=True
                     )
@@ -1489,17 +1620,26 @@ def vista_decorado2(page: ft.Page, use_cases: PedidoUseCases):
     def check_continuar():
         logger.debug("[DEBUG] VISTA decorado2: Verificando si se puede continuar...")
         is_ready = False
+
+        colores_disponibles_en_db = bool(use_cases.obtener_todos_los_colores())
+
         if tematica_container.visible:
-            is_ready = bool(campo_tematica.value and campo_tematica.value.strip())
-            logger.debug(f"[DEBUG] VISTA decorado2: Temática visible. Texto='{campo_tematica.value}'. Listo={is_ready}")
+            tiene_texto = bool(campo_tematica.value and campo_tematica.value.strip())
+
+            tiene_color1 = True
+            if colores_disponibles_en_db:
+                tiene_color1 = bool(dd_color1.value)
+
+            is_ready = tiene_texto and tiene_color1
+            logger.debug(
+                f"[DEBUG] VISTA decorado2: Temática visible. Tiene Texto='{tiene_texto}', Tiene Color1='{tiene_color1}'. Listo={is_ready}")
+
         elif contenedor_colores.visible:
-            colores_disponibles = bool(dd_color1.options)
-            if colores_disponibles:
+            is_ready = True
+            if colores_disponibles_en_db:
                 is_ready = bool(dd_color1.value)
-                logger.debug(f"[DEBUG] VISTA decorado2: Colores visibles y disponibles. Color1='{dd_color1.value}'. Listo={is_ready}")
-            else:
-                is_ready = True
-                logger.debug("[DEBUG] VISTA decorado2: Colores visibles pero no disponibles. Listo=True")
+            logger.debug(
+                f"[DEBUG] VISTA decorado2: Colores (Liso) visibles. Tiene Color1='{dd_color1.value}'. Listo={is_ready}")
 
         if ref_boton_continuar.current:
             ref_boton_continuar.current.disabled = not is_ready
@@ -1559,8 +1699,11 @@ def vista_decorado2(page: ft.Page, use_cases: PedidoUseCases):
         controls=[dd_color1, dd_color2]
     )
 
-    mostrar_tematica = pedido_actual.tipo_decorado == "Temática o Personaje"
-    mostrar_colores = not mostrar_tematica
+    es_tematica = pedido_actual.tipo_decorado == "Temática o Personaje"
+    es_liso = pedido_actual.tipo_decorado == "Liso c/s Conchas de Betún"
+
+    mostrar_tematica = es_tematica
+    mostrar_colores = es_tematica or es_liso
 
     tematica_container.visible = mostrar_tematica
     contenedor_colores.visible = mostrar_colores
@@ -1623,7 +1766,7 @@ def vista_decorado2(page: ft.Page, use_cases: PedidoUseCases):
                 alignment=ft.MainAxisAlignment.CENTER,
                 spacing=20,
                 controls=[
-                    crear_boton_navegacion("Volver", lambda _: page.go("/decorado1"), es_primario=False),
+                    crear_boton_navegacion("Volver", lambda _: page.go("/cobertura"), es_primario=False),
                     crear_boton_navegacion("Restablecer", restablecer, es_primario=False, bgcolor=ft.Colors.AMBER_300),
                     crear_boton_navegacion("Continuar", lambda _: page.go("/mensaje"), ref=ref_boton_continuar,
                                            disabled=True)
@@ -1767,7 +1910,7 @@ def vista_galeria(page: ft.Page, use_cases: PedidoUseCases):
     contenido_superpuesto = ft.Column(
         expand=True,
         controls=[
-            ft.Container(  # Banner superior
+            ft.Container(
                 height=67, bgcolor="#89C5B0", alignment=ft.alignment.center,
                 content=ft.Text('Para envío gratuito en compras de $500 o más', color=ft.Colors.WHITE, size=28,
                                 font_family="Bebas Neue")
@@ -1836,7 +1979,6 @@ def vista_mensaje(page: ft.Page, use_cases: PedidoUseCases):
         width=150
     )
 
-    # Panel blanco para los campos
     panel_principal = ft.Container(
         width=500,
         padding=30,
@@ -1905,35 +2047,37 @@ def vista_extras(page: ft.Page, use_cases: PedidoUseCases):
 
     def on_cantidad_change(e):
         cantidad_valida = 0
-        costo_total = 0
+        costo_total = 0.0
         valor = e.control.value
+        pedido_actual = use_cases.obtener_pedido_actual()
+
         if valor:
             try:
                 cantidad = int(valor)
                 if not (1 <= cantidad <= 10):
                     e.control.error_text = "Max. 10"
-                    use_cases.guardar_cantidad_flor(None)  # Guardamos nulo si es inválido
+                    use_cases.guardar_cantidad_flor(None)
                 else:
                     e.control.error_text = None
-                    use_cases.guardar_cantidad_flor(cantidad)  # Guardamos la cantidad válida
                     cantidad_valida = cantidad
+                    use_cases.guardar_cantidad_flor(cantidad_valida)
+
             except ValueError:
                 e.control.error_text = "Inválido"
                 use_cases.guardar_cantidad_flor(None)
         else:
             e.control.error_text = None
-            use_cases.guardar_cantidad_flor(None)
+            use_cases.guardar_cantidad_flor(None)  # Guardar None si el campo está vacío
 
-        use_cases.guardar_cantidad_flor(cantidad_valida if cantidad_valida > 0 else None)
-
-        # --- CAMBIO: Calcular y mostrar el precio total ---
-        pedido_actual = use_cases.obtener_pedido_actual()
-        if pedido_actual.extra_precio and cantidad_valida > 0:
-            costo_total = pedido_actual.extra_precio * cantidad_valida
+        precio_unitario = pedido_actual.extra_precio if isinstance(pedido_actual.extra_precio, (int, float)) else 0.0
+        if cantidad_valida > 0:
+            costo_total = precio_unitario * cantidad_valida
 
         texto_precio.value = f"${costo_total:.2f}"
-
+        logger.debug(
+            f"DEBUG [on_cantidad_change]: Cantidad={cantidad_valida}, Precio Unitario={precio_unitario}, Costo Total={costo_total}")
         page.update()
+
 
     campo_cantidad_flores = ft.TextField(
         label="Cantidad",
@@ -1949,20 +2093,33 @@ def vista_extras(page: ft.Page, use_cases: PedidoUseCases):
         seleccion = e.control.value
         use_cases.seleccionar_extra(seleccion if seleccion != "Ninguno" else None)
 
-        pedido_actual = use_cases.obtener_pedido_actual()
-        if pedido_actual.extra_precio:
-            texto_precio.value = f"${pedido_actual.extra_precio:.2f}"
-        else:
-            texto_precio.value = "$0.00"
+        pedido_actualizado = use_cases.obtener_pedido_actual()
+        precio_unitario = pedido_actualizado.extra_precio if isinstance(pedido_actualizado.extra_precio,
+                                                                        (int, float)) else 0.0
+        costo_total = 0.0
 
         if seleccion == "Flor Artificial":
             campo_cantidad_flores.visible = True
-            campo_cantidad_flores.value = '1'
+            cantidad_actual = pedido_actualizado.extra_flor_cantidad
+            if cantidad_actual is None or cantidad_actual <= 0:
+                cantidad_actual = 1
+                use_cases.guardar_cantidad_flor(cantidad_actual)
+                pedido_actualizado = use_cases.obtener_pedido_actual()
+
+            campo_cantidad_flores.value = str(cantidad_actual)
+            campo_cantidad_flores.error_text = None
+            costo_total = precio_unitario * cantidad_actual
+            logger.debug(
+                f"DEBUG [on_radio_change - Flor]: Precio Unitario={precio_unitario}, Cantidad={cantidad_actual}, Costo Total={costo_total}")
+
         else:
             campo_cantidad_flores.visible = False
             campo_cantidad_flores.value = ""
             campo_cantidad_flores.error_text = None
+            costo_total = precio_unitario
+            logger.debug(f"DEBUG [on_radio_change - Otro/Ninguno]: Precio Unitario/Total={costo_total}")
 
+        texto_precio.value = f"${costo_total:.2f}"
         page.update()
 
     opcion_flor_artificial = ft.Row(

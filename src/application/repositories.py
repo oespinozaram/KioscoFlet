@@ -184,17 +184,30 @@ class TamanoRepository(ABC):
 
 
 class PastelConfigurado(NamedTuple):
+    id_pastel_configurado: int
+    id_categoria: int
+    id_tipo_pan_seleccionado: int
+    id_tipo_forma_seleccionada: int
+    id_tipo_tamano_seleccionado: int
     precio_base: float
     precio_chocolate: float
     monto_deposito: float
-    incluye: str
     peso_pastel: str
     medidas_pastel: str
+    incluye: str
 
 
 class PastelConfiguradoRepository(ABC):
     @abstractmethod
     def obtener_configuracion(self, id_cat: int, id_pan: int, id_forma: int, id_tam: int) -> PastelConfigurado | None:
+        pass
+
+    @abstractmethod
+    def obtener_configuraciones(self, id_cat: int, id_pan: int, id_forma: int, id_tam: int) -> list[PastelConfigurado]:
+            pass
+
+    @abstractmethod
+    def obtener_configuracion_por_id(self, id_config: int) -> PastelConfigurado | None:
         pass
 
 

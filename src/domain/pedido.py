@@ -39,6 +39,7 @@ class Pedido:
         self.edad_pastel: int | None = None
         self.precio_chocolate: float | None = None
         self.incluye: str | None = None
+        id_pastel_configurado: int | None = None
 
     def reiniciar(self):
         self.id_pedido: int | None = None
@@ -86,6 +87,7 @@ class Pedido:
         self.edad_pastel: int | None = None
         self.precio_chocolate: float | None = None
         self.incluye: str | None = None
+        id_pastel_configurado: int | None = None
 
     def __str__(self):
         return f"Pedido(Categoria: {self.id_categoria}, Decorado: '{self.tipo_decorado}', Mensaje: '{self.mensaje_pastel}')"
