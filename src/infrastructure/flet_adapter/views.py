@@ -2520,9 +2520,10 @@ def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases, pedido
         else:
             extra_monto = 0.0
         costo_pastel = (getattr(t, 'precio_pastel', 0.0) or 0.0)
+        monto_deposito = (getattr(t, 'monto_deposito', 0.0) or 0.0)
         subtotal = (costo_pastel or 0.0) + (extra_monto or 0.0)
         costo_envio = 50.0 if subtotal < 500 else 0.0
-        total_mostrar = subtotal + costo_envio
+        total_mostrar = subtotal + costo_envio + monto_deposito
 
         # 'incluye' puede no existir en Ticket; usar vacío como fallback
         incluye_texto = p.incluye #getattr(t, 'incluye', '') or ''
@@ -2580,6 +2581,13 @@ def vista_confirmacion(page: ft.Page, use_cases: FinalizarPedidoUseCases, pedido
                                         controls=[
                                             ft.Text("Extra" + (f" – {extra_detalle}" if extra_detalle else "")),
                                             ft.Text(mxn(extra_monto))
+                                        ]
+                                    ),
+                                    ft.Row(
+                                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                        controls=[
+                                            ft.Text("Depósito (base)"),
+                                            ft.Text(mxn(monto_deposito))
                                         ]
                                     ),
                                     ft.Row(

@@ -93,6 +93,8 @@ class PrintingService:
         # Precios
         costo_pastel = (ticket.precio_pastel or 0.0)
         costo_extras = (ticket.extra_costo or 0.0)
+        if ticket.extra_seleccionado == "Flor Artificial" and ticket.extra_flor_cantidad:
+            costo_extras *= ticket.extra_flor_cantidad
         deposito = (ticket.monto_deposito or 0.0)
         # 'total' en el ticket normalmente es pastel + extras (sin depósito). Si viene None, recalculamos del desglose.
         subtotal = (ticket.total if ticket.total is not None else (costo_pastel + costo_extras))

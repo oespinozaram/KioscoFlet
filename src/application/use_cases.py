@@ -315,9 +315,9 @@ class PedidoUseCases:
 
         pedido.id_pastel_configurado = config.id_pastel_configurado
 
-        precio_pastel = config.precio_base
-        precio_chocolate = config.precio_chocolate
-        monto_deposito = config.monto_deposito
+        precio_pastel = config.precio_base or 0.0
+        precio_chocolate = config.precio_chocolate or 0.0
+        monto_deposito = config.monto_deposito or 0.0
 
         if pedido.tipo_cobertura and "fondant" in pedido.tipo_cobertura.lower():
             logger.info(f"INFO: Cobertura de Fondant detectada. Duplicando precio base de ${precio_pastel}.")
@@ -443,10 +443,10 @@ class PedidoUseCases:
             id_tam=pedido.id_tamano
         )
 
-        precio_pastel = config.precio_base if config else 0.0
-        precio_chocolate = config.precio_chocolate if config else 0.0
-        monto_deposito = config.monto_deposito if config else 0.0
-        extra_costo = pedido.extra_precio or 0.0
+        precio_pastel = (config.precio_base or 0.0) if config else 0.0
+        precio_chocolate = (config.precio_chocolate or 0.0) if config else 0.0
+        monto_deposito = (config.monto_deposito or 0.0) if config else 0.0
+        extra_costo = (pedido.extra_precio or 0.0) if config else 0.0
 
         if pedido.tipo_cobertura and "fondant" in pedido.tipo_cobertura.lower():
             logger.info(f"INFO: Cobertura de Fondant detectada. Duplicando precio base de ${precio_pastel}.")
@@ -702,9 +702,9 @@ class PedidoUseCases:
             return None  # Devolvemos None si no se encontró
 
         # --- Si se encontró config, (re)calculamos y guardamos ---
-        precio_pastel = config.precio_base
-        precio_chocolate = config.precio_chocolate
-        monto_deposito = config.monto_deposito
+        precio_pastel = config.precio_base or 0.0
+        precio_chocolate = config.precio_chocolate or 0.0
+        monto_deposito = config.monto_deposito or 0.0
 
         if pedido.tipo_cobertura and "fondant" in pedido.tipo_cobertura.lower():
             logger.info(f"INFO: Cobertura de Fondant detectada. Duplicando precio base de ${precio_pastel}.")
@@ -712,6 +712,11 @@ class PedidoUseCases:
             precio_chocolate *= 2
 
         extra_costo = pedido.extra_precio or 0.0
+
+        if pedido.extra_seleccionado == "Flor Artificial" and pedido.extra_flor_cantidad:
+            logger.info(
+                f"INFO [Resumen]: Multiplicando extra Flor Artificial: {extra_costo} x {pedido.extra_flor_cantidad}")
+            extra_costo *= pedido.extra_flor_cantidad
 
         if pedido.id_pan == 2 and precio_chocolate > 0:
             pedido.precio_pastel = precio_chocolate
@@ -737,60 +742,7 @@ class PedidoUseCases:
         logger.info("[DEBUG] =============================================\n")
         return config
 
-    # def obtener_precio_pastel_configurado(self) -> PastelConfigurado:
-    #     pedido = self.pedido_repo.obtener()
-    #
-    #     logger.info("\n[DEBUG] === Consultando Precio de Pastel Configurado ===")
-    #     logger.info(f"[DEBUG] ID Categoría: {pedido.id_categoria}")
-    #     logger.info(f"[DEBUG] ID Pan: {pedido.id_pan}")
-    #     logger.info(f"[DEBUG] ID Forma: {pedido.id_forma}")
-    #     logger.info(f"[DEBUG] ID Tamaño: {pedido.id_tamano}")
-    #
-    #     if not all([pedido.id_categoria, pedido.id_pan, pedido.id_forma, pedido.id_tamano]):
-    #         logger.info("[DEBUG] Faltan IDs para calcular el precio. Devolviendo 0.0")
-    #         logger.info("[DEBUG] =============================================\n")
-    #         return 0.0
-    #
-    #     config = self.pastel_config_repo.obtener_configuracion(
-    #         id_cat=pedido.id_categoria,
-    #         id_pan=pedido.id_pan,
-    #         id_forma=pedido.id_forma,
-    #         id_tam=pedido.id_tamano
-    #     )
-    #
-    #     if config:
-    #         logger.info(f"[DEBUG] Precio=${config.precio_base}, Precio Chocolate=${config.precio_chocolate}, Depósito=${config.monto_deposito}")
-    #     else:
-    #         logger.info("[DEBUG] No se encontró una configuración de pastel para esos IDs.")
-    #     logger.info("[DEBUG] =============================================\n")
-    #
-    #     precio_pastel = config.precio_base if config else 0.0
-    #     precio_chocolate = config.precio_chocolate if config else 0.0
-    #     monto_deposito = config.monto_deposito if config else 0.0
-    #     peso_pastel = config.peso_pastel if config else ""
-    #     medidas_pastel = config.medidas_pastel if config else ""
-    #     incluye = config.incluye if config else ""
-    #
-    #     if pedido.tipo_cobertura and "fondant" in pedido.tipo_cobertura.lower():
-    #         logger.info(f"INFO: Cobertura de Fondant detectada. Duplicando precio base de ${precio_pastel}.")
-    #         precio_pastel *= 2
-    #         precio_chocolate *= 2
-    #
-    #     extra_costo = pedido.extra_precio or 0.0
-    #     total = precio_pastel + extra_costo
-    #
-    #     pedido.precio_pastel = precio_pastel
-    #     pedido.monto_deposito = monto_deposito
-    #     pedido.extra_costo = extra_costo
-    #     pedido.precio_chocolate = precio_chocolate
-    #     pedido.total = total
-    #     pedido.tamano_peso = peso_pastel
-    #     pedido.tamano_descripcion = medidas_pastel
-    #     pedido.incluye = incluye
-    #
-    #     self.pedido_repo.guardar(pedido)
-    #
-    #     return config
+
 
     def guardar_mensaje_y_edad(self, mensaje: str | None, edad: int | None):
         pedido = self.pedido_repo.obtener()
@@ -805,18 +757,13 @@ class PedidoUseCases:
         self.pedido_repo.guardar(pedido)
 
     def obtener_detalles_decorado_disponibles(self) -> list[dict]:
-        """
-        Devuelve la lista de opciones de detalle de decorado, aplicando las reglas
-        de negocio basadas en la cobertura seleccionada.
-        """
         pedido = self.pedido_repo.obtener()
         cobertura_seleccionada = pedido.tipo_cobertura.lower() if pedido.tipo_cobertura else ""
 
-        # Opciones de detalle por defecto
         detalles = [
-            {"nombre": "Chantilli", "imagen": "/assets/decorado/chantilli.png"},
-            {"nombre": "Chorreado", "imagen": "/assets/decorado/chorreado.png"},
-            {"nombre": "Diseño o Temática", "imagen": "/assets/decorado/tematica.png"},
+            {"nombre": "Chantilly", "imagen": "C:/KioscoPP/img/decorado/chantilli.png"},
+            {"nombre": "Chorreado", "imagen": "C:/KioscoPP/img/decorado/chorreado.png"},
+            {"nombre": "Diseño o Temática", "imagen": "C:/KioscoPP/img/decorado/tematica.png"},
         ]
 
         # --- APLICACIÓN DE REGLAS DE NEGOCIO ---
@@ -824,7 +771,7 @@ class PedidoUseCases:
         # Regla 1: Si la cobertura es "chantilly", se oculta la opción de decorado "Chantilli"
         if "chantilly" in cobertura_seleccionada:
             print("[DEBUG] UC: Aplicando regla de CHANTILLY. Ocultando opción redundante.")
-            detalles = [d for d in detalles if d["nombre"] != "Chantilli"]
+            detalles = [d for d in detalles if d["nombre"] != "Chantilly"]
 
         # Regla 2: Si la cobertura es "chorreado", no hay opciones de detalle
         if "chorreado" in cobertura_seleccionada:
@@ -864,9 +811,9 @@ class FinalizarPedidoUseCases:
                 id_tam=pedido.id_tamano
             )
 
-        precio_pastel = config.precio_base if config else 0.0
-        precio_chocolate = config.precio_chocolate if config else 0.0
-        monto_deposito = config.monto_deposito if config else 0.0
+        precio_pastel = (config.precio_base or 0.0) if config else 0.0
+        precio_chocolate = (config.precio_chocolate or 0.0) if config else 0.0
+        monto_deposito = (config.monto_deposito or 0.0) if config else 0.0
         peso_pastel = config.peso_pastel if config else ""
         medidas_pastel = config.medidas_pastel if config else ""
 

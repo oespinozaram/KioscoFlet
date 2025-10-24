@@ -310,7 +310,8 @@ def main(page: ft.Page):
 
         subtotal = precio_pastel + extra_monto
         costo_envio = 50.0 if subtotal < 500 else 0.0
-        total_mostrar = subtotal + costo_envio
+        monto_deposito = pedido.monto_deposito or 0.0
+        total_mostrar = subtotal + costo_envio + monto_deposito
 
         categorias = {c.id: c.nombre for c in pedido_use_cases.obtener_categorias()}
         nombre_categoria = categorias.get(pedido.id_categoria, "N/A")
@@ -357,6 +358,13 @@ def main(page: ft.Page):
                                 controls=[
                                     ft.Text("Extra" + (f" – {extra_detalle}" if extra_detalle else "")),
                                     ft.Text(mxn(extra_monto))
+                                ]
+                            ),
+                            ft.Row(
+                                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                                controls=[
+                                    ft.Text("Depósito (base)"),
+                                    ft.Text(mxn(monto_deposito))
                                 ]
                             ),
                             ft.Row(
