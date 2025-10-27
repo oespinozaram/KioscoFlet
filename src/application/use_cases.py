@@ -232,7 +232,7 @@ class PedidoUseCases:
                     logger.info(f"INFO: Tamaño para {tamano_personas} personas detectado. Ocultando forma de corazón.")
                     formas_disponibles  = [forma for forma in formas_disponibles if "corazón" not in forma.nombre.lower()]
 
-                tamanos_permitidos_redonda = [5, 10, 15, 18, 20]
+                tamanos_permitidos_redonda = [5, 10, 15, 18, 20, 60]
                 if tamano_personas not in tamanos_permitidos_redonda:
                     formas_disponibles = [f for f in formas_disponibles if 'redonda' not in f.nombre.lower()]
                     logger.info(f"INFO: Tamaño para {tamano_personas}. Se ha ocultado la forma 'Redonda'.")
@@ -689,7 +689,6 @@ class PedidoUseCases:
         if not config:
             logger.info("[DEBUG] No se encontró configuración. Precios a 0.0")
             logger.info("[DEBUG] =============================================\n")
-            # Limpiamos precios si no hay config
             pedido.precio_pastel = 0.0
             pedido.monto_deposito = 0.0
             pedido.extra_costo = 0.0
@@ -699,9 +698,8 @@ class PedidoUseCases:
             pedido.tamano_descripcion = None
             pedido.incluye = None
             self.pedido_repo.guardar(pedido)
-            return None  # Devolvemos None si no se encontró
+            return None
 
-        # --- Si se encontró config, (re)calculamos y guardamos ---
         precio_pastel = config.precio_base or 0.0
         precio_chocolate = config.precio_chocolate or 0.0
         monto_deposito = config.monto_deposito or 0.0
@@ -733,7 +731,6 @@ class PedidoUseCases:
         pedido.tamano_descripcion = config.medidas_pastel
         pedido.incluye = config.incluye
 
-        # Guardamos el ID de la config si veníamos del fallback
         if not pedido.id_pastel_configurado:
             pedido.id_pastel_configurado = config.id_pastel_configurado
 
@@ -766,17 +763,13 @@ class PedidoUseCases:
             {"nombre": "Diseño o Temática", "imagen": "C:/KioscoPP/img/decorado/tematica.png"},
         ]
 
-        # --- APLICACIÓN DE REGLAS DE NEGOCIO ---
-
-        # Regla 1: Si la cobertura es "chantilly", se oculta la opción de decorado "Chantilli"
         if "chantilly" in cobertura_seleccionada:
-            print("[DEBUG] UC: Aplicando regla de CHANTILLY. Ocultando opción redundante.")
+            logger.info("[DEBUG] UC: Aplicando regla de CHANTILLY. Ocultando opción redundante.")
             detalles = [d for d in detalles if d["nombre"] != "Chantilly"]
 
-        # Regla 2: Si la cobertura es "chorreado", no hay opciones de detalle
         if "chorreado" in cobertura_seleccionada:
-            print("[DEBUG] UC: Aplicando regla de CHORREADO. No hay sub-opciones de decorado.")
-            return []  # Devuelve una lista vacía
+            logger.info("[DEBUG] UC: Aplicando regla de CHORREADO. No hay sub-opciones de decorado.")
+            return []
 
         return detalles
 
