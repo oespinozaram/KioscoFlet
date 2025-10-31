@@ -13,19 +13,22 @@ from logging.handlers import RotatingFileHandler
 
 LOG_DIR = r"C:\KioscoPP\logs"
 os.makedirs(LOG_DIR, exist_ok=True)
-LOG_FILE = os.path.join(LOG_DIR, "app.log")
+log_filename = f"app-{datetime.now().strftime('%Y-%m-%d')}.log"
+LOG_FILE = os.path.join(LOG_DIR, log_filename)
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-fmt = logging.Formatter(
-    fmt='%(asctime)s | %(levelname)s | %(name)s | %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
 
-file_handler = RotatingFileHandler(LOG_FILE, maxBytes=5_000_000, backupCount=5, encoding='utf-8')
-file_handler.setFormatter(fmt)
-logger.addHandler(file_handler)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s | %(levelname)s | %(name)s | %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    handlers=[
+        logging.FileHandler(LOG_FILE, encoding='utf-8'),
+        #logging.StreamHandler(sys.stdout),
+    ]
+)
 
 # console_handler = logging.StreamHandler()
 # console_handler.setFormatter(fmt)

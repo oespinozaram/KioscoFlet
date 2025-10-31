@@ -501,7 +501,7 @@ def vista_fecha(page: ft.Page, use_cases: PedidoUseCases):
     dropdown_hora.on_change = on_time_change
 
     fecha_hoy = datetime.date.today()
-    fecha_inicial_valida = fecha_hoy + datetime.timedelta(days=4)
+    fecha_inicial_valida = fecha_hoy + datetime.timedelta(days=2)
     fecha_final_valida = fecha_hoy + relativedelta(months=+6)
 
     def open_date_picker(e):
